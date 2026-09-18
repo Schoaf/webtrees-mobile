@@ -182,4 +182,45 @@ class WebtreesClient {
     );
     return response.data as Map<String, dynamic>;
   }
+
+  /// Creates a new individual, optionally linked to [relativeTo] as their
+  /// child, spouse, father or mother. `relation: 'none'` (the default)
+  /// creates an unlinked individual.
+  Future<Map<String, dynamic>> postAddIndividual(
+    String tree, {
+    String relation = 'none',
+    String? relativeTo,
+    String? family,
+    required String given,
+    required String surname,
+    String sex = 'U',
+    String? birthDate,
+    String? birthPlace,
+    bool dead = false,
+    String? deathDate,
+    String? deathPlace,
+    String? marriageDate,
+    String? marriagePlace,
+  }) async {
+    final response = await _dio.postUri(
+      _moduleUri('AddIndividual', tree),
+      data: {
+        'relation': relation,
+        if (relativeTo != null) 'relativeTo': relativeTo,
+        if (family != null) 'family': family,
+        'given': given,
+        'surname': surname,
+        'sex': sex,
+        if (birthDate != null) 'birthDate': birthDate,
+        if (birthPlace != null) 'birthPlace': birthPlace,
+        'dead': dead,
+        if (deathDate != null) 'deathDate': deathDate,
+        if (deathPlace != null) 'deathPlace': deathPlace,
+        if (marriageDate != null) 'marriageDate': marriageDate,
+        if (marriagePlace != null) 'marriagePlace': marriagePlace,
+      },
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }
