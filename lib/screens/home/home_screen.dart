@@ -6,6 +6,7 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/gedcom.dart';
 import '../../widgets/person_card.dart';
+import '../account/account_screen.dart';
 import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
 
@@ -134,14 +135,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   initials: _initials(data.realName),
                   photoUrl: data.linkedPhotoUrl,
                   photoHeaders: ref.read(webtreesClientProvider).imageHeaders,
-                  onTap: data.linkedXref == null
-                      ? null
-                      : () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                PersonDetailScreen(xref: data.linkedXref!),
-                          ),
-                        ),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AccountScreen()),
+                  ),
                 ),
                 Expanded(
                   child: ListView(
@@ -178,13 +174,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                       if (data.birthdaysThisWeek.isNotEmpty) ...[
                         const SizedBox(height: 26),
-                        const Text(
-                          'Geburtstage diese Woche',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textSecondary,
-                          ),
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.cake_outlined,
+                              size: 17,
+                              color: AppColors.textSecondary,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Geburtstage diese Woche',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         _BirthdayList(
@@ -352,6 +358,10 @@ class _BirthdayList extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
+        // Without this, each row (an InkWell/Container shrink-wrapped to its
+        // own text) gets centered in the card by Column's default alignment
+        // instead of stretching so the text can sit at the left edge.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < events.length; i++)
             Material(

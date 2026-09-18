@@ -158,7 +158,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           if (showHome)
             FloatingActionButton(
               heroTag: 'homeFab_${widget.xref}',
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.secondary,
               foregroundColor: Colors.white,
               onPressed: _goHome,
               tooltip: 'Zum Start',

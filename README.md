@@ -5,7 +5,9 @@ Flutter-Begleit-App (Android/iOS) für die selbst gehostete [webtrees](https://w
 ## Funktionen
 
 ### Start
-Startperson, Suche und "Neue Person hinzufügen" auf einen Blick. Darunter, falls zutreffend, **"Geburtstage diese Woche"** — lebende Personen mit Geburtstag in den nächsten 7 Tagen, mit Alter und Countdown ("wird 31 · in 2 Tagen"). Verstorbene werden nie angezeigt. Bottom-Navigation: **Start / Suche / Neu**.
+Startperson und Suche auf einen Blick (eine neue Person legt man über den "Neu"-Tab unten an — kein eigener Button mehr auf dem Start-Bildschirm). Darunter, falls zutreffend, ein Block **"Geburtstage diese Woche"** (mit Torten-Icon) — lebende Personen mit Geburtstag in den nächsten 7 Tagen, als einfache Liste (Name, klein darunter "wird 31 · am Sonntag"), kein Foto, keine Card-Optik wie bei Suchergebnissen. Zeilen bleiben antippbar. Verstorbene werden nie angezeigt. Bottom-Navigation: **Start / Suche / Neu**.
+
+Oben rechts: Initialen oder Foto der mit dem Konto verknüpften Person — antippbar, öffnet **"Mein Konto"**.
 
 ![Start](docs/screenshots/home.png)
 
@@ -46,6 +48,11 @@ Formular mit Vorname/Nachname, Geschlecht, Geburtsdatum/-ort (mit Orts-Autovervo
 ### Offline-Fallback
 Ist der Server beim schnellen Fakt-Erfassen nicht erreichbar, wird der Eintrag lokal als Notiz gespeichert und kann später synchronisiert werden.
 
+### Mein Konto
+Eigene Seite (nicht dasselbe wie eine Personen-Detailseite): Benutzername, Name und Rolle des webtrees-Kontos, dazu die damit **verknüpfte Person** und die **Startperson** des Baums, je als anklickbare Karte zur jeweiligen Personen-Detailseite. Erreichbar über den Kreis oben rechts am Start-Bildschirm.
+
+![Mein Konto](docs/screenshots/account.png)
+
 ## Design
 
 Das komplette UI-Design (alle Screens, bearbeitbar) liegt als Claude-Design-Canvas vor: **"Stammbaum App Screens"**. Es spiegelt jeweils den aktuellen Stand der App wider und wird bei größeren UI-Änderungen aktualisiert.
@@ -59,7 +66,6 @@ Das komplette UI-Design (alle Screens, bearbeitbar) liegt als Claude-Design-Canv
 
 ### Bekannte Lücken (noch nicht umgesetzt)
 - Mehrsprachigkeit (Deutsch/Englisch)
-- "Mein Konto"-Profilseite mit verknüpftem Personendatensatz
 
 ### Hinweis zum Server
 "Geburtstage diese Woche" nutzt den bestehenden `Anniversaries`-Endpunkt des `webtreesand-api`-Moduls. Dessen Julian-Day-Berechnung (`->julianDay()` auf `CarbonImmutable`, nie eine echte Carbon-Methode) führte serverseitig zu einem 500-Fehler — behoben in `modules_v4/webtreesand-api/WebtreesAndApiModule.php` (nutzt jetzt `Fisharebest\ExtCalendar\GregorianCalendar`, dieselbe Kalender-Bibliothek, die webtrees selbst mitliefert). Geprüft: Der Fehler existiert **nicht** in webtrees-Core selbst — daher kein Pull-Request nötig, nur der third-party-Modul-Fix. (Ein erster Versuch nutzte `TimestampFactory::todayJulianDay()`, das es in webtrees-Core zwar gibt, aber erst ab einer neueren Version als der auf Produktion laufenden 2.2.6 — das brach kurzzeitig die Produktion, bevor auf die versionsunabhängige Variante gewechselt wurde.) Ist auf Produktion deployt und verifiziert.
