@@ -16,6 +16,7 @@ Personensuche mit Live-Ergebnissen. Jede Zeile zeigt:
 - Foto oder Silhouette, nach Geschlecht eingefärbt
 - einen farbigen Balken am linken Rand als zusätzliches Geschlechts-Kennzeichen (auch erkennbar, wenn ein Foto hinterlegt ist)
 - ein Grabstein-Symbol für verstorbene Personen
+- darunter: bei lebenden Personen das **volle Geburtsdatum** (kein Bindestrich); erst bei verstorbenen Personen "Jahr–Jahr". Gilt überall, wo diese Zeile erscheint (Suche, Eltern/Ehepartner/Kinder, Mein Konto).
 
 ![Suche](docs/screenshots/search.png)
 
@@ -50,6 +51,8 @@ Ist der Server beim schnellen Fakt-Erfassen nicht erreichbar, wird der Eintrag l
 
 ### Mein Konto
 Eigene Seite (nicht dasselbe wie eine Personen-Detailseite): Benutzername, Name und Rolle des webtrees-Kontos, dazu die damit **verknüpfte Person** und die **Startperson** des Baums, je als anklickbare Karte zur jeweiligen Personen-Detailseite. Erreichbar über den Kreis oben rechts am Start-Bildschirm.
+
+Der Stift oben rechts schaltet auf Bearbeiten um: **Name** wird zum Textfeld, die **Startperson** lässt sich über "Startperson ändern" per Personensuche neu wählen, unten ein fixierter Speichern-Button. Benutzername und Rolle bleiben absichtlich schreibgeschützt (Rolle ist serverseitig festgelegt), die **verknüpfte Person** ebenfalls — das Ändern der Verknüpfung ist in webtrees selbst eine Admin-Funktion (Benutzerverwaltung), keine Selbstbedienung, und die App hält sich an diese Grenze.
 
 ![Mein Konto](docs/screenshots/account.png)
 

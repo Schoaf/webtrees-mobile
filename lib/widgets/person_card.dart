@@ -27,12 +27,27 @@ class PersonCard extends ConsumerWidget {
   /// Replaces the lifespan line when set, e.g. a birthday countdown.
   final String? subtitle;
 
+  /// Living people: the full birth date, not just the year, and no
+  /// trailing dash — that dash means "born, still open-ended" for a
+  /// year-only display, but reads oddly after a full date. Deceased
+  /// people: webtrees' own "birth year–death year" lifespan string.
+  String _defaultSubtitle() {
+    final isDead = person['isDead'] as bool? ?? false;
+    final lifespan = person['lifespan'] as String? ?? '';
+    if (isDead) return lifespan;
+
+    final birth = person['birth'] as Map<String, dynamic>?;
+    final birthDate = birth?['date'] as Map<String, dynamic>?;
+    final text = birthDate?['text'] as String?;
+    return (text != null && text.isNotEmpty) ? text : lifespan;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sex = person['sex'] as String? ?? 'U';
     final isDead = person['isDead'] as bool? ?? false;
     final name = stripNameSlashes(person['name'] as String? ?? '(kein Name)');
-    final lifespan = subtitle ?? (person['lifespan'] as String? ?? '');
+    final lifespan = subtitle ?? _defaultSubtitle();
     final avatarSize = compact ? 40.0 : 42.0;
     final photoHeaders = ref.read(webtreesClientProvider).imageHeaders;
 

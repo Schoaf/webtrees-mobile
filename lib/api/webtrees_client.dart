@@ -188,6 +188,26 @@ class WebtreesClient {
     return response.data as Map<String, dynamic>;
   }
 
+  /// Updates the logged-in user's own account: display name and/or which
+  /// person is the tree's Startperson. Deliberately doesn't cover which
+  /// person the account is *linked* to — in webtrees itself that's an
+  /// admin-only setting (user management), not self-service.
+  Future<Map<String, dynamic>> updateAccount(
+    String tree, {
+    String? realName,
+    String? defaultXref,
+  }) async {
+    final response = await _dio.postUri(
+      _moduleUri('Account', tree),
+      data: {
+        if (realName != null) 'realName': realName,
+        if (defaultXref != null) 'defaultXref': defaultXref,
+      },
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
   /// Adds or edits a single fact. Omit [factId] to add a new fact.
   Future<Map<String, dynamic>> postFact(
     String tree,

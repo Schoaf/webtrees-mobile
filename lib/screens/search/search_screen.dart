@@ -12,7 +12,12 @@ import 'person_detail_screen.dart';
 /// them. Charts are deliberately out of scope for v1 (hard to use on a
 /// small screen) — this is a plain searchable list.
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.pickerTitle});
+
+  /// When set, tapping a result pops this screen with the chosen person
+  /// instead of pushing its detail page — used to pick a person for
+  /// another screen (e.g. changing the Startperson on "Mein Konto").
+  final String? pickerTitle;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -89,13 +94,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Suche',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                    ),
+                  Row(
+                    children: [
+                      if (widget.pickerTitle != null)
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      if (widget.pickerTitle != null) const SizedBox(width: 8),
+                      Text(
+                        widget.pickerTitle ?? 'Suche',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   Container(
@@ -179,12 +199,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         final person = _results[index];
         return PersonCard(
           person: person,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  PersonDetailScreen(xref: person['xref'] as String),
-            ),
-          ),
+          onTap: widget.pickerTitle != null
+              ? () => Navigator.of(context).pop(person)
+              : () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        PersonDetailScreen(xref: person['xref'] as String),
+                  ),
+                ),
         );
       },
     );

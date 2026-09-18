@@ -5,6 +5,7 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/person_card.dart';
 import '../search/person_detail_screen.dart';
+import '../search/search_screen.dart';
 
 /// "Mein Konto" — the webtrees account itself: username/name/role, which
 /// person record it's linked to, and which person is the tree's
@@ -18,11 +19,24 @@ class AccountScreen extends ConsumerStatefulWidget {
 
 class _AccountScreenState extends ConsumerState<AccountScreen> {
   late Future<_AccountData> _future;
+  bool _editing = false;
+  bool _saving = false;
+  String? _saveError;
+
+  final _realNameController = TextEditingController();
+  Map<String, dynamic>? _pendingStartPerson;
+  String? _pendingStartXref;
 
   @override
   void initState() {
     super.initState();
     _future = _load();
+  }
+
+  @override
+  void dispose() {
+    _realNameController.dispose();
+    super.dispose();
   }
 
   Future<_AccountData> _load() async {
@@ -72,29 +86,129 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     _ => '—',
   };
 
+  void _startEditing(_AccountData data) {
+    setState(() {
+      _editing = true;
+      _saveError = null;
+      _realNameController.text = data.realName;
+      _pendingStartPerson = data.startPerson;
+      _pendingStartXref = data.startXref;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _editing = false;
+      _saveError = null;
+    });
+  }
+
+  Future<void> _pickStartPerson() async {
+    final picked = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (_) => const SearchScreen(pickerTitle: 'Startperson wählen'),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _pendingStartPerson = picked;
+      _pendingStartXref = picked['xref'] as String?;
+    });
+  }
+
+  Future<void> _save(_AccountData original) async {
+    setState(() {
+      _saving = true;
+      _saveError = null;
+    });
+
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+    final realName = _realNameController.text.trim();
+    try {
+      final result = await client.updateAccount(
+        tree,
+        realName: realName != original.realName ? realName : null,
+        defaultXref: _pendingStartXref != original.startXref
+            ? (_pendingStartXref ?? '')
+            : null,
+      );
+      if (result['ok'] != true) {
+        throw Exception(result['error'] ?? 'unbekannter Fehler');
+      }
+      if (!mounted) return;
+      setState(() {
+        _editing = false;
+        _saving = false;
+        _future = _load();
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Änderungen gespeichert.')));
+    } on Exception catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _saveError = 'Speichern fehlgeschlagen: $e';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _Header(onBack: () => Navigator.of(context).maybePop()),
-            Expanded(
-              child: FutureBuilder<_AccountData>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Konnte nicht laden: ${snapshot.error}'),
-                    );
-                  }
+    return FutureBuilder<_AccountData>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: SafeArea(child: Center(child: CircularProgressIndicator())),
+          );
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: Text('Konnte nicht laden: ${snapshot.error}'),
+              ),
+            ),
+          );
+        }
 
-                  final data = snapshot.data!;
-                  return ListView(
+        final data = snapshot.data!;
+        return Scaffold(
+          bottomNavigationBar: _editing
+              ? SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                    child: FilledButton(
+                      onPressed: _saving ? null : () => _save(data),
+                      child: _saving
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Speichern'),
+                    ),
+                  ),
+                )
+              : null,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _Header(
+                  editing: _editing,
+                  onBack: () => Navigator.of(context).maybePop(),
+                  onEditToggle: _editing
+                      ? _cancelEditing
+                      : () => _startEditing(data),
+                ),
+                Expanded(
+                  child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                     children: [
                       Container(
@@ -110,7 +224,34 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                               label: 'Benutzername',
                               value: data.userName,
                             ),
-                            _InfoRow(label: 'Name', value: data.realName),
+                            if (_editing)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: AppColors.divider,
+                                    ),
+                                  ),
+                                ),
+                                child: TextField(
+                                  controller: _realNameController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Name',
+                                    isDense: true,
+                                    border: InputBorder.none,
+                                  ),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              )
+                            else
+                              _InfoRow(label: 'Name', value: data.realName),
                             _InfoRow(
                               label: 'Rolle',
                               value: data.role,
@@ -119,6 +260,15 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           ],
                         ),
                       ),
+                      if (_saveError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _saveError!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       const Text(
                         'Verknüpfte Person',
@@ -153,7 +303,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (data.startPerson != null && data.startXref != null)
+                      if (_editing)
+                        _pendingStartPerson != null
+                            ? PersonCard(
+                                person: _pendingStartPerson!,
+                                onTap: _pickStartPerson,
+                              )
+                            : _EmptyNote(
+                                text: 'Keine Startperson festgelegt.',
+                                onTap: _pickStartPerson,
+                              )
+                      else if (data.startPerson != null &&
+                          data.startXref != null)
                         PersonCard(
                           person: data.startPerson!,
                           onTap: () => Navigator.of(context).push(
@@ -165,22 +326,36 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         )
                       else
                         const _EmptyNote(text: 'Keine Startperson festgelegt.'),
+                      if (_editing) ...[
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: _pickStartPerson,
+                          icon: const Icon(Icons.swap_horiz, size: 18),
+                          label: const Text('Startperson ändern'),
+                        ),
+                      ],
                     ],
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onBack});
+  const _Header({
+    required this.onBack,
+    required this.editing,
+    required this.onEditToggle,
+  });
 
   final VoidCallback onBack;
+  final bool editing;
+  final VoidCallback onEditToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -196,13 +371,23 @@ class _Header extends StatelessWidget {
             onPressed: onBack,
             icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           ),
-          const Text(
-            'Mein Konto',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w500,
+          const Expanded(
+            child: Text(
+              'Mein Konto',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: onEditToggle,
+            icon: Icon(
+              editing ? Icons.close : Icons.edit_outlined,
               color: AppColors.textPrimary,
             ),
+            tooltip: editing ? 'Bearbeiten abbrechen' : 'Bearbeiten',
           ),
         ],
       ),
@@ -251,22 +436,45 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _EmptyNote extends StatelessWidget {
-  const _EmptyNote({required this.text});
+  const _EmptyNote({required this.text, this.onTap});
 
   final String text;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: AppColors.cardShadow,
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: AppColors.cardShadow,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              if (onTap != null)
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: AppColors.textTertiary,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
