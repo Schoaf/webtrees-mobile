@@ -16,7 +16,11 @@ class WebtreesClient {
       : _baseUrl = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/',
         _dio = Dio(BaseOptions(
           baseUrl: baseUrl.endsWith('/') ? baseUrl : '$baseUrl/',
-          followRedirects: true,
+          // The only redirect we ever get is login's 302, and it redirects
+          // to the *server's* base_url — unreachable from behind a NAT
+          // alias like the Android emulator's 10.0.2.2. We only care about
+          // the status code, never the redirect target, so don't follow it.
+          followRedirects: false,
           validateStatus: (status) => status != null && status < 500,
         )) {
     _dio.interceptors.add(InterceptorsWrapper(
@@ -47,6 +51,7 @@ class WebtreesClient {
 
   String? _cookie;
   String? _csrfToken;
+  String? _serverBaseUrl;
 
   bool get hasSession => _cookie != null;
 
@@ -83,13 +88,18 @@ class WebtreesClient {
     );
   }
 
-  /// `GET Info` — also the way we discover/refresh the CSRF token.
+  /// `GET Info` — also the way we discover/refresh the CSRF token and the
+  /// server's own idea of its base URL (see [login]).
   Future<Map<String, dynamic>> info(String tree) async {
     final response = await _dio.getUri(_moduleUri('Info', tree));
     final data = response.data as Map<String, dynamic>;
     final csrf = data['csrf'];
     if (csrf is String) {
       _csrfToken = csrf;
+    }
+    final baseUrl = data['baseUrl'];
+    if (baseUrl is String && baseUrl.isNotEmpty) {
+      _serverBaseUrl = baseUrl;
     }
     return data;
   }
@@ -101,14 +111,22 @@ class WebtreesClient {
     required String username,
     required String password,
   }) async {
-    final loginUrl = Uri.parse(_baseUrl);
+    // webtrees validates `url` with `str_starts_with($url, $base_url)`,
+    // where $base_url is the server's *own* configured base_url — not
+    // whatever host/port the client happened to connect through. Those
+    // differ whenever there's a NAT alias or proxy in between (e.g. the
+    // Android emulator's 10.0.2.2), so send the server's own baseUrl (from
+    // Info) rather than our locally-configured one, or the login gets
+    // rejected with "The parameter 'url' is invalid" before it even reaches
+    // the credential check.
+    final loginUrl = _serverBaseUrl ?? _baseUrl;
     final response = await _dio.post(
       'index.php',
       queryParameters: {'route': '/login'},
       data: {
         'username': username,
         'password': password,
-        'url': loginUrl.toString(),
+        'url': loginUrl,
         '_csrf': _csrfToken,
       },
       options: Options(
@@ -131,6 +149,13 @@ class WebtreesClient {
 
   Future<Map<String, dynamic>> individual(String tree, String xref) async {
     final response = await _dio.getUri(_moduleUri('Individual', tree, {'xref': xref}));
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Labelled list of fact types the app can offer to add, e.g. for a quick
+  /// "pick a fact type" chooser. [type] is `INDI` or `FAM`.
+  Future<Map<String, dynamic>> tags(String tree, {String type = 'INDI'}) async {
+    final response = await _dio.getUri(_moduleUri('Tags', tree, {'type': type}));
     return response.data as Map<String, dynamic>;
   }
 

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -9,12 +11,13 @@ const _secureStorage = FlutterSecureStorage();
 /// The webtrees site to talk to. Settings screen lets the user change this;
 /// defaults to the local dev instance for now.
 ///
-/// Note for local development: the Android emulator can't reach the host's
-/// `localhost` directly — use `10.0.2.2` instead. The iOS simulator can use
-/// `localhost` as-is.
+/// The Android emulator can't reach the host's `localhost` directly — its
+/// special alias `10.0.2.2` routes to the host instead. The iOS simulator
+/// (and real devices on the same network, once this becomes configurable)
+/// can use `localhost`/a real hostname as-is.
 class ServerUrlNotifier extends Notifier<String> {
   @override
-  String build() => 'http://localhost:8080/';
+  String build() => Platform.isAndroid ? 'http://10.0.2.2:8080/' : 'http://localhost:8080/';
 }
 
 final serverUrlProvider = NotifierProvider<ServerUrlNotifier, String>(ServerUrlNotifier.new);
