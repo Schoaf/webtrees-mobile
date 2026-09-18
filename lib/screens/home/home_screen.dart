@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../repositories/quick_note_store.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/gedcom.dart';
 import '../../widgets/person_card.dart';
-import '../add_person/add_person_screen.dart';
 import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
 
@@ -42,6 +42,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       startPerson = individual['person'] as Map<String, dynamic>?;
     }
 
+    // "Mein Konto" — the person record linked to this webtrees account,
+    // distinct from the tree's Startperson (defaultXref): shown as the
+    // header avatar and opened by tapping it.
+    Map<String, dynamic>? linkedPerson;
+    if (userXref.isNotEmpty) {
+      linkedPerson = userXref == xref
+          ? startPerson
+          : (await client.individual(tree, userXref))['person']
+                as Map<String, dynamic>?;
+    }
+
     final anniversaries = await client.anniversaries(tree, days: 7);
     final birthdaysThisWeek = (anniversaries['data'] as List<dynamic>? ?? [])
         .cast<Map<String, dynamic>>()
@@ -60,16 +71,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       realName:
           (info['user'] as Map<String, dynamic>)['realName'] as String? ?? '',
       birthdaysThisWeek: birthdaysThisWeek,
+      linkedXref: userXref.isNotEmpty ? userXref : null,
+      linkedPhotoUrl: linkedPerson?['thumb'] as String?,
     );
   }
 
   String _birthdaySubtitle(Map<String, dynamic> event) {
     final years = event['years'] as int?;
     final inDays = event['inDays'] as int? ?? 0;
+    const weekdays = [
+      'Montag',
+      'Dienstag',
+      'Mittwoch',
+      'Donnerstag',
+      'Freitag',
+      'Samstag',
+      'Sonntag',
+    ];
     final when = switch (inDays) {
       0 => 'heute',
       1 => 'morgen',
-      _ => 'in $inDays Tagen',
+      _ =>
+        'am ${weekdays[DateTime.now().add(Duration(days: inDays)).weekday - 1]}',
     };
     return years == null ? when : 'wird $years · $when';
   }
@@ -109,6 +132,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _Header(
                   title: data.treeTitle,
                   initials: _initials(data.realName),
+                  photoUrl: data.linkedPhotoUrl,
+                  photoHeaders: ref.read(webtreesClientProvider).imageHeaders,
+                  onTap: data.linkedXref == null
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                PersonDetailScreen(xref: data.linkedXref!),
+                          ),
+                        ),
                 ),
                 Expanded(
                   child: ListView(
@@ -120,18 +153,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             builder: (_) => const SearchScreen(),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      FilledButton.icon(
-                        onPressed: () => Navigator.of(context)
-                            .push(
-                              MaterialPageRoute(
-                                builder: (_) => const AddPersonScreen(),
-                              ),
-                            )
-                            .then((_) => setState(() => _future = _load())),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Neue Person hinzufügen'),
                       ),
                       const SizedBox(height: 18),
                       if (data.startPerson != null) ...[
@@ -156,34 +177,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ],
                       if (data.birthdaysThisWeek.isNotEmpty) ...[
+                        const SizedBox(height: 26),
                         const Text(
                           'Geburtstage diese Woche',
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.bold,
                             color: AppColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        for (final event in data.birthdaysThisWeek) ...[
-                          PersonCard(
-                            person: event['person'] as Map<String, dynamic>,
-                            subtitle: _birthdaySubtitle(event),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => PersonDetailScreen(
-                                  xref:
-                                      (event['person']
-                                              as Map<String, dynamic>)['xref']
-                                          as String,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        const SizedBox(height: 10),
+                        _BirthdayList(
+                          events: data.birthdaysThisWeek,
+                          subtitle: _birthdaySubtitle,
+                        ),
                       ],
+                      const SizedBox(height: 18),
                       const _UnsyncedNotes(),
                     ],
                   ),
@@ -208,13 +217,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.initials});
+  const _Header({
+    required this.title,
+    required this.initials,
+    this.photoUrl,
+    this.photoHeaders,
+    this.onTap,
+  });
 
   final String title;
   final String initials;
+  final String? photoUrl;
+  final Map<String, String>? photoHeaders;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
       decoration: BoxDecoration(
@@ -235,20 +254,38 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              initials,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
+          GestureDetector(
+            onTap: onTap,
+            child: ClipOval(
+              child: Container(
+                width: 40,
+                height: 40,
+                color: AppColors.primary.withValues(alpha: 0.14),
+                alignment: Alignment.center,
+                child: hasPhoto
+                    ? Image.network(
+                        photoUrl!,
+                        headers: photoHeaders,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Text(
+                          initials,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        initials,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -295,6 +332,86 @@ class _SearchEntryButton extends StatelessWidget {
   }
 }
 
+/// Birthdays shown as a plain list embedded in one bordered block — not as
+/// individual button/card rows like search results — so it reads as one
+/// grouped piece of information rather than a stack of tappable buttons.
+/// Rows are still tappable through to the person's detail page.
+class _BirthdayList extends StatelessWidget {
+  const _BirthdayList({required this.events, required this.subtitle});
+
+  final List<Map<String, dynamic>> events;
+  final String Function(Map<String, dynamic>) subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppColors.cardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < events.length; i++)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PersonDetailScreen(
+                      xref:
+                          (events[i]['person'] as Map<String, dynamic>)['xref']
+                              as String,
+                    ),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: i < events.length - 1
+                        ? const Border(
+                            bottom: BorderSide(color: AppColors.divider),
+                          )
+                        : null,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stripNameSlashes(
+                          (events[i]['person'] as Map<String, dynamic>)['name']
+                                  as String? ??
+                              '',
+                        ),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle(events[i]),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HomeData {
   const _HomeData({
     required this.treeTitle,
@@ -302,6 +419,8 @@ class _HomeData {
     required this.startPerson,
     required this.realName,
     required this.birthdaysThisWeek,
+    required this.linkedXref,
+    required this.linkedPhotoUrl,
   });
 
   final String treeTitle;
@@ -312,6 +431,11 @@ class _HomeData {
   /// Living individuals with a birthday in the next 7 days, soonest first
   /// (each entry is one Anniversaries event: {person, years, inDays, ...}).
   final List<Map<String, dynamic>> birthdaysThisWeek;
+
+  /// The account's own linked person ("Mein Konto"), if any — distinct from
+  /// [startPerson] (the tree's Startperson).
+  final String? linkedXref;
+  final String? linkedPhotoUrl;
 }
 
 class _UnsyncedNotes extends ConsumerWidget {

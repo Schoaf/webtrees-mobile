@@ -141,6 +141,47 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
+  /// Both FABs live in the same Scaffold slot (a full-width Row) so they
+  /// always sit at the same height, respecting the safe area the same way —
+  /// a raw Positioned widget in the body drifted below the safe-area inset
+  /// on notched/home-indicator devices.
+  Widget? _buildFabs({required bool canEdit, required String name}) {
+    final showHome = widget.depth >= 2;
+    final showAddFact = canEdit;
+    if (!showHome && !showAddFact) return null;
+
+    return SizedBox(
+      width: MediaQuery.sizeOf(context).width - 32,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (showHome)
+            FloatingActionButton(
+              heroTag: 'homeFab_${widget.xref}',
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              onPressed: _goHome,
+              tooltip: 'Zum Start',
+              child: const Icon(Icons.home),
+            )
+          else
+            const SizedBox.shrink(),
+          if (showAddFact)
+            FloatingActionButton.extended(
+              heroTag: 'addFactFab_${widget.xref}',
+              onPressed: () => _openAddFact(name),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.bolt),
+              label: const Text('Fakt hinzufügen'),
+            )
+          else
+            const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openAddFact(String name) async {
     final result = await showModalBottomSheet<AddFactResult>(
       context: context,
@@ -297,15 +338,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
 
         return Scaffold(
-          floatingActionButton: canEdit && !_editing
-              ? FloatingActionButton.extended(
-                  heroTag: 'addFactFab_${widget.xref}',
-                  onPressed: () => _openAddFact(name),
-                  backgroundColor: AppColors.primary,
-                  icon: const Icon(Icons.bolt),
-                  label: const Text('Fakt hinzufügen'),
-                )
-              : null,
+          floatingActionButton: _editing
+              ? null
+              : _buildFabs(canEdit: canEdit, name: name),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
           bottomNavigationBar: _editing
               ? SafeArea(
                   child: Padding(
@@ -333,137 +370,114 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
               : null,
           body: SafeArea(
             bottom: false,
-            child: Stack(
+            child: Column(
               children: [
-                Column(
-                  children: [
-                    _Header(
-                      name: name,
-                      editing: _editing,
-                      onEditToggle: canEdit ? _toggleEditing : null,
-                    ),
-                    Expanded(
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
-                            child: Column(
-                              children: [
-                                PersonAvatar(
-                                  sex: person['sex'] as String? ?? 'U',
-                                  isDead: person['isDead'] as bool? ?? false,
-                                  size: 84,
-                                  photoUrl: photoUrl,
-                                  photoHeaders: ref
-                                      .read(webtreesClientProvider)
-                                      .imageHeaders,
-                                  onTap: hasPhoto
-                                      ? () => _openPhotoViewer(
-                                          media.isNotEmpty
-                                              ? (media.first['file']
-                                                        as String? ??
-                                                    photoUrl)
-                                              : photoUrl,
-                                        )
-                                      : (canEdit ? _pickAndUploadPhoto : null),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  stripNameSlashes(name),
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                if (_lifespanText(person).isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      _lifespanText(person),
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          if (!_editing && facts.isNotEmpty)
-                            _FactsCard(facts: facts),
-                          if (_editing)
-                            _EditFactsSection(
-                              key: _editKey,
-                              xref: widget.xref,
-                              facts: facts,
-                              savingNotifier: _savingNotifier,
-                              onSaved: _onEditSaved,
-                            ),
-                          for (final family in parentFamilies) ...[
-                            if (family['husband'] != null ||
-                                family['wife'] != null)
-                              _Section(
-                                title: 'Eltern',
-                                people: [
-                                  if (family['husband'] != null)
-                                    family['husband'] as Map<String, dynamic>,
-                                  if (family['wife'] != null)
-                                    family['wife'] as Map<String, dynamic>,
-                                ],
-                                depth: widget.depth,
-                              ),
-                          ],
-                          for (final family in spouseFamilies) ...[
-                            if (family['spouse'] != null)
-                              _Section(
-                                title:
-                                    (family['spouse']
-                                            as Map<String, dynamic>)['sex'] ==
-                                        'F'
-                                    ? 'Ehepartnerin'
-                                    : 'Ehepartner',
-                                people: [
-                                  family['spouse'] as Map<String, dynamic>,
-                                ],
-                                depth: widget.depth,
-                              ),
-                          ],
-                          if (spouseFamilies
-                              .expand(
-                                (f) => f['children'] as List<dynamic>? ?? [],
-                              )
-                              .isNotEmpty)
-                            _Section(
-                              title:
-                                  'Kinder (${spouseFamilies.fold<int>(0, (n, f) => n + (f['children'] as List<dynamic>? ?? []).length)})',
-                              people: spouseFamilies
-                                  .expand(
-                                    (f) =>
-                                        (f['children'] as List<dynamic>? ?? [])
-                                            .cast<Map<String, dynamic>>(),
-                                  )
-                                  .toList(),
-                              depth: widget.depth,
-                            ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
-                  ],
+                _Header(
+                  name: name,
+                  editing: _editing,
+                  onEditToggle: canEdit ? _toggleEditing : null,
                 ),
-                if (widget.depth >= 2)
-                  Positioned(
-                    left: 16,
-                    bottom: 16,
-                    child: FloatingActionButton(
-                      heroTag: 'homeFab_${widget.xref}',
-                      backgroundColor: AppColors.primary,
-                      onPressed: _goHome,
-                      tooltip: 'Zum Start',
-                      child: const Icon(Icons.home, color: Colors.white),
-                    ),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+                        child: Column(
+                          children: [
+                            PersonAvatar(
+                              sex: person['sex'] as String? ?? 'U',
+                              isDead: person['isDead'] as bool? ?? false,
+                              size: 84,
+                              photoUrl: photoUrl,
+                              photoHeaders: ref
+                                  .read(webtreesClientProvider)
+                                  .imageHeaders,
+                              onTap: hasPhoto
+                                  ? () => _openPhotoViewer(
+                                      media.isNotEmpty
+                                          ? (media.first['file'] as String? ??
+                                                photoUrl)
+                                          : photoUrl,
+                                    )
+                                  : (canEdit ? _pickAndUploadPhoto : null),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              stripNameSlashes(name),
+                              style: const TextStyle(
+                                fontSize: 24,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            if (_lifespanText(person).isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  _lifespanText(person),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (!_editing && facts.isNotEmpty)
+                        _FactsCard(facts: facts),
+                      if (_editing)
+                        _EditFactsSection(
+                          key: _editKey,
+                          xref: widget.xref,
+                          facts: facts,
+                          savingNotifier: _savingNotifier,
+                          onSaved: _onEditSaved,
+                        ),
+                      for (final family in parentFamilies) ...[
+                        if (family['husband'] != null || family['wife'] != null)
+                          _Section(
+                            title: 'Eltern',
+                            people: [
+                              if (family['husband'] != null)
+                                family['husband'] as Map<String, dynamic>,
+                              if (family['wife'] != null)
+                                family['wife'] as Map<String, dynamic>,
+                            ],
+                            depth: widget.depth,
+                          ),
+                      ],
+                      for (final family in spouseFamilies) ...[
+                        if (family['spouse'] != null)
+                          _Section(
+                            title:
+                                (family['spouse']
+                                        as Map<String, dynamic>)['sex'] ==
+                                    'F'
+                                ? 'Ehepartnerin'
+                                : 'Ehepartner',
+                            people: [family['spouse'] as Map<String, dynamic>],
+                            depth: widget.depth,
+                          ),
+                      ],
+                      if (spouseFamilies
+                          .expand((f) => f['children'] as List<dynamic>? ?? [])
+                          .isNotEmpty)
+                        _Section(
+                          title:
+                              'Kinder (${spouseFamilies.fold<int>(0, (n, f) => n + (f['children'] as List<dynamic>? ?? []).length)})',
+                          people: spouseFamilies
+                              .expand(
+                                (f) => (f['children'] as List<dynamic>? ?? [])
+                                    .cast<Map<String, dynamic>>(),
+                              )
+                              .toList(),
+                          depth: widget.depth,
+                        ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
+                ),
               ],
             ),
           ),
