@@ -27,22 +27,22 @@ class QuickNote {
   final bool synced;
 
   Map<String, Object?> toMap() => {
-        if (id != null) 'id': id,
-        'person_guess': personGuess,
-        'xref': xref,
-        'text': text,
-        'created_at': createdAt.toIso8601String(),
-        'synced': synced ? 1 : 0,
-      };
+    if (id != null) 'id': id,
+    'person_guess': personGuess,
+    'xref': xref,
+    'text': text,
+    'created_at': createdAt.toIso8601String(),
+    'synced': synced ? 1 : 0,
+  };
 
   static QuickNote fromMap(Map<String, Object?> map) => QuickNote(
-        id: map['id'] as int?,
-        personGuess: map['person_guess'] as String,
-        xref: map['xref'] as String?,
-        text: map['text'] as String,
-        createdAt: DateTime.parse(map['created_at'] as String),
-        synced: (map['synced'] as int) == 1,
-      );
+    id: map['id'] as int?,
+    personGuess: map['person_guess'] as String,
+    xref: map['xref'] as String?,
+    text: map['text'] as String,
+    createdAt: DateTime.parse(map['created_at'] as String),
+    synced: (map['synced'] as int) == 1,
+  );
 }
 
 class QuickNoteStore {
@@ -83,12 +83,21 @@ class QuickNoteStore {
 
   Future<List<QuickNote>> unsynced() async {
     final db = await _database();
-    final rows = await db.query('quick_notes', where: 'synced = 0', orderBy: 'created_at DESC');
+    final rows = await db.query(
+      'quick_notes',
+      where: 'synced = 0',
+      orderBy: 'created_at DESC',
+    );
     return rows.map(QuickNote.fromMap).toList();
   }
 
   Future<void> markSynced(int id) async {
     final db = await _database();
-    await db.update('quick_notes', {'synced': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'quick_notes',
+      {'synced': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 }

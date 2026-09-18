@@ -59,7 +59,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       final response = await client.individuals(tree, query: query);
       if (!mounted) return;
       setState(() {
-        _results = (response['data'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+        _results = (response['data'] as List<dynamic>? ?? [])
+            .cast<Map<String, dynamic>>();
         _loading = false;
         _searched = true;
       });
@@ -75,53 +76,79 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            decoration: BoxDecoration(color: AppColors.surface, boxShadow: AppColors.cardShadow),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Suche', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-                const SizedBox(height: 14),
-                Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: AppColors.primary, width: 2),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                boxShadow: AppColors.cardShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Suche',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, size: 19, color: AppColors.textSecondary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _queryController,
-                          focusNode: _focusNode,
-                          onChanged: _onChanged,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isCollapsed: true,
-                            hintText: 'Name eingeben…',
-                          ),
-                          style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
+                  const SizedBox(height: 14),
+                  Container(
+                    height: 56,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: AppColors.primary, width: 2),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search,
+                          size: 19,
+                          color: AppColors.textSecondary,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _queryController,
+                            focusNode: _focusNode,
+                            onChanged: _onChanged,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              isCollapsed: true,
+                              hintText: 'Name eingeben…',
+                            ),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (_searched) ...[
-                  const SizedBox(height: 10),
-                  Text('${_results.length} Treffer', style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+                  if (_searched) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      '${_results.length} Treffer',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          Expanded(child: _buildBody()),
-        ],
+            Expanded(child: _buildBody()),
+          ],
+        ),
       ),
     );
   }
@@ -129,8 +156,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return Center(child: Text(_error!));
-    if (!_searched) return const Center(child: Text('Suche nach einem Namen.', style: TextStyle(color: AppColors.textTertiary)));
-    if (_results.isEmpty) return const Center(child: Text('Keine Treffer.', style: TextStyle(color: AppColors.textTertiary)));
+    if (!_searched)
+      return const Center(
+        child: Text(
+          'Suche nach einem Namen.',
+          style: TextStyle(color: AppColors.textTertiary),
+        ),
+      );
+    if (_results.isEmpty)
+      return const Center(
+        child: Text(
+          'Keine Treffer.',
+          style: TextStyle(color: AppColors.textTertiary),
+        ),
+      );
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -141,7 +180,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         return PersonCard(
           person: person,
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: person['xref'] as String)),
+            MaterialPageRoute(
+              builder: (_) =>
+                  PersonDetailScreen(xref: person['xref'] as String),
+            ),
           ),
         );
       },

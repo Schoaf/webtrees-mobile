@@ -45,7 +45,8 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
       final response = await client.tags(tree, type: 'INDI');
       if (!mounted) return;
       setState(() {
-        _tags = (response['data'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+        _tags = (response['data'] as List<dynamic>? ?? [])
+            .cast<Map<String, dynamic>>();
         _loadingTags = false;
       });
     } on Exception catch (e) {
@@ -75,7 +76,9 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
         widget.xref,
         tag: tag,
         value: value.isEmpty ? null : value,
-        date: _dateController.text.trim().isEmpty ? null : _dateController.text.trim(),
+        date: _dateController.text.trim().isEmpty
+            ? null
+            : _dateController.text.trim(),
       );
       if (!mounted) return;
       if (result['ok'] == true) {
@@ -92,12 +95,15 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
       // Connectivity problem — fall back to a local note so nothing said
       // out loud gets lost while waiting for a signal.
       final store = ref.read(quickNoteStoreProvider);
-      await store.add(QuickNote(
-        personGuess: widget.personName,
-        xref: widget.xref,
-        text: '${_tagLabel(tag)}: $value${_dateController.text.trim().isEmpty ? '' : ' (${_dateController.text.trim()})'}',
-        createdAt: DateTime.now(),
-      ));
+      await store.add(
+        QuickNote(
+          personGuess: widget.personName,
+          xref: widget.xref,
+          text:
+              '${_tagLabel(tag)}: $value${_dateController.text.trim().isEmpty ? '' : ' (${_dateController.text.trim()})'}',
+          createdAt: DateTime.now(),
+        ),
+      );
       if (!mounted) return;
       Navigator.of(context).pop(AddFactResult.savedLocally);
     } on Exception catch (e) {
@@ -119,7 +125,9 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.75,
         minChildSize: 0.4,
@@ -136,14 +144,28 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                     width: 36,
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(color: AppColors.divider, borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-                Text('Fakt hinzufügen', style: Theme.of(context).textTheme.titleLarge),
-                Text(widget.personName, style: const TextStyle(color: AppColors.textSecondary)),
+                Text(
+                  'Fakt hinzufügen',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(
+                  widget.personName,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
                 const SizedBox(height: 16),
                 if (_loadingTags)
-                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
                 else
                   Wrap(
                     spacing: 8,
@@ -151,16 +173,23 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                     children: [
                       for (final tag in _tags)
                         ChoiceChip(
-                          label: Text(tag['label'] as String? ?? tag['tag'] as String),
+                          label: Text(
+                            tag['label'] as String? ?? tag['tag'] as String,
+                          ),
                           selected: _selectedTag == tag['tag'],
-                          onSelected: (_) => setState(() => _selectedTag = tag['tag'] as String),
+                          onSelected: (_) => setState(
+                            () => _selectedTag = tag['tag'] as String,
+                          ),
                         ),
                     ],
                   ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _valueController,
-                  decoration: const InputDecoration(labelText: 'Wert', hintText: 'z. B. Bäckerin'),
+                  decoration: const InputDecoration(
+                    labelText: 'Wert',
+                    hintText: 'z. B. Bäckerin',
+                  ),
                   minLines: 1,
                   maxLines: 3,
                 ),
@@ -168,19 +197,34 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _dateController,
-                    decoration: const InputDecoration(labelText: 'Datum (optional)', hintText: 'z. B. 3 MAI 1980'),
+                    decoration: const InputDecoration(
+                      labelText: 'Datum (optional)',
+                      hintText: 'z. B. 3 MAI 1980',
+                    ),
                   ),
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _selectedTag == null || _saving ? null : _save,
                   child: _saving
-                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text('Speichern'),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 10),
-                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
               ],
             ),

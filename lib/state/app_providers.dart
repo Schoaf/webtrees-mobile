@@ -19,7 +19,8 @@ const productionTreeName = 'Famtree';
 /// can use `localhost` as-is. This only matters for the dev server; the
 /// production URL above is a real public host, reachable identically from
 /// both.
-String get devServerUrl => Platform.isAndroid ? 'http://10.0.2.2:8080/' : 'http://localhost:8080/';
+String get devServerUrl =>
+    Platform.isAndroid ? 'http://10.0.2.2:8080/' : 'http://localhost:8080/';
 const devTreeName = 'devtree';
 
 /// The webtrees site to talk to. Settings screen lets the user change this;
@@ -29,21 +30,41 @@ class ServerUrlNotifier extends Notifier<String> {
   String build() => productionServerUrl;
 }
 
-final serverUrlProvider = NotifierProvider<ServerUrlNotifier, String>(ServerUrlNotifier.new);
+final serverUrlProvider = NotifierProvider<ServerUrlNotifier, String>(
+  ServerUrlNotifier.new,
+);
 
 class TreeNameNotifier extends Notifier<String> {
   @override
   String build() => productionTreeName;
 }
 
-final treeNameProvider = NotifierProvider<TreeNameNotifier, String>(TreeNameNotifier.new);
+final treeNameProvider = NotifierProvider<TreeNameNotifier, String>(
+  TreeNameNotifier.new,
+);
+
+/// Which bottom-nav tab is showing. A screen embedded as a tab (e.g.
+/// AddPersonScreen reached via "Neu") has no route of its own to pop — its
+/// "Abbrechen"/success actions switch this back to Start instead.
+class SelectedTabNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void select(int index) => state = index;
+}
+
+final selectedTabProvider = NotifierProvider<SelectedTabNotifier, int>(
+  SelectedTabNotifier.new,
+);
 
 final webtreesClientProvider = Provider<WebtreesClient>((ref) {
   final url = ref.watch(serverUrlProvider);
   return WebtreesClient(baseUrl: url);
 });
 
-final quickNoteStoreProvider = Provider<QuickNoteStore>((ref) => QuickNoteStore());
+final quickNoteStoreProvider = Provider<QuickNoteStore>(
+  (ref) => QuickNoteStore(),
+);
 
 class AuthState {
   const AuthState({this.loggedIn = false, this.userName, this.realName});
@@ -103,7 +124,9 @@ class AuthController extends Notifier<AuthState> {
   Future<void> tryRestoreSession() async {
     final String? cookie;
     try {
-      cookie = await _secureStorage.read(key: 'wt_session_cookie').timeout(const Duration(seconds: 3));
+      cookie = await _secureStorage
+          .read(key: 'wt_session_cookie')
+          .timeout(const Duration(seconds: 3));
     } on Exception {
       return; // secure storage unavailable — fall back to the login screen
     }
@@ -132,4 +155,6 @@ class AuthController extends Notifier<AuthState> {
   }
 }
 
-final authControllerProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);
+final authControllerProvider = NotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);

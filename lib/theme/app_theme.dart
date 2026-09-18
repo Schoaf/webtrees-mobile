@@ -23,9 +23,17 @@ class AppColors {
   static const femaleAvatarFg = Color(0xFF9A3E86);
 
   static List<BoxShadow> get cardShadow => [
-        const BoxShadow(color: Color(0x24000000), blurRadius: 2, offset: Offset(0, 1)),
-        const BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 1)),
-      ];
+    const BoxShadow(
+      color: Color(0x24000000),
+      blurRadius: 2,
+      offset: Offset(0, 1),
+    ),
+    const BoxShadow(
+      color: Color(0x14000000),
+      blurRadius: 3,
+      offset: Offset(0, 1),
+    ),
+  ];
 }
 
 ThemeData buildAppTheme() {
@@ -42,14 +50,21 @@ ThemeData buildAppTheme() {
     useMaterial3: true,
     colorScheme: colorScheme,
     scaffoldBackgroundColor: AppColors.background,
-    textTheme: textTheme.apply(bodyColor: AppColors.textPrimary, displayColor: AppColors.textPrimary),
+    textTheme: textTheme.apply(
+      bodyColor: AppColors.textPrimary,
+      displayColor: AppColors.textPrimary,
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.surface,
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       scrolledUnderElevation: 0,
       shadowColor: Colors.black.withValues(alpha: 0.14),
-      titleTextStyle: GoogleFonts.roboto(fontSize: 22, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+      titleTextStyle: GoogleFonts.roboto(
+        fontSize: 22,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textPrimary,
+      ),
       centerTitle: false,
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -58,13 +73,20 @@ ThemeData buildAppTheme() {
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(56),
         shape: const StadiumBorder(),
-        textStyle: GoogleFonts.roboto(fontSize: 15, fontWeight: FontWeight.w500, letterSpacing: 0.02),
+        textStyle: GoogleFonts.roboto(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.02,
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.secondary,
-        textStyle: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w500),
+        textStyle: GoogleFonts.roboto(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -83,7 +105,11 @@ ThemeData buildAppTheme() {
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
-      labelStyle: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textTertiary),
+      labelStyle: GoogleFonts.roboto(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textTertiary,
+      ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
@@ -98,9 +124,15 @@ ThemeData buildAppTheme() {
       }),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
-        return IconThemeData(color: selected ? AppColors.primary : AppColors.textSecondary);
+        return IconThemeData(
+          color: selected ? AppColors.primary : AppColors.textSecondary,
+        );
       }),
     ),
-    dividerTheme: const DividerThemeData(color: AppColors.divider, thickness: 1, space: 1),
+    dividerTheme: const DividerThemeData(
+      color: AppColors.divider,
+      thickness: 1,
+      space: 1,
+    ),
   );
 }

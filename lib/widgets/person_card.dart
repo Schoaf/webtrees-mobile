@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
+import '../utils/gedcom.dart';
 import 'person_avatar.dart';
 
 /// A tappable person row — avatar, name (+ maiden name if given), lifespan,
 /// chevron — as used on Start (startperson), Suche (results) and Person
 /// (parents/spouse/children). Takes the API's `personSummary` JSON shape.
-class PersonCard extends StatelessWidget {
+class PersonCard extends ConsumerWidget {
   const PersonCard({
     super.key,
     required this.person,
     this.maidenName,
     this.onTap,
     this.compact = false,
+    this.subtitle,
   });
 
   final Map<String, dynamic> person;
@@ -20,13 +24,21 @@ class PersonCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool compact;
 
+  /// Replaces the lifespan line when set, e.g. a birthday countdown.
+  final String? subtitle;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final sex = person['sex'] as String? ?? 'U';
     final isDead = person['isDead'] as bool? ?? false;
-    final name = person['name'] as String? ?? '(kein Name)';
-    final lifespan = person['lifespan'] as String? ?? '';
+    final name = stripNameSlashes(person['name'] as String? ?? '(kein Name)');
+    final lifespan = subtitle ?? (person['lifespan'] as String? ?? '');
     final avatarSize = compact ? 40.0 : 42.0;
+    final photoHeaders = ref.read(webtreesClientProvider).imageHeaders;
+
+    final sexColor = sex == 'F'
+        ? AppColors.femaleAvatarFg
+        : AppColors.maleAvatarFg;
 
     return Material(
       color: Colors.transparent,
@@ -34,45 +46,91 @@ class PersonCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(14),
             boxShadow: AppColors.cardShadow,
           ),
-          child: Row(
-            children: [
-              PersonAvatar(sex: sex, isDead: isDead, size: avatarSize),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    RichText(
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            // IntrinsicHeight gives the Row a bounded height to stretch
+            // against — inside a ListView an item's height is otherwise
+            // unbounded, and crossAxisAlignment.stretch needs a real number
+            // to stretch to.
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Sex is also readable at a glance here — not just on the
+                  // avatar icon, which can be hard to make out once a photo
+                  // is set.
+                  Container(width: 4, color: sexColor),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 11, 12, 11),
+                      child: Row(
                         children: [
-                          TextSpan(text: name),
-                          if (maidenName != null && maidenName!.isNotEmpty)
-                            TextSpan(
-                              text: ' geb. $maidenName',
-                              style: const TextStyle(fontWeight: FontWeight.w400, color: AppColors.textTertiary),
+                          PersonAvatar(
+                            sex: sex,
+                            isDead: isDead,
+                            size: avatarSize,
+                            photoUrl: person['thumb'] as String?,
+                            photoHeaders: photoHeaders,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                RichText(
+                                  overflow: TextOverflow.ellipsis,
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    children: [
+                                      TextSpan(text: name),
+                                      if (maidenName != null &&
+                                          maidenName!.isNotEmpty)
+                                        TextSpan(
+                                          text: ' geb. $maidenName',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w400,
+                                            color: AppColors.textTertiary,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (lifespan.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      lifespan,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: AppColors.textTertiary,
+                          ),
                         ],
                       ),
                     ),
-                    if (lifespan.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(lifespan, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                      ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const Icon(Icons.chevron_right, size: 18, color: AppColors.textTertiary),
-            ],
+            ),
           ),
         ),
       ),

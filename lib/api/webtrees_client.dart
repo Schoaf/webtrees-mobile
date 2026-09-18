@@ -13,8 +13,9 @@ import 'package:dio/dio.dart';
 /// instance can hit this, so we just track the raw cookie ourselves.
 class WebtreesClient {
   WebtreesClient({required String baseUrl})
-      : _baseUrl = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/',
-        _dio = Dio(BaseOptions(
+    : _baseUrl = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/',
+      _dio = Dio(
+        BaseOptions(
           baseUrl: baseUrl.endsWith('/') ? baseUrl : '$baseUrl/',
           // The only redirect we ever get is login's 302, and it redirects
           // to the *server's* base_url — unreachable from behind a NAT
@@ -22,28 +23,31 @@ class WebtreesClient {
           // the status code, never the redirect target, so don't follow it.
           followRedirects: false,
           validateStatus: (status) => status != null && status < 500,
-        )) {
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        if (_cookie != null) {
-          options.headers['Cookie'] = _cookie;
-        }
-        if (_csrfToken != null) {
-          options.headers['X-CSRF-TOKEN'] = _csrfToken;
-        }
-        handler.next(options);
-      },
-      onResponse: (response, handler) {
-        _captureCookie(response);
-        handler.next(response);
-      },
-      onError: (error, handler) {
-        if (error.response != null) {
-          _captureCookie(error.response!);
-        }
-        handler.next(error);
-      },
-    ));
+        ),
+      ) {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (_cookie != null) {
+            options.headers['Cookie'] = _cookie;
+          }
+          if (_csrfToken != null) {
+            options.headers['X-CSRF-TOKEN'] = _csrfToken;
+          }
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          _captureCookie(response);
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          if (error.response != null) {
+            _captureCookie(error.response!);
+          }
+          handler.next(error);
+        },
+      ),
+    );
   }
 
   final String _baseUrl;
@@ -76,6 +80,21 @@ class WebtreesClient {
   void clearSession() {
     _cookie = null;
     _csrfToken = null;
+  }
+
+  /// Headers to pass to `Image.network`/`NetworkImage` so photo requests
+  /// carry the same session — Flutter's image loader doesn't go through
+  /// this client's Dio instance (and its cookie interceptor) on its own.
+  Map<String, String> get imageHeaders => {
+    if (_cookie != null) 'Cookie': _cookie!,
+  };
+
+  /// A core (non-module) webtrees route, e.g. `/tree/{tree}/autocomplete/place`.
+  Uri _coreUri(String route, [Map<String, dynamic>? query]) {
+    return Uri.parse(_baseUrl).replace(
+      path: '${Uri.parse(_baseUrl).path}index.php',
+      queryParameters: {'route': route, ...?query},
+    );
   }
 
   Uri _moduleUri(String action, String tree, [Map<String, dynamic>? query]) {
@@ -139,23 +158,33 @@ class WebtreesClient {
     return response.statusCode == 302;
   }
 
-  Future<Map<String, dynamic>> individuals(String tree, {String? query, int page = 1}) async {
-    final response = await _dio.getUri(_moduleUri('Individuals', tree, {
-      if (query != null && query.isNotEmpty) 'q': query,
-      'page': '$page',
-    }));
+  Future<Map<String, dynamic>> individuals(
+    String tree, {
+    String? query,
+    int page = 1,
+  }) async {
+    final response = await _dio.getUri(
+      _moduleUri('Individuals', tree, {
+        if (query != null && query.isNotEmpty) 'q': query,
+        'page': '$page',
+      }),
+    );
     return response.data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> individual(String tree, String xref) async {
-    final response = await _dio.getUri(_moduleUri('Individual', tree, {'xref': xref}));
+    final response = await _dio.getUri(
+      _moduleUri('Individual', tree, {'xref': xref}),
+    );
     return response.data as Map<String, dynamic>;
   }
 
   /// Labelled list of fact types the app can offer to add, e.g. for a quick
   /// "pick a fact type" chooser. [type] is `INDI` or `FAM`.
   Future<Map<String, dynamic>> tags(String tree, {String type = 'INDI'}) async {
-    final response = await _dio.getUri(_moduleUri('Tags', tree, {'type': type}));
+    final response = await _dio.getUri(
+      _moduleUri('Tags', tree, {'type': type}),
+    );
     return response.data as Map<String, dynamic>;
   }
 
@@ -179,6 +208,25 @@ class WebtreesClient {
         if (place != null) 'place': place,
       },
       options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Uploads a photo and links it to [xref] as its highlighted media.
+  Future<Map<String, dynamic>> postMedia(
+    String tree,
+    String xref, {
+    required List<int> bytes,
+    required String filename,
+    String? title,
+  }) async {
+    final form = FormData.fromMap({
+      if (title != null) 'title': title,
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final response = await _dio.postUri(
+      _moduleUri('Media', tree, {'xref': xref}),
+      data: form,
     );
     return response.data as Map<String, dynamic>;
   }
@@ -222,5 +270,32 @@ class WebtreesClient {
       options: Options(contentType: Headers.jsonContentType),
     );
     return response.data as Map<String, dynamic>;
+  }
+
+  /// Upcoming birthdays/anniversaries within [days] days, soonest first.
+  Future<Map<String, dynamic>> anniversaries(
+    String tree, {
+    int days = 14,
+  }) async {
+    final response = await _dio.getUri(
+      _moduleUri('Anniversaries', tree, {'days': '$days'}),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Place-name suggestions, same source webtrees' own web UI uses: the
+  /// tree's own places table first, falling back to a configured gazetteer
+  /// module if nothing local matches. Requires editor rights on [tree].
+  Future<List<String>> placeAutocomplete(String tree, String query) async {
+    final response = await _dio.getUri(
+      _coreUri('/tree/$tree/autocomplete/place', {'query': query}),
+    );
+    final data = response.data;
+    if (data is! List) return [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map((entry) => entry['value'] as String?)
+        .whereType<String>()
+        .toList();
   }
 }

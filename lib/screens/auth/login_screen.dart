@@ -29,10 +29,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
 
-    final error = await ref.read(authControllerProvider.notifier).login(
-          _usernameController.text.trim(),
-          _passwordController.text,
-        );
+    final error = await ref
+        .read(authControllerProvider.notifier)
+        .login(_usernameController.text.trim(), _passwordController.text);
 
     if (!mounted) return;
     setState(() {
@@ -65,13 +64,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 24),
             if (_error != null) ...[
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
               const SizedBox(height: 12),
             ],
             FilledButton(
               onPressed: _loading ? null : _submit,
               child: _loading
-                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Text('Sign in'),
             ),
           ],

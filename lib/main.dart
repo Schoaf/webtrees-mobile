@@ -38,9 +38,11 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   @override
   void initState() {
     super.initState();
-    ref.read(authControllerProvider.notifier).tryRestoreSession().whenComplete(() {
-      if (mounted) setState(() => _restoring = false);
-    });
+    ref.read(authControllerProvider.notifier).tryRestoreSession().whenComplete(
+      () {
+        if (mounted) setState(() => _restoring = false);
+      },
+    );
   }
 
   @override
@@ -54,27 +56,26 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   }
 }
 
-class _HomeShell extends StatefulWidget {
+class _HomeShell extends ConsumerWidget {
   const _HomeShell();
-
-  @override
-  State<_HomeShell> createState() => _HomeShellState();
-}
-
-class _HomeShellState extends State<_HomeShell> {
-  int _index = 0;
 
   static const _screens = [HomeScreen(), SearchScreen(), AddPersonScreen()];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final index = ref.watch(selectedTabProvider);
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(index: index, children: _screens),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (index) => setState(() => _index = index),
+        selectedIndex: index,
+        onDestinationSelected: (i) =>
+            ref.read(selectedTabProvider.notifier).select(i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Start'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Start',
+          ),
           NavigationDestination(icon: Icon(Icons.search), label: 'Suche'),
           NavigationDestination(icon: Icon(Icons.add), label: 'Neu'),
         ],
