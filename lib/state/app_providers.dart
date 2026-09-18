@@ -8,23 +8,32 @@ import '../repositories/quick_note_store.dart';
 
 const _secureStorage = FlutterSecureStorage();
 
-/// The webtrees site to talk to. Settings screen lets the user change this;
-/// defaults to the local dev instance for now.
+/// The real, migrated webtrees instance. This is the app's default target.
+const productionServerUrl = 'https://stammbaum.familiescharf.at';
+const productionTreeName = 'Famtree';
+
+/// The local dev webtrees instance, only reachable from this machine.
 ///
 /// The Android emulator can't reach the host's `localhost` directly — its
 /// special alias `10.0.2.2` routes to the host instead. The iOS simulator
-/// (and real devices on the same network, once this becomes configurable)
-/// can use `localhost`/a real hostname as-is.
+/// can use `localhost` as-is. This only matters for the dev server; the
+/// production URL above is a real public host, reachable identically from
+/// both.
+String get devServerUrl => Platform.isAndroid ? 'http://10.0.2.2:8080/' : 'http://localhost:8080/';
+const devTreeName = 'devtree';
+
+/// The webtrees site to talk to. Settings screen lets the user change this;
+/// defaults to production for now.
 class ServerUrlNotifier extends Notifier<String> {
   @override
-  String build() => Platform.isAndroid ? 'http://10.0.2.2:8080/' : 'http://localhost:8080/';
+  String build() => productionServerUrl;
 }
 
 final serverUrlProvider = NotifierProvider<ServerUrlNotifier, String>(ServerUrlNotifier.new);
 
 class TreeNameNotifier extends Notifier<String> {
   @override
-  String build() => 'devtree';
+  String build() => productionTreeName;
 }
 
 final treeNameProvider = NotifierProvider<TreeNameNotifier, String>(TreeNameNotifier.new);
