@@ -37,6 +37,8 @@ Ab der dritten verschachtelten Person (z. B. Eltern → Groß­eltern → Urgro�
 ### Person — Bearbeiten
 Der Stift-Button oben rechts schaltet die Ansicht auf bearbeitbar um (Stift wird zu X zum Abbrechen). Alle vorhandenen Fakten sind editierbar, auch die sonst unter "Mehr anzeigen" versteckten. Ein Ort-Feld (z. B. Wohnsitz) bietet Autovervollständigung aus den vorhandenen Orten des Stammbaums. Unten ein fixierter **Speichern**-Button.
 
+Im Bearbeiten-Modus bekommt das Foto ein kleines Kamera-Symbol; antippen öffnet direkt Upload/Kamera zum Ändern, statt das Foto (falls vorhanden) nur anzuzeigen — genau wie beim erstmaligen Hinzufügen ohne Foto.
+
 Der schwebende **Fakt hinzufügen**-Button (unten rechts) bleibt für neue Fakten separat erhalten und wird nur im Ansichtsmodus angezeigt.
 
 Änderungen von Rollen ohne Auto-Freigabe landen wie gewohnt in der webtrees-Moderationswarteschlange.

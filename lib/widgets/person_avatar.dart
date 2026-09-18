@@ -13,6 +13,7 @@ class PersonAvatar extends StatelessWidget {
     this.photoUrl,
     this.photoHeaders,
     this.onTap,
+    this.editable = false,
   });
 
   /// webtrees sex code: "M", "F", "U" (unknown) or "X".
@@ -28,6 +29,11 @@ class PersonAvatar extends StatelessWidget {
   final Map<String, String>? photoHeaders;
 
   final VoidCallback? onTap;
+
+  /// Shows a small camera badge over the photo and signals that [onTap]
+  /// changes the photo (upload/camera) rather than opening it full-screen —
+  /// used while the person's facts are in edit mode.
+  final bool editable;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +84,26 @@ class PersonAvatar extends StatelessWidget {
                   padding: EdgeInsets.all(size * 0.05),
                   child: CustomPaint(
                     painter: _TombstonePainter(color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
+            if (editable)
+              Positioned(
+                bottom: -size * 0.06,
+                right: -size * 0.06,
+                child: Container(
+                  width: size * 0.46,
+                  height: size * 0.46,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: size * 0.24,
                   ),
                 ),
               ),

@@ -393,14 +393,20 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                               photoHeaders: ref
                                   .read(webtreesClientProvider)
                                   .imageHeaders,
-                              onTap: hasPhoto
-                                  ? () => _openPhotoViewer(
-                                      media.isNotEmpty
-                                          ? (media.first['file'] as String? ??
-                                                photoUrl)
-                                          : photoUrl,
-                                    )
-                                  : (canEdit ? _pickAndUploadPhoto : null),
+                              editable: _editing && canEdit,
+                              onTap: _editing
+                                  ? (canEdit ? _pickAndUploadPhoto : null)
+                                  : (hasPhoto
+                                        ? () => _openPhotoViewer(
+                                            media.isNotEmpty
+                                                ? (media.first['file']
+                                                          as String? ??
+                                                      photoUrl)
+                                                : photoUrl,
+                                          )
+                                        : (canEdit
+                                              ? _pickAndUploadPhoto
+                                              : null)),
                             ),
                             const SizedBox(height: 10),
                             Text(
