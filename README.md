@@ -5,7 +5,7 @@ Flutter-Begleit-App (Android/iOS) für die selbst gehostete [webtrees](https://w
 ## Funktionen
 
 ### Start
-Startperson und Suche auf einen Blick (eine neue Person legt man über den "Neu"-Tab unten an — kein eigener Button mehr auf dem Start-Bildschirm). Darunter, falls zutreffend, ein Block **"Geburtstage diese Woche"** (mit Torten-Icon) — lebende Personen mit Geburtstag in den nächsten 7 Tagen, als einfache Liste (Name, klein darunter "wird 31 · am Sonntag"), kein Foto, keine Card-Optik wie bei Suchergebnissen. Zeilen bleiben antippbar. Verstorbene werden nie angezeigt. Ganz unten ein Link **"Zur Website (Vollversion)"**, öffnet die volle Webseite im externen Browser. Bottom-Navigation: **Start / Suche / Neu**.
+Startperson und Suche auf einen Blick (eine neue Person legt man über den "Neu"-Tab unten an — kein eigener Button mehr auf dem Start-Bildschirm). Darunter, falls zutreffend, ein Block **"Geburtstage diese Woche"** (mit Torten-Icon) — lebende Personen mit Geburtstag in den nächsten 7 Tagen, als einfache Liste (Name, klein darunter "wird 31 · am Sonntag"), kein Foto, keine Card-Optik wie bei Suchergebnissen. Zeilen bleiben antippbar. Verstorbene werden nie angezeigt. Am Ende des scrollbaren Bereichs ein Link **"Zur Website (Vollversion)"**, öffnet die volle Webseite im externen Browser. Bottom-Navigation: **Start / Suche / Neu**.
 
 Oben rechts: Initialen oder Foto der mit dem Konto verknüpften Person — antippbar, öffnet **"Mein Konto"**.
 
@@ -30,7 +30,9 @@ Alle bekannten Fakten zu einer Person, dazu Eltern/Ehepartner/Kinder als verlink
 
 Die Feld-Reihenfolge ist an einer einzigen Stelle im Code dokumentiert und leicht änderbar: `kFactDisplayOrder` in [`lib/screens/search/person_detail_screen.dart`](lib/screens/search/person_detail_screen.dart).
 
-Felder, die mehrere Angaben kombinieren (z. B. Geburt/Tod mit Datum **und** Ort), zeigen die Hauptangabe normal groß und die Nebenangabe klein darunter — dasselbe Muster wie unter dem Namen in den Personen-Karten. Jedes Feld lässt sich antippen, um seinen Wert in die Zwischenablage zu kopieren (kurzer "Kopiert"-Hinweis).
+Felder, die mehrere Angaben kombinieren (z. B. Geburt/Tod mit Datum **und** Ort), zeigen die Hauptangabe normal groß und die Nebenangabe klein darunter — dasselbe Muster wie unter dem Namen in den Personen-Karten. Jedes Feld lässt sich antippen, um seinen Wert in die Zwischenablage zu kopieren — Android zeigt dafür selbst einen kurzen System-Hinweis, die App zeigt keinen eigenen mehr (die beiden überlappten sich sonst).
+
+Oben links neben "Bearbeiten": ein **Teilen**-Button. "Daten teilen" öffnet den System-Teilen-Dialog mit einer Textzusammenfassung aller Fakten der Person (ohne interne Felder wie die Datensatz-ID). "Per Link teilen" ist in der Auswahl bereits sichtbar, aber noch nicht funktionsfähig — dafür braucht es einen neuen serverseitigen Freigabe-Link-Mechanismus (zeitlich begrenzter, login-freier Zugriff auf eine einzelne Person), der im ursprünglichen Projektplan als eigene Phase vorgesehen, aber noch nicht gebaut ist.
 
 Ab der dritten verschachtelten Person (z. B. Eltern → Groß­eltern → Urgroß­eltern) erscheint unten links ein schwebender Home-Button, damit man nicht mehrfach "Zurück" tippen muss. Schwebende Buttons (Home, Fakt hinzufügen) erscheinen sofort, ohne Einflug-Animation.
 
