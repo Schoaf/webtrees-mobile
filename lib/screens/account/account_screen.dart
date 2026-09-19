@@ -364,7 +364,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             mode: LaunchMode.externalApplication,
                           ),
                           icon: const Icon(Icons.open_in_new, size: 16),
-                          label: const Text('Zur Website'),
+                          label: const Text('Zur Website (Vollversion)'),
                         ),
                       ],
                     ],
