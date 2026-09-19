@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Without this, release builds have no network access at all (the
+         debug/profile manifests declare it separately, only for the
+         Flutter tool's own hot-reload connection) - every request the app
+         itself makes (webtrees API, Google Fonts, ...) fails at the OS
+         level, which surfaces as a DNS/host-lookup failure rather than a
+         clear permission error. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="stammbaum_app"
         android:name="${applicationName}"
