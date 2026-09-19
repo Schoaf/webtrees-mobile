@@ -852,7 +852,12 @@ class _EditableFact {
     final factId = json['id'] as String?;
     final value = json['value'] as String? ?? '';
     final dateMap = json['date'] as Map<String, dynamic>?;
-    final date = dateMap?['text'] as String? ?? '';
+    // Pre-fill with the GEDCOM form ("12 MAR 1930"), not the localized
+    // display text ("March 12, 1930") — the latter is what gets sent back
+    // verbatim if left untouched, and webtrees expects GEDCOM syntax.
+    // Falls back to the display text against an older API without `gedcom`.
+    final date =
+        dateMap?['gedcom'] as String? ?? dateMap?['text'] as String? ?? '';
     final placeMap = json['place'] as Map<String, dynamic>?;
     final place =
         (placeMap?['name'] as String?) ?? (placeMap?['short'] as String?) ?? '';

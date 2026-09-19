@@ -89,14 +89,6 @@ class WebtreesClient {
     if (_cookie != null) 'Cookie': _cookie!,
   };
 
-  /// A core (non-module) webtrees route, e.g. `/tree/{tree}/autocomplete/place`.
-  Uri _coreUri(String route, [Map<String, dynamic>? query]) {
-    return Uri.parse(_baseUrl).replace(
-      path: '${Uri.parse(_baseUrl).path}index.php',
-      queryParameters: {'route': route, ...?query},
-    );
-  }
-
   Uri _moduleUri(String action, String tree, [Map<String, dynamic>? query]) {
     return Uri.parse(_baseUrl).replace(
       path: '${Uri.parse(_baseUrl).path}index.php',
@@ -303,19 +295,18 @@ class WebtreesClient {
     return response.data as Map<String, dynamic>;
   }
 
-  /// Place-name suggestions, same source webtrees' own web UI uses: the
-  /// tree's own places table first, falling back to a configured gazetteer
-  /// module if nothing local matches. Requires editor rights on [tree].
+  /// Place-name suggestions from the tree's own places, up to 20 — the
+  /// `webtreesand-api` module's own endpoint (API level 8+), not webtrees
+  /// core's `/autocomplete/place` route. That route isn't a documented,
+  /// stable API and the module's README warns it can change with webtrees
+  /// 2.3; `Places` is versioned and meant for exactly this. Requires editor
+  /// rights on [tree].
   Future<List<String>> placeAutocomplete(String tree, String query) async {
     final response = await _dio.getUri(
-      _coreUri('/tree/$tree/autocomplete/place', {'query': query}),
+      _moduleUri('Places', tree, {'q': query}),
     );
-    final data = response.data;
+    final data = (response.data as Map<String, dynamic>?)?['data'];
     if (data is! List) return [];
-    return data
-        .whereType<Map<String, dynamic>>()
-        .map((entry) => entry['value'] as String?)
-        .whereType<String>()
-        .toList();
+    return data.whereType<String>().toList();
   }
 }
