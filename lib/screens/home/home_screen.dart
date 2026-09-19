@@ -201,27 +201,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                       const SizedBox(height: 18),
                       const _UnsyncedNotes(),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    children: [
-                      Text(
-                        '${data.individualCount} Personen im Stammbaum',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textTertiary,
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () => launchUrl(
-                          Uri.parse(ref.read(serverUrlProvider)),
-                          mode: LaunchMode.externalApplication,
-                        ),
-                        icon: const Icon(Icons.open_in_new, size: 14),
-                        label: const Text('Zur Website (Vollversion)'),
+                      const SizedBox(height: 18),
+                      Column(
+                        children: [
+                          Text(
+                            '${data.individualCount} Personen im Stammbaum',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => launchUrl(
+                              Uri.parse(ref.read(serverUrlProvider)),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            icon: const Icon(Icons.open_in_new, size: 14),
+                            label: const Text('Zur Website (Vollversion)'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

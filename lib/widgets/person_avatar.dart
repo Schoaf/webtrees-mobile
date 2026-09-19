@@ -208,11 +208,11 @@ class _TombstonePainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     final crossW = w * 0.14;
     canvas.drawRect(
-      Rect.fromLTWH(w / 2 - crossW / 2, h * 0.48, crossW, h * 0.4),
+      Rect.fromLTWH(w / 2 - crossW / 2, h * 0.46, crossW, h * 0.36),
       crossPaint,
     );
     canvas.drawRect(
-      Rect.fromLTWH(w * 0.26, h * 0.6, w * 0.48, crossW),
+      Rect.fromLTWH(w * 0.26, h * 0.52, w * 0.48, crossW),
       crossPaint,
     );
   }

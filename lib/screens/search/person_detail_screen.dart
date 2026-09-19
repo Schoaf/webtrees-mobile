@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
@@ -52,6 +53,21 @@ List<Map<String, dynamic>> _sortedByFieldOrder(
   return [for (final e in indexed) e.value];
 }
 
+/// A fact's value as plain text — the date/value plus the place, joined —
+/// used both for tap-to-copy and for the "Daten teilen" text summary.
+String _factCopyText(Map<String, dynamic> fact) {
+  final parts = <String>[];
+  final value = fact['value'] as String? ?? '';
+  if (value.isNotEmpty) parts.add(value);
+  final date = fact['date'] as Map<String, dynamic>?;
+  if (date != null) parts.add(date['text'] as String);
+  final place = fact['place'] as Map<String, dynamic>?;
+  if (place != null) parts.add(place['short'] as String);
+  return parts.isEmpty ? '—' : parts.join(' · ');
+}
+
+enum _ShareChoice { link, data }
+
 /// Julian Day Number for a Gregorian calendar date (Fliegel & Van Flandern).
 int _julianDayNumber(DateTime date) {
   final a = (14 - date.month) ~/ 12;
@@ -71,27 +87,6 @@ int? _ageInYears(num? birthJd) {
   final days = _julianDayNumber(DateTime.now()) - birthJd.toInt();
   if (days < 0) return null;
   return (days / 365.2425).floor();
-}
-
-/// The default FAB animator scales/slides it in on first appearance; the
-/// "Fakt hinzufügen"/Home buttons should just be there instantly instead.
-class _NoFabAnimation extends FloatingActionButtonAnimator {
-  const _NoFabAnimation();
-
-  @override
-  Offset getOffset({
-    required Offset begin,
-    required Offset end,
-    required double progress,
-  }) => end;
-
-  @override
-  Animation<double> getScaleAnimation({required Animation<double> parent}) =>
-      const AlwaysStoppedAnimation(1);
-
-  @override
-  Animation<double> getRotationAnimation({required Animation<double> parent}) =>
-      const AlwaysStoppedAnimation(1);
 }
 
 /// Full "review everything we know" view for one person — priority-2 in the
@@ -163,44 +158,45 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  /// Both FABs live in the same Scaffold slot (a full-width Row) so they
-  /// always sit at the same height, respecting the safe area the same way —
-  /// a raw Positioned widget in the body drifted below the safe-area inset
-  /// on notched/home-indicator devices.
+  /// Both FABs live in the same Positioned row (in the body, sized to the
+  /// available width minus its side insets) so they always sit at the same
+  /// height. This is a plain Stack child, not Scaffold's floatingActionButton
+  /// slot — that slot runs its own built-in appear/disappear animation
+  /// (a fade+scale on top of whatever floatingActionButtonAnimator does,
+  /// not something that can be turned off through it) which is exactly the
+  /// "fly in" every fact/home button did; a Stack child has no such
+  /// animation, so it's simply there or not.
   Widget? _buildFabs({required bool canEdit, required String name}) {
     final showHome = widget.depth >= 2;
     final showAddFact = canEdit;
     if (!showHome && !showAddFact) return null;
 
-    return SizedBox(
-      width: MediaQuery.sizeOf(context).width - 32,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (showHome)
-            FloatingActionButton(
-              heroTag: 'homeFab_${widget.xref}',
-              backgroundColor: AppColors.secondary,
-              foregroundColor: Colors.white,
-              onPressed: _goHome,
-              tooltip: 'Zum Start',
-              child: const Icon(Icons.home),
-            )
-          else
-            const SizedBox.shrink(),
-          if (showAddFact)
-            FloatingActionButton.extended(
-              heroTag: 'addFactFab_${widget.xref}',
-              onPressed: () => _openAddFact(name),
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.bolt),
-              label: const Text('Fakt hinzufügen'),
-            )
-          else
-            const SizedBox.shrink(),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        if (showHome)
+          FloatingActionButton(
+            heroTag: 'homeFab_${widget.xref}',
+            backgroundColor: AppColors.secondary,
+            foregroundColor: Colors.white,
+            onPressed: _goHome,
+            tooltip: 'Zum Start',
+            child: const Icon(Icons.home),
+          )
+        else
+          const SizedBox.shrink(),
+        if (showAddFact)
+          FloatingActionButton.extended(
+            heroTag: 'addFactFab_${widget.xref}',
+            onPressed: () => _openAddFact(name),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.bolt),
+            label: const Text('Fakt hinzufügen'),
+          )
+        else
+          const SizedBox.shrink(),
+      ],
     );
   }
 
@@ -316,6 +312,67 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     }
   }
 
+  Future<void> _openShareMenu({
+    required Map<String, dynamic> person,
+    required List<Map<String, dynamic>> facts,
+  }) async {
+    final choice = await showModalBottomSheet<_ShareChoice>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Per Link teilen'),
+              onTap: () => Navigator.of(context).pop(_ShareChoice.link),
+            ),
+            ListTile(
+              leading: const Icon(Icons.text_snippet_outlined),
+              title: const Text('Daten teilen'),
+              onTap: () => Navigator.of(context).pop(_ShareChoice.data),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+
+    switch (choice) {
+      case _ShareChoice.data:
+        await SharePlus.instance.share(
+          ShareParams(
+            text: _buildShareText(person: person, facts: facts),
+          ),
+        );
+      case _ShareChoice.link:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Teilen per Link ist noch nicht verfügbar.'),
+          ),
+        );
+    }
+  }
+
+  /// A plain-text summary of a person's facts for the system share sheet —
+  /// everything shown in the read-only facts card, skipping REFN (the
+  /// record ID — a system/bookkeeping field, not something to share).
+  String _buildShareText({
+    required Map<String, dynamic> person,
+    required List<Map<String, dynamic>> facts,
+  }) {
+    final name = stripNameSlashes(person['name'] as String? ?? '');
+    final shown = _sortedByFieldOrder(
+      facts.where((f) => f['tag'] != 'NAME' && f['tag'] != 'REFN').toList(),
+    );
+    final lines = [
+      name,
+      for (final fact in shown)
+        '${fact['label'] as String? ?? fact['tag']}: ${_factCopyText(fact)}',
+    ];
+    return lines.join('\n');
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
@@ -359,13 +416,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final photoUrl = person['thumb'] as String?;
         final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
 
+        final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
+
         return Scaffold(
-          floatingActionButton: _editing
-              ? null
-              : _buildFabs(canEdit: canEdit, name: name),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerFloat,
-          floatingActionButtonAnimator: const _NoFabAnimation(),
           bottomNavigationBar: _editing
               ? SafeArea(
                   child: Padding(
@@ -391,124 +444,144 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                   ),
                 )
               : null,
-          body: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                _Header(
-                  name: name,
-                  editing: _editing,
-                  onEditToggle: canEdit ? _toggleEditing : null,
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
-                        child: Column(
-                          children: [
-                            PersonAvatar(
-                              sex: person['sex'] as String? ?? 'U',
-                              isDead: person['isDead'] as bool? ?? false,
-                              size: 84,
-                              photoUrl: photoUrl,
-                              photoHeaders: ref
-                                  .read(webtreesClientProvider)
-                                  .imageHeaders,
-                              editable: _editing && canEdit,
-                              onTap: _editing
-                                  ? (canEdit ? _pickAndUploadPhoto : null)
-                                  : (hasPhoto
-                                        ? () => _openPhotoViewer(
-                                            media.isNotEmpty
-                                                ? (media.first['file']
-                                                          as String? ??
-                                                      photoUrl)
-                                                : photoUrl,
-                                          )
-                                        : (canEdit
-                                              ? _pickAndUploadPhoto
-                                              : null)),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              stripNameSlashes(name),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            if (_lifespanText(person).isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  _lifespanText(person),
+          body: Stack(
+            children: [
+              SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    _Header(
+                      name: name,
+                      editing: _editing,
+                      onEditToggle: canEdit ? _toggleEditing : null,
+                      onShare: _editing
+                          ? null
+                          : () => _openShareMenu(person: person, facts: facts),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+                            child: Column(
+                              children: [
+                                PersonAvatar(
+                                  sex: person['sex'] as String? ?? 'U',
+                                  isDead: person['isDead'] as bool? ?? false,
+                                  size: 84,
+                                  photoUrl: photoUrl,
+                                  photoHeaders: ref
+                                      .read(webtreesClientProvider)
+                                      .imageHeaders,
+                                  editable: _editing && canEdit,
+                                  onTap: _editing
+                                      ? (canEdit ? _pickAndUploadPhoto : null)
+                                      : (hasPhoto
+                                            ? () => _openPhotoViewer(
+                                                media.isNotEmpty
+                                                    ? (media.first['file']
+                                                              as String? ??
+                                                          photoUrl)
+                                                    : photoUrl,
+                                              )
+                                            : (canEdit
+                                                  ? _pickAndUploadPhoto
+                                                  : null)),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  stripNameSlashes(name),
                                   style: const TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.textSecondary,
+                                    fontSize: 24,
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
+                                if (_lifespanText(person).isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      _lifespanText(person),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          if (!_editing && facts.isNotEmpty)
+                            _FactsCard(facts: facts),
+                          if (_editing)
+                            _EditFactsSection(
+                              key: _editKey,
+                              xref: widget.xref,
+                              facts: facts,
+                              savingNotifier: _savingNotifier,
+                              onSaved: _onEditSaved,
+                            ),
+                          for (final family in parentFamilies) ...[
+                            if (family['husband'] != null ||
+                                family['wife'] != null)
+                              _Section(
+                                title: 'Eltern',
+                                people: [
+                                  if (family['husband'] != null)
+                                    family['husband'] as Map<String, dynamic>,
+                                  if (family['wife'] != null)
+                                    family['wife'] as Map<String, dynamic>,
+                                ],
+                                depth: widget.depth,
                               ),
                           ],
-                        ),
-                      ),
-                      if (!_editing && facts.isNotEmpty)
-                        _FactsCard(facts: facts),
-                      if (_editing)
-                        _EditFactsSection(
-                          key: _editKey,
-                          xref: widget.xref,
-                          facts: facts,
-                          savingNotifier: _savingNotifier,
-                          onSaved: _onEditSaved,
-                        ),
-                      for (final family in parentFamilies) ...[
-                        if (family['husband'] != null || family['wife'] != null)
-                          _Section(
-                            title: 'Eltern',
-                            people: [
-                              if (family['husband'] != null)
-                                family['husband'] as Map<String, dynamic>,
-                              if (family['wife'] != null)
-                                family['wife'] as Map<String, dynamic>,
-                            ],
-                            depth: widget.depth,
-                          ),
-                      ],
-                      for (final family in spouseFamilies) ...[
-                        if (family['spouse'] != null)
-                          _Section(
-                            title:
-                                (family['spouse']
-                                        as Map<String, dynamic>)['sex'] ==
-                                    'F'
-                                ? 'Ehepartnerin'
-                                : 'Ehepartner',
-                            people: [family['spouse'] as Map<String, dynamic>],
-                            depth: widget.depth,
-                          ),
-                      ],
-                      if (spouseFamilies
-                          .expand((f) => f['children'] as List<dynamic>? ?? [])
-                          .isNotEmpty)
-                        _Section(
-                          title:
-                              'Kinder (${spouseFamilies.fold<int>(0, (n, f) => n + (f['children'] as List<dynamic>? ?? []).length)})',
-                          people: spouseFamilies
+                          for (final family in spouseFamilies) ...[
+                            if (family['spouse'] != null)
+                              _Section(
+                                title:
+                                    (family['spouse']
+                                            as Map<String, dynamic>)['sex'] ==
+                                        'F'
+                                    ? 'Ehepartnerin'
+                                    : 'Ehepartner',
+                                people: [
+                                  family['spouse'] as Map<String, dynamic>,
+                                ],
+                                depth: widget.depth,
+                              ),
+                          ],
+                          if (spouseFamilies
                               .expand(
-                                (f) => (f['children'] as List<dynamic>? ?? [])
-                                    .cast<Map<String, dynamic>>(),
+                                (f) => f['children'] as List<dynamic>? ?? [],
                               )
-                              .toList(),
-                          depth: widget.depth,
-                        ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+                              .isNotEmpty)
+                            _Section(
+                              title:
+                                  'Kinder (${spouseFamilies.fold<int>(0, (n, f) => n + (f['children'] as List<dynamic>? ?? []).length)})',
+                              people: spouseFamilies
+                                  .expand(
+                                    (f) =>
+                                        (f['children'] as List<dynamic>? ?? [])
+                                            .cast<Map<String, dynamic>>(),
+                                  )
+                                  .toList(),
+                              depth: widget.depth,
+                            ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              if (fab != null)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                  child: fab,
+                ),
+            ],
           ),
         );
       },
@@ -532,11 +605,17 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.name, this.editing = false, this.onEditToggle});
+  const _Header({
+    required this.name,
+    this.editing = false,
+    this.onEditToggle,
+    this.onShare,
+  });
 
   final String name;
   final bool editing;
   final VoidCallback? onEditToggle;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
@@ -563,6 +642,15 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (onShare != null)
+            IconButton(
+              onPressed: onShare,
+              icon: const Icon(
+                Icons.share_outlined,
+                color: AppColors.textPrimary,
+              ),
+              tooltip: 'Teilen',
+            ),
           if (onEditToggle != null)
             IconButton(
               onPressed: onEditToggle,
@@ -613,7 +701,7 @@ class _FactsCardState extends State<_FactsCard> {
         children: [
           for (var i = 0; i < shown.length; i++)
             InkWell(
-              onTap: () => copyToClipboard(context, _factCopyText(shown[i])),
+              onTap: () => copyToClipboard(_factCopyText(shown[i])),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: const BoxDecoration(
@@ -665,17 +753,6 @@ class _FactsCardState extends State<_FactsCard> {
         ],
       ),
     );
-  }
-
-  String _factCopyText(Map<String, dynamic> fact) {
-    final parts = <String>[];
-    final value = fact['value'] as String? ?? '';
-    if (value.isNotEmpty) parts.add(value);
-    final date = fact['date'] as Map<String, dynamic>?;
-    if (date != null) parts.add(date['text'] as String);
-    final place = fact['place'] as Map<String, dynamic>?;
-    if (place != null) parts.add(place['short'] as String);
-    return parts.isEmpty ? '—' : parts.join(' · ');
   }
 }
 
