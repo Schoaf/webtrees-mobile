@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/copy_to_clipboard.dart';
 import '../../utils/gedcom.dart';
 import '../../widgets/add_fact_sheet.dart';
 import '../../widgets/person_avatar.dart';
@@ -70,6 +71,27 @@ int? _ageInYears(num? birthJd) {
   final days = _julianDayNumber(DateTime.now()) - birthJd.toInt();
   if (days < 0) return null;
   return (days / 365.2425).floor();
+}
+
+/// The default FAB animator scales/slides it in on first appearance; the
+/// "Fakt hinzufügen"/Home buttons should just be there instantly instead.
+class _NoFabAnimation extends FloatingActionButtonAnimator {
+  const _NoFabAnimation();
+
+  @override
+  Offset getOffset({
+    required Offset begin,
+    required Offset end,
+    required double progress,
+  }) => end;
+
+  @override
+  Animation<double> getScaleAnimation({required Animation<double> parent}) =>
+      const AlwaysStoppedAnimation(1);
+
+  @override
+  Animation<double> getRotationAnimation({required Animation<double> parent}) =>
+      const AlwaysStoppedAnimation(1);
 }
 
 /// Full "review everything we know" view for one person — priority-2 in the
@@ -343,6 +365,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
               : _buildFabs(canEdit: canEdit, name: name),
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerFloat,
+          floatingActionButtonAnimator: const _NoFabAnimation(),
           bottomNavigationBar: _editing
               ? SafeArea(
                   child: Padding(
@@ -589,33 +612,27 @@ class _FactsCardState extends State<_FactsCard> {
       child: Column(
         children: [
           for (var i = 0; i < shown.length; i++)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.divider)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    shown[i]['label'] as String? ?? shown[i]['tag'] as String,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                  Flexible(
-                    child: Text(
-                      _factValueText(shown[i]),
-                      textAlign: TextAlign.right,
+            InkWell(
+              onTap: () => copyToClipboard(context, _factCopyText(shown[i])),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: AppColors.divider)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      shown[i]['label'] as String? ?? shown[i]['tag'] as String,
                       style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        color: AppColors.textTertiary,
                       ),
                     ),
-                  ),
-                ],
+                    Flexible(child: _FactValue(fact: shown[i])),
+                  ],
+                ),
               ),
             ),
           if (secondary.isNotEmpty)
@@ -650,7 +667,7 @@ class _FactsCardState extends State<_FactsCard> {
     );
   }
 
-  String _factValueText(Map<String, dynamic> fact) {
+  String _factCopyText(Map<String, dynamic> fact) {
     final parts = <String>[];
     final value = fact['value'] as String? ?? '';
     if (value.isNotEmpty) parts.add(value);
@@ -659,6 +676,63 @@ class _FactsCardState extends State<_FactsCard> {
     final place = fact['place'] as Map<String, dynamic>?;
     if (place != null) parts.add(place['short'] as String);
     return parts.isEmpty ? '—' : parts.join(' · ');
+  }
+}
+
+/// A fact's value, right-aligned. Facts combining several things (typically
+/// a date plus a place) can get long, so the primary part (value/date)
+/// stays normal size on its own line and the place — often the longest,
+/// least essential-at-a-glance part — drops to a small second line, the
+/// same pattern PersonCard uses under a name. A fact with only one part
+/// (just a place, just a value, ...) stays a single normal-sized line.
+class _FactValue extends StatelessWidget {
+  const _FactValue({required this.fact});
+
+  final Map<String, dynamic> fact;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = fact['value'] as String? ?? '';
+    final date = fact['date'] as Map<String, dynamic>?;
+    final place = fact['place'] as Map<String, dynamic>?;
+
+    final primaryParts = <String>[
+      if (value.isNotEmpty) value,
+      if (date != null) date['text'] as String,
+    ];
+    final placeText = place?['short'] as String?;
+
+    final primary = primaryParts.isNotEmpty
+        ? primaryParts.join(' · ')
+        : (placeText ?? '—');
+    final secondary = primaryParts.isNotEmpty ? placeText : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          primary,
+          textAlign: TextAlign.right,
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (secondary != null && secondary.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              secondary,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 

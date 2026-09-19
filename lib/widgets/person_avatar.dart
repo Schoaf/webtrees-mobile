@@ -71,17 +71,11 @@ class PersonAvatar extends StatelessWidget {
             ),
             if (isDead)
               Positioned(
-                top: -size * 0.12,
-                right: -size * 0.12,
-                child: Container(
-                  width: size * 0.58,
-                  height: size * 0.58,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.divider, width: 1.5),
-                  ),
-                  padding: EdgeInsets.all(size * 0.05),
+                top: -size * 0.08,
+                right: -size * 0.1,
+                child: SizedBox(
+                  width: size * 0.48,
+                  height: size * 0.48,
                   child: CustomPaint(
                     painter: _TombstonePainter(color: AppColors.textSecondary),
                   ),
@@ -178,17 +172,32 @@ class _TombstonePainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    final baseTop = h * 0.3;
+    // Margins leave room for the outline stroke below instead of the shape
+    // running edge-to-edge — otherwise the stroke gets clipped by the
+    // avatar's own Stack.
+    final baseTop = h * 0.42;
     final path = Path()
-      ..moveTo(w * 0.02, h)
-      ..lineTo(w * 0.02, baseTop)
+      ..moveTo(w * 0.1, h * 0.94)
+      ..lineTo(w * 0.1, baseTop)
       ..arcToPoint(
-        Offset(w * 0.98, baseTop),
-        radius: Radius.circular(w * 0.49),
+        Offset(w * 0.9, baseTop),
+        radius: Radius.circular(w * 0.4),
         clockwise: true,
       )
-      ..lineTo(w * 0.98, h)
+      ..lineTo(w * 0.9, h * 0.94)
       ..close();
+
+    // A white outline so the badge reads clearly against a photo or a
+    // similarly-colored silhouette, without embedding it in a circular
+    // backdrop.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.round
+        ..strokeWidth = w * 0.14,
+    );
     canvas.drawPath(path, paint);
 
     // A large, high-contrast cross so it reads clearly even at small
@@ -197,13 +206,13 @@ class _TombstonePainter extends CustomPainter {
     final crossPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-    final crossW = w * 0.16;
+    final crossW = w * 0.14;
     canvas.drawRect(
-      Rect.fromLTWH(w / 2 - crossW / 2, h * 0.08, crossW, h * 0.5),
+      Rect.fromLTWH(w / 2 - crossW / 2, h * 0.48, crossW, h * 0.4),
       crossPaint,
     );
     canvas.drawRect(
-      Rect.fromLTWH(w * 0.22, h * 0.2, w * 0.56, crossW),
+      Rect.fromLTWH(w * 0.26, h * 0.6, w * 0.48, crossW),
       crossPaint,
     );
   }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/copy_to_clipboard.dart';
 import '../../widgets/person_card.dart';
 import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
@@ -341,9 +343,28 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             await ref
                                 .read(authControllerProvider.notifier)
                                 .logout();
+                            // Logging out swaps what the root of the app
+                            // shows (Home -> Login), but that root sits
+                            // *below* this pushed screen in the Navigator
+                            // stack — without popping back to it, this
+                            // screen just keeps showing until the next
+                            // navigation happens to reveal the swap.
+                            if (context.mounted) {
+                              Navigator.of(context)
+                                  .popUntil((route) => route.isFirst);
+                            }
                           },
                           icon: const Icon(Icons.logout, size: 18),
                           label: const Text('Abmelden'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => launchUrl(
+                            Uri.parse(ref.read(serverUrlProvider)),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          icon: const Icon(Icons.open_in_new, size: 16),
+                          label: const Text('Zur Website'),
                         ),
                       ],
                     ],
@@ -416,32 +437,38 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: last
-            ? null
-            : const Border(bottom: BorderSide(color: AppColors.divider)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
-          ),
-          Flexible(
-            child: Text(
-              value.isEmpty ? '—' : value,
-              textAlign: TextAlign.right,
+    return InkWell(
+      onTap: () => copyToClipboard(context, value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: last
+              ? null
+              : const Border(bottom: BorderSide(color: AppColors.divider)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
               style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
+                fontSize: 13,
+                color: AppColors.textTertiary,
               ),
             ),
-          ),
-        ],
+            Flexible(
+              child: Text(
+                value.isEmpty ? '—' : value,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

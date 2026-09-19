@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../repositories/quick_note_store.dart';
 import '../../state/app_providers.dart';
@@ -205,12 +206,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '${data.individualCount} Personen im Stammbaum',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textTertiary,
-                    ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '${data.individualCount} Personen im Stammbaum',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => launchUrl(
+                          Uri.parse(ref.read(serverUrlProvider)),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        icon: const Icon(Icons.open_in_new, size: 14),
+                        label: const Text('Zur Website (Vollversion)'),
+                      ),
+                    ],
                   ),
                 ),
               ],
