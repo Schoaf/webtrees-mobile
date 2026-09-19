@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Some Android devices ship without "ISRG Root X2" (the newer ECDSA Let's
+  Encrypt root) in their system trust store, so they can't validate our
+  server's certificate even though it's a normal, valid Let's Encrypt cert.
+  This lets someone work around that by installing the root manually as a
+  user CA (Settings -> Security -> install a certificate) - by default
+  Android 7+ ignores user-installed CAs for apps, so without this config
+  that workaround wouldn't do anything. The real fix is the server serving
+  an RSA/ISRG-Root-X1 chain instead, which every Android device already
+  trusts; this is only an interim unblock for people stuck on an
+  ECDSA-incompatible device in the meantime.
+-->
+<network-security-config>
+    <base-config>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
