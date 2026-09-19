@@ -172,19 +172,22 @@ class _TombstonePainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // Margins leave room for the outline stroke below instead of the shape
-    // running edge-to-edge — otherwise the stroke gets clipped by the
-    // avatar's own Stack.
-    final baseTop = h * 0.42;
+    // Same shape/cross proportions as the very first hand-drawn tombstone
+    // (edge-to-edge, cross reaching up into the arch) — later tweaks meant
+    // to fit an outline stroke ended up shrinking and re-centering the
+    // whole thing, which is what made the cross look wrong. The Stack this
+    // sits in uses clipBehavior: Clip.none, so the stroke isn't clipped by
+    // running the shape edge-to-edge.
+    final baseTop = h * 0.3;
     final path = Path()
-      ..moveTo(w * 0.1, h * 0.94)
-      ..lineTo(w * 0.1, baseTop)
+      ..moveTo(w * 0.02, h)
+      ..lineTo(w * 0.02, baseTop)
       ..arcToPoint(
-        Offset(w * 0.9, baseTop),
-        radius: Radius.circular(w * 0.4),
+        Offset(w * 0.98, baseTop),
+        radius: Radius.circular(w * 0.49),
         clockwise: true,
       )
-      ..lineTo(w * 0.9, h * 0.94)
+      ..lineTo(w * 0.98, h)
       ..close();
 
     // A white outline so the badge reads clearly against a photo or a
@@ -196,7 +199,7 @@ class _TombstonePainter extends CustomPainter {
         ..color = Colors.white
         ..style = PaintingStyle.stroke
         ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = w * 0.14,
+        ..strokeWidth = w * 0.1,
     );
     canvas.drawPath(path, paint);
 
@@ -206,13 +209,13 @@ class _TombstonePainter extends CustomPainter {
     final crossPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-    final crossW = w * 0.14;
+    final crossW = w * 0.16;
     canvas.drawRect(
-      Rect.fromLTWH(w / 2 - crossW / 2, h * 0.46, crossW, h * 0.36),
+      Rect.fromLTWH(w / 2 - crossW / 2, h * 0.08, crossW, h * 0.5),
       crossPaint,
     );
     canvas.drawRect(
-      Rect.fromLTWH(w * 0.26, h * 0.52, w * 0.48, crossW),
+      Rect.fromLTWH(w * 0.22, h * 0.2, w * 0.56, crossW),
       crossPaint,
     );
   }
