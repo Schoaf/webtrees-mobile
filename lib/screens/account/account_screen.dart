@@ -334,6 +334,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           label: const Text('Startperson ändern'),
                         ),
                       ],
+                      if (!_editing) ...[
+                        const SizedBox(height: 32),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await ref
+                                .read(authControllerProvider.notifier)
+                                .logout();
+                          },
+                          icon: const Icon(Icons.logout, size: 18),
+                          label: const Text('Abmelden'),
+                        ),
+                      ],
                     ],
                   ),
                 ),

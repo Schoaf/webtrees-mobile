@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -86,13 +87,13 @@ class AuthController extends Notifier<AuthState> {
       await client.info(tree); // establishes session cookie + CSRF token
       final ok = await client.login(username: username, password: password);
       if (!ok) {
-        return 'The username or password is incorrect.';
+        return 'Benutzername oder Passwort ist falsch.';
       }
 
       final info = await client.info(tree);
       final user = info['user'] as Map<String, dynamic>;
       if (user['loggedIn'] != true) {
-        return 'Login did not take effect. Please try again.';
+        return 'Anmeldung hat nicht funktioniert. Bitte erneut versuchen.';
       }
 
       await _saveSession(client);
@@ -102,8 +103,22 @@ class AuthController extends Notifier<AuthState> {
         realName: user['realName'] as String?,
       );
       return null;
-    } on Exception catch (e) {
-      return 'Could not reach the server: $e';
+    } on DioException catch (e) {
+      // A raw exception message (timeouts, TLS, DNS, ...) is meaningless to
+      // someone tapping "Anmelden" on their phone — collapse it to one clear
+      // message instead of surfacing Dio's internals.
+      return switch (e.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout ||
+        DioExceptionType.connectionError =>
+          'Server nicht erreichbar. Bitte Internetverbindung prüfen.',
+        DioExceptionType.badCertificate =>
+          'Der Server konnte nicht sicher erreicht werden.',
+        _ => 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.',
+      };
+    } on Exception {
+      return 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
     }
   }
 

@@ -56,7 +56,12 @@ Eigene Seite (nicht dasselbe wie eine Personen-Detailseite): Benutzername, Name 
 
 Der Stift oben rechts schaltet auf Bearbeiten um: **Name** wird zum Textfeld, die **Startperson** lässt sich über "Startperson ändern" per Personensuche neu wählen, unten ein fixierter Speichern-Button. Benutzername und Rolle bleiben absichtlich schreibgeschützt (Rolle ist serverseitig festgelegt), die **verknüpfte Person** ebenfalls — das Ändern der Verknüpfung ist in webtrees selbst eine Admin-Funktion (Benutzerverwaltung), keine Selbstbedienung, und die App hält sich an diese Grenze.
 
+Unten ein **Abmelden**-Button — meldet ab und springt zurück zum Anmelden-Bildschirm.
+
 ![Mein Konto](docs/screenshots/account.png)
+
+### Anmelden
+Eigener, zur App passender Anmelde-Bildschirm (vorher ein unformatierter Standard-Screen mit englischem Text — das sah aus wie ein Platzhalter, war aber schon immer der echte, gegen Produktion laufende Bildschirm). Fehlermeldungen sind jetzt verständlich statt einer rohen Exception: falsches Passwort, Server nicht erreichbar (Verbindungsproblem) und ein allgemeiner Fallback werden unterschieden.
 
 ## Design
 
