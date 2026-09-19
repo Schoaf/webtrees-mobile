@@ -1,16 +1,24 @@
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'screens/add_person/add_person_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/search/person_detail_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'state/app_providers.dart';
 import 'theme/app_theme.dart';
+import 'utils/person_deep_link.dart';
 
 void main() {
   runApp(const ProviderScope(child: StammbaumApp()));
 }
+
+/// Lets a shared person link (handled by [_AppRootState], which has no
+/// BuildContext of its own to navigate with) push onto the app's one root
+/// Navigator from anywhere.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class StammbaumApp extends StatelessWidget {
   const StammbaumApp({super.key});
@@ -20,6 +28,7 @@ class StammbaumApp extends StatelessWidget {
     return MaterialApp(
       title: 'Stammbaum',
       theme: buildAppTheme(),
+      navigatorKey: rootNavigatorKey,
       home: const _AppRoot(),
     );
   }
@@ -34,6 +43,7 @@ class _AppRoot extends ConsumerStatefulWidget {
 
 class _AppRootState extends ConsumerState<_AppRoot> {
   bool _restoring = true;
+  final _appLinks = AppLinks();
 
   @override
   void initState() {
@@ -43,6 +53,28 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         if (mounted) setState(() => _restoring = false);
       },
     );
+    _listenForSharedPersonLinks();
+  }
+
+  /// Opens a shared person link (Universal Link/App Link) directly to that
+  /// person's detail screen, whether the app was already running or just
+  /// launched by tapping the link. Only acts once logged in — if a link
+  /// arrives before that, it's simply dropped and the person opens the
+  /// login screen like any other cold start.
+  void _listenForSharedPersonLinks() {
+    void handle(Uri uri) {
+      final xref = personXrefFromLink(uri);
+      if (xref == null) return;
+      if (!ref.read(authControllerProvider).loggedIn) return;
+      rootNavigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)),
+      );
+    }
+
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) handle(uri);
+    });
+    _appLinks.uriLinkStream.listen(handle);
   }
 
   @override

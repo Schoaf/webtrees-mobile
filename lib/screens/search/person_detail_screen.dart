@@ -346,12 +346,22 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           ),
         );
       case _ShareChoice.link:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Teilen per Link ist noch nicht verfügbar.'),
-          ),
-        );
+        await SharePlus.instance.share(ShareParams(uri: _personUrl()));
     }
+  }
+
+  /// The person's normal webtrees page — a plain link, not a temporary
+  /// unauthenticated share token (that's a separate, not-yet-built feature).
+  /// Whoever opens it needs their own webtrees login, same as visiting the
+  /// site directly; if they have the app installed, Universal/App Links
+  /// open it there instead of a browser (see AASA/assetlinks.json).
+  Uri _personUrl() {
+    final server = ref.read(serverUrlProvider);
+    final tree = ref.read(treeNameProvider);
+    return Uri.parse(server).replace(
+      path: '/index.php',
+      queryParameters: {'route': '/tree/$tree/individual/${widget.xref}'},
+    );
   }
 
   /// A plain-text summary of a person's facts for the system share sheet —

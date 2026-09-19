@@ -32,6 +32,17 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- App Links: a shared person link opens straight into the app
+                 instead of a browser, once assetlinks.json is hosted at
+                 https://stammbaum.familiescharf.at/.well-known/assetlinks.json
+                 (autoVerify checks that on install). Falls back to the
+                 browser on its own if verification hasn't happened yet. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="stammbaum.familiescharf.at"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
