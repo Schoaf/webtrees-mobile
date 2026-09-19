@@ -5,7 +5,7 @@ Flutter-Begleit-App (Android/iOS) für die selbst gehostete [webtrees](https://w
 ## Funktionen
 
 ### Start
-Startperson und Suche auf einen Blick (eine neue Person legt man über den "Neu"-Tab unten an — kein eigener Button mehr auf dem Start-Bildschirm). Darunter, falls zutreffend, ein Block **"Geburtstage diese Woche"** (mit Torten-Icon) — lebende Personen mit Geburtstag in den nächsten 7 Tagen, als einfache Liste (Name, klein darunter "wird 31 · am Sonntag"), kein Foto, keine Card-Optik wie bei Suchergebnissen. Zeilen bleiben antippbar. Verstorbene werden nie angezeigt. Bottom-Navigation: **Start / Suche / Neu**.
+Startperson und Suche auf einen Blick (eine neue Person legt man über den "Neu"-Tab unten an — kein eigener Button mehr auf dem Start-Bildschirm). Darunter, falls zutreffend, ein Block **"Geburtstage diese Woche"** (mit Torten-Icon) — lebende Personen mit Geburtstag in den nächsten 7 Tagen, als einfache Liste (Name, klein darunter "wird 31 · am Sonntag"), kein Foto, keine Card-Optik wie bei Suchergebnissen. Zeilen bleiben antippbar. Verstorbene werden nie angezeigt. Ganz unten ein Link **"Zur Website (Vollversion)"**, öffnet die volle Webseite im externen Browser. Bottom-Navigation: **Start / Suche / Neu**.
 
 Oben rechts: Initialen oder Foto der mit dem Konto verknüpften Person — antippbar, öffnet **"Mein Konto"**.
 
@@ -15,7 +15,7 @@ Oben rechts: Initialen oder Foto der mit dem Konto verknüpften Person — antip
 Personensuche mit Live-Ergebnissen. Jede Zeile zeigt:
 - Foto oder Silhouette, nach Geschlecht eingefärbt
 - einen farbigen Balken am linken Rand als zusätzliches Geschlechts-Kennzeichen (auch erkennbar, wenn ein Foto hinterlegt ist)
-- ein Grabstein-Symbol für verstorbene Personen
+- ein Grabstein-Symbol für verstorbene Personen — nur die Umrisse mit weißem Rand, ohne kreisförmigen Hintergrund
 - darunter: bei lebenden Personen das **volle Geburtsdatum** (kein Bindestrich); erst bei verstorbenen Personen "Jahr–Jahr". Gilt überall, wo diese Zeile erscheint (Suche, Eltern/Ehepartner/Kinder, Mein Konto).
 
 ![Suche](docs/screenshots/search.png)
@@ -30,7 +30,9 @@ Alle bekannten Fakten zu einer Person, dazu Eltern/Ehepartner/Kinder als verlink
 
 Die Feld-Reihenfolge ist an einer einzigen Stelle im Code dokumentiert und leicht änderbar: `kFactDisplayOrder` in [`lib/screens/search/person_detail_screen.dart`](lib/screens/search/person_detail_screen.dart).
 
-Ab der dritten verschachtelten Person (z. B. Eltern → Groß­eltern → Urgroß­eltern) erscheint unten links ein schwebender Home-Button, damit man nicht mehrfach "Zurück" tippen muss.
+Felder, die mehrere Angaben kombinieren (z. B. Geburt/Tod mit Datum **und** Ort), zeigen die Hauptangabe normal groß und die Nebenangabe klein darunter — dasselbe Muster wie unter dem Namen in den Personen-Karten. Jedes Feld lässt sich antippen, um seinen Wert in die Zwischenablage zu kopieren (kurzer "Kopiert"-Hinweis).
+
+Ab der dritten verschachtelten Person (z. B. Eltern → Groß­eltern → Urgroß­eltern) erscheint unten links ein schwebender Home-Button, damit man nicht mehrfach "Zurück" tippen muss. Schwebende Buttons (Home, Fakt hinzufügen) erscheinen sofort, ohne Einflug-Animation.
 
 ![Person](docs/screenshots/person_detail.png)
 
@@ -54,9 +56,9 @@ Ist der Server beim schnellen Fakt-Erfassen nicht erreichbar, wird der Eintrag l
 ### Mein Konto
 Eigene Seite (nicht dasselbe wie eine Personen-Detailseite): Benutzername, Name und Rolle des webtrees-Kontos, dazu die damit **verknüpfte Person** und die **Startperson** des Baums, je als anklickbare Karte zur jeweiligen Personen-Detailseite. Erreichbar über den Kreis oben rechts am Start-Bildschirm.
 
-Der Stift oben rechts schaltet auf Bearbeiten um: **Name** wird zum Textfeld, die **Startperson** lässt sich über "Startperson ändern" per Personensuche neu wählen, unten ein fixierter Speichern-Button. Benutzername und Rolle bleiben absichtlich schreibgeschützt (Rolle ist serverseitig festgelegt), die **verknüpfte Person** ebenfalls — das Ändern der Verknüpfung ist in webtrees selbst eine Admin-Funktion (Benutzerverwaltung), keine Selbstbedienung, und die App hält sich an diese Grenze.
+Der Stift oben rechts schaltet auf Bearbeiten um: **Name** wird zum Textfeld, die **Startperson** lässt sich über "Startperson ändern" per Personensuche neu wählen, unten ein fixierter Speichern-Button. Benutzername und Rolle bleiben absichtlich schreibgeschützt (Rolle ist serverseitig festgelegt), die **verknüpfte Person** ebenfalls — das Ändern der Verknüpfung ist in webtrees selbst eine Admin-Funktion (Benutzerverwaltung), keine Selbstbedienung, und die App hält sich an diese Grenze. Jedes Feld lässt sich zum Kopieren antippen.
 
-Unten ein **Abmelden**-Button — meldet ab und springt zurück zum Anmelden-Bildschirm.
+Unten ein **Abmelden**-Button — meldet sofort ab und springt direkt zum Anmelden-Bildschirm (nicht erst bei der nächsten Navigation). Darunter ein Link **"Zur Website"** zur vollen Webseite.
 
 ![Mein Konto](docs/screenshots/account.png)
 
@@ -80,8 +82,5 @@ Das komplette UI-Design (alle Screens, bearbeitbar) liegt als Claude-Design-Canv
 ### Hinweis zum Server
 "Geburtstage diese Woche" nutzt den bestehenden `Anniversaries`-Endpunkt des `webtreesand-api`-Moduls. Dessen Julian-Day-Berechnung (`->julianDay()` auf `CarbonImmutable`, nie eine echte Carbon-Methode) führte serverseitig zu einem 500-Fehler — behoben in `modules_v4/webtreesand-api/WebtreesAndApiModule.php` (nutzt jetzt `Fisharebest\ExtCalendar\GregorianCalendar`, dieselbe Kalender-Bibliothek, die webtrees selbst mitliefert). Geprüft: Der Fehler existiert **nicht** in webtrees-Core selbst — daher kein Pull-Request nötig, nur der third-party-Modul-Fix. (Ein erster Versuch nutzte `TimestampFactory::todayJulianDay()`, das es in webtrees-Core zwar gibt, aber erst ab einer neueren Version als der auf Produktion laufenden 2.2.6 — das brach kurzzeitig die Produktion, bevor auf die versionsunabhängige Variante gewechselt wurde.) Ist auf Produktion deployt und verifiziert.
 
-### Bekanntes Problem: TLS-Zertifikat auf manchen Android-Geräten
-Das Let's-Encrypt-Zertifikat der Produktion ist ein ECDSA-Zertifikat, verankert bei **"ISRG Root X2"** statt beim älteren, universeller vertrauten **"ISRG Root X1"** (RSA). Geräte ohne aktuelles Trust-Store-Update (z. B. via Google Play System Update) vertrauen X2 nicht und melden beim Anmelden "Server nicht erreichbar" — obwohl der Server einwandfrei läuft (bestätigt von Mac/curl und dem Android-Emulator, beide mit aktuellem Trust Store).
-
-- **Eigentliche Lösung** (nicht app-seitig): Zertifikat auf RSA/ISRG-Root-X1 umstellen — im All-Inkl-KAS-Panel bzw. über den Hosting-Support.
-- **Interims-Workaround in der App**: `android/app/src/main/res/xml/network_security_config.xml` lässt die App zusätzlich manuell installierten (User-)CA-Zertifikaten vertrauen (normalerweise ignoriert Android das seit Version 7 pro App). Damit kann man sich selbst mit dem offiziellen ISRG-Root-X2-Zertifikat (von letsencrypt.org) behelfen, bis der Server umgestellt ist. Das weitet das Vertrauen der App auf alle User-CA-Zertifikate des Geräts aus — akzeptabel für eine kleine Familien-App, aber bewusst nur eine Übergangslösung.
+### Behoben: "Server nicht erreichbar" auf echten Android-Geräten
+Jeder Release-Build hatte schlicht **keine Internet-Berechtigung** — `android/app/src/main/AndroidManifest.xml` (der `main`-Manifest, der in Release-Builds verwendet wird) fehlte `<uses-permission android:name="android.permission.INTERNET"/>` komplett; nur die von Flutter automatisch erzeugten `debug`/`profile`-Manifest-Varianten hatten sie, weshalb der Fehler im Emulator/bei `flutter run` nie auffiel. Ein anfänglicher Verdacht auf ein TLS/Zertifikatsproblem (ISRG Root X2) erwies sich als falsche Spur — bestätigt durch Reproduktion des exakten Release-APKs auf dem Emulator, wo derselbe Fehler auftrat, während der Emulator-Browser dieselbe Seite problemlos lud. Behoben durch Ergänzen der fehlenden Berechtigung; `network_security_config.xml` (Vertrauen zu User-CA-Zertifikaten) blieb als harmloser Nebeneffekt bestehen, war aber nie die eigentliche Ursache.
