@@ -119,21 +119,10 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       GlobalKey<_EditFactsSectionState>();
   final _savingNotifier = ValueNotifier<bool>(false);
 
-  // "Um Mithilfe bitten" (webtrees-share) is a separate, optional module —
-  // checked once per screen so the button only appears when it's actually
-  // installed, rather than blocking the main person load on it.
-  bool _shareModuleActive = false;
-
   @override
   void initState() {
     super.initState();
     _future = _load();
-    ref
-        .read(webtreesClientProvider)
-        .shareModuleActive(ref.read(treeNameProvider))
-        .then((active) {
-          if (mounted) setState(() => _shareModuleActive = active);
-        });
   }
 
   @override
@@ -591,8 +580,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                       onShare: _editing
                           ? null
                           : () => _openShareMenu(person: person, facts: facts),
-                      onAskForHelp:
-                          (_editing || !_shareModuleActive || !canEdit)
+                      onAskForHelp: (_editing || !canEdit)
                           ? null
                           : () => _openAskForHelp(name),
                     ),

@@ -328,19 +328,6 @@ class WebtreesClient {
   // --- webtrees-share: "ask a relative to help" (separate, optional module,
   // not to be confused with the plain-link/text share in person_detail) ---
 
-  /// Whether the `webtrees-share` module is installed and enabled — check
-  /// before showing the "Um Mithilfe bitten" affordance at all, since it's a
-  /// separate module the server might not have.
-  Future<bool> shareModuleActive(String tree) async {
-    try {
-      final response = await _dio.getUri(_shareModuleUri('Info', tree));
-      return response.statusCode == 200 &&
-          (response.data as Map<String, dynamic>?)?['active'] == true;
-    } on DioException {
-      return false;
-    }
-  }
-
   /// Snapshots [xref]'s key facts and creates a share request for it.
   /// Returns `{url, expires}`. Requires editor rights on the record.
   Future<Map<String, dynamic>> createShareRequest(
