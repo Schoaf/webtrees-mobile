@@ -7,6 +7,7 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../utils/gedcom.dart';
+import '../../utils/server_error.dart';
 import '../../widgets/add_fact_sheet.dart';
 import '../../widgets/ask_for_help_email_screen.dart';
 import '../../widgets/person_avatar.dart';
@@ -357,6 +358,25 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   /// copy/share the link or send it by email. Distinct from [_openShareMenu]:
   /// this link needs no webtrees login at all and is meant for a relative
   /// who'll never have an account, not someone who already does.
+  /// Errors here can be webtrees' own fatal-error HTML page — long, and
+  /// worth being able to read/select in full — so a dialog instead of the
+  /// usual one-line SnackBar.
+  void _showServerErrorDialog(String message) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Anfrage fehlgeschlagen'),
+        content: SingleChildScrollView(child: SelectableText(message)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openAskForHelp(String name) async {
     final tree = ref.read(treeNameProvider);
     final client = ref.read(webtreesClientProvider);
@@ -366,8 +386,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       request = await client.createShareRequest(tree, widget.xref);
     } on Exception catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Anfrage fehlgeschlagen: $e')));
+      _showServerErrorDialog(describeServerError(e));
       return;
     }
     if (!mounted) return;
