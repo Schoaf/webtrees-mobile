@@ -136,9 +136,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   initials: _initials(data.realName),
                   photoUrl: data.linkedPhotoUrl,
                   photoHeaders: ref.read(webtreesClientProvider).imageHeaders,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AccountScreen()),
-                  ),
+                  onTap: () async {
+                    // Mein Konto can change the linked photo/name or the
+                    // Startperson shown below — without this, Home kept
+                    // showing whatever it loaded at app start until a
+                    // restart, since it's kept alive in the tab IndexedStack
+                    // and never reloads on its own.
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AccountScreen()),
+                    );
+                    if (mounted) setState(() => _future = _load());
+                  },
                 ),
                 Expanded(
                   child: ListView(
