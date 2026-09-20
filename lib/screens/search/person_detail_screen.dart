@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../utils/gedcom.dart';
 import '../../widgets/add_fact_sheet.dart';
+import '../../widgets/ask_for_help_email_screen.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
@@ -68,6 +69,8 @@ String _factCopyText(Map<String, dynamic> fact) {
 
 enum _ShareChoice { link, data }
 
+enum _AskForHelpChoice { copyLink, shareLink, email }
+
 /// Julian Day Number for a Gregorian calendar date (Fliegel & Van Flandern).
 int _julianDayNumber(DateTime date) {
   final a = (14 - date.month) ~/ 12;
@@ -116,10 +119,21 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       GlobalKey<_EditFactsSectionState>();
   final _savingNotifier = ValueNotifier<bool>(false);
 
+  // "Um Mithilfe bitten" (webtrees-share) is a separate, optional module —
+  // checked once per screen so the button only appears when it's actually
+  // installed, rather than blocking the main person load on it.
+  bool _shareModuleActive = false;
+
   @override
   void initState() {
     super.initState();
     _future = _load();
+    ref
+        .read(webtreesClientProvider)
+        .shareModuleActive(ref.read(treeNameProvider))
+        .then((active) {
+          if (mounted) setState(() => _shareModuleActive = active);
+        });
   }
 
   @override
@@ -350,11 +364,121 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     }
   }
 
-  /// The person's normal webtrees page — a plain link, not a temporary
-  /// unauthenticated share token (that's a separate, not-yet-built feature).
-  /// Whoever opens it needs their own webtrees login, same as visiting the
-  /// site directly; if they have the app installed, Universal/App Links
-  /// open it there instead of a browser (see AASA/assetlinks.json).
+  /// Creates a webtrees-share request for this person, then lets the user
+  /// copy/share the link or send it by email. Distinct from [_openShareMenu]:
+  /// this link needs no webtrees login at all and is meant for a relative
+  /// who'll never have an account, not someone who already does.
+  Future<void> _openAskForHelp(String name) async {
+    final tree = ref.read(treeNameProvider);
+    final client = ref.read(webtreesClientProvider);
+
+    final Map<String, dynamic> request;
+    try {
+      request = await client.createShareRequest(tree, widget.xref);
+    } on Exception catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Anfrage fehlgeschlagen: $e')));
+      return;
+    }
+    if (!mounted) return;
+    if (request['ok'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Anfrage fehlgeschlagen: ${request['error']}')),
+      );
+      return;
+    }
+
+    final url = request['url'] as String;
+    final token = Uri.parse(url).queryParameters['token'] ?? '';
+
+    final choice = await showModalBottomSheet<_AskForHelpChoice>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Link gültig für 2 Tage — kein Konto nötig',
+                  style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy_outlined),
+              title: const Text('Link kopieren'),
+              onTap: () =>
+                  Navigator.of(context).pop(_AskForHelpChoice.copyLink),
+            ),
+            ListTile(
+              leading: const Icon(Icons.ios_share),
+              title: const Text('Teilen'),
+              onTap: () =>
+                  Navigator.of(context).pop(_AskForHelpChoice.shareLink),
+            ),
+            ListTile(
+              leading: const Icon(Icons.email_outlined),
+              title: const Text('Per E-Mail senden'),
+              onTap: () => Navigator.of(context).pop(_AskForHelpChoice.email),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+
+    switch (choice) {
+      case _AskForHelpChoice.copyLink:
+        copyToClipboard(url);
+      case _AskForHelpChoice.shareLink:
+        await SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));
+      case _AskForHelpChoice.email:
+        await _openEmailComposer(tree: tree, token: token);
+    }
+  }
+
+  Future<void> _openEmailComposer({
+    required String tree,
+    required String token,
+  }) async {
+    final client = ref.read(webtreesClientProvider);
+    final Map<String, dynamic> template;
+    try {
+      template = await client.shareRequestEmailTemplate(tree, token);
+    } on Exception catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Konnte E-Mail-Vorlage nicht laden: $e')),
+      );
+      return;
+    }
+    if (!mounted) return;
+
+    final sent = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AskForHelpEmailScreen(
+          tree: tree,
+          token: token,
+          subject: template['subject'] as String? ?? '',
+          bodyTemplate: template['body'] as String? ?? '',
+        ),
+      ),
+    );
+    if (sent == true && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('E-Mail gesendet.')));
+    }
+  }
+
+  /// The person's normal webtrees page — a plain link, not the temporary,
+  /// login-free webtrees-share link from [_openAskForHelp]. Whoever opens it
+  /// needs their own webtrees login, same as visiting the site directly; if
+  /// they have the app installed, Universal/App Links open it there instead
+  /// of a browser (see AASA/assetlinks.json).
   Uri _personUrl() {
     final server = ref.read(serverUrlProvider);
     final tree = ref.read(treeNameProvider);
@@ -467,6 +591,10 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                       onShare: _editing
                           ? null
                           : () => _openShareMenu(person: person, facts: facts),
+                      onAskForHelp:
+                          (_editing || !_shareModuleActive || !canEdit)
+                          ? null
+                          : () => _openAskForHelp(name),
                     ),
                     Expanded(
                       child: ListView(
@@ -620,12 +748,19 @@ class _Header extends StatelessWidget {
     this.editing = false,
     this.onEditToggle,
     this.onShare,
+    this.onAskForHelp,
   });
 
   final String name;
   final bool editing;
   final VoidCallback? onEditToggle;
   final VoidCallback? onShare;
+
+  /// "Um Mithilfe bitten" (webtrees-share) — deliberately not folded into
+  /// [onShare]'s menu: it starts a stateful request/response flow with a
+  /// relative, not a one-off system share action, and is a separate,
+  /// optional server module besides.
+  final VoidCallback? onAskForHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -652,6 +787,15 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (onAskForHelp != null)
+            IconButton(
+              onPressed: onAskForHelp,
+              icon: const Icon(
+                Icons.volunteer_activism_outlined,
+                color: AppColors.textPrimary,
+              ),
+              tooltip: 'Um Mithilfe bitten',
+            ),
           if (onShare != null)
             IconButton(
               onPressed: onShare,

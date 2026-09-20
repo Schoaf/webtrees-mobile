@@ -89,15 +89,30 @@ class WebtreesClient {
     if (_cookie != null) 'Cookie': _cookie!,
   };
 
-  Uri _moduleUri(String action, String tree, [Map<String, dynamic>? query]) {
+  /// webtrees names every custom module's route `_<folder-name>_`
+  /// (ModuleService::customModules) regardless of what the README shows for
+  /// readability — `modules_v4/webtrees-share` really is `_webtrees-share_`
+  /// on the wire, same as `_webtreesand-api_`.
+  Uri _moduleUri(
+    String action,
+    String tree, [
+    Map<String, dynamic>? query,
+    String moduleSlug = '_webtreesand-api_',
+  ]) {
     return Uri.parse(_baseUrl).replace(
       path: '${Uri.parse(_baseUrl).path}index.php',
       queryParameters: {
-        'route': '/module/_webtreesand-api_/$action/$tree',
+        'route': '/module/$moduleSlug/$action/$tree',
         ...?query,
       },
     );
   }
+
+  Uri _shareModuleUri(
+    String action,
+    String tree, [
+    Map<String, dynamic>? query,
+  ]) => _moduleUri(action, tree, query, '_webtrees-share_');
 
   /// `GET Info` — also the way we discover/refresh the CSRF token and the
   /// server's own idea of its base URL (see [login]).
@@ -308,5 +323,79 @@ class WebtreesClient {
     final data = (response.data as Map<String, dynamic>?)?['data'];
     if (data is! List) return [];
     return data.whereType<String>().toList();
+  }
+
+  // --- webtrees-share: "ask a relative to help" (separate, optional module,
+  // not to be confused with the plain-link/text share in person_detail) ---
+
+  /// Whether the `webtrees-share` module is installed and enabled — check
+  /// before showing the "Um Mithilfe bitten" affordance at all, since it's a
+  /// separate module the server might not have.
+  Future<bool> shareModuleActive(String tree) async {
+    try {
+      final response = await _dio.getUri(_shareModuleUri('Info', tree));
+      return response.statusCode == 200 &&
+          (response.data as Map<String, dynamic>?)?['active'] == true;
+    } on DioException {
+      return false;
+    }
+  }
+
+  /// Snapshots [xref]'s key facts and creates a share request for it.
+  /// Returns `{url, expires}`. Requires editor rights on the record.
+  Future<Map<String, dynamic>> createShareRequest(
+    String tree,
+    String xref,
+  ) async {
+    final response = await _dio.postUri(
+      _shareModuleUri('CreateRequest', tree),
+      data: {'xref': xref},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// The canonical subject/body for the "please help" email, `body`
+  /// containing a `{{PERSONAL_MESSAGE}}` marker to fill in before sending —
+  /// for previewing/editing the message before [sendShareRequestEmail].
+  Future<Map<String, dynamic>> shareRequestEmailTemplate(
+    String tree,
+    String token,
+  ) async {
+    final response = await _dio.getUri(
+      _shareModuleUri('RequestEmailTemplate', tree, {'token': token}),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Sends the request by email — server-rendered, so [personalMessage] is
+  /// the only free text the client contributes; subject/body always come
+  /// from the server.
+  Future<Map<String, dynamic>> sendShareRequestEmail(
+    String tree, {
+    required String token,
+    required String recipientEmail,
+    String? recipientName,
+    String personalMessage = '',
+  }) async {
+    final response = await _dio.postUri(
+      _shareModuleUri('SendRequestEmail', tree),
+      data: {
+        'token': token,
+        'recipient_email': recipientEmail,
+        if (recipientName != null) 'recipient_name': recipientName,
+        'personal_message': personalMessage,
+      },
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// `{unread}` — how many share-request answers are waiting for review.
+  Future<int> shareRequestUnreadCount(String tree) async {
+    final response = await _dio.getUri(
+      _shareModuleUri('RequestNotifications', tree),
+    );
+    return (response.data as Map<String, dynamic>)['unread'] as int? ?? 0;
   }
 }
