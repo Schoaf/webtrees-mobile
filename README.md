@@ -79,6 +79,8 @@ In der Detailansicht (`ResponseDetailScreen`) genau wie auf der Web-Seite: vor/n
 
 Der Link aus der "Antwort erhalten"-Mail ist ein normaler Universal Link auf `stammbaum.familiescharf.at` — ist die App installiert und man eingeloggt, öffnet er direkt die passende Detailansicht statt der Web-Seite (siehe `shareReviewIdFromLink`, gleiches Prinzip wie bei geteilten Personen-Links).
 
+Eine Anfrage lässt sich auch verwerfen (Zeile in der Liste nach links wischen, oder der Papierkorb oben in der Detailansicht) — löscht die Anfrage endgültig samt eventuell hinterlegtem Foto, mit Bestätigungsdialog davor. Genau wie auf der Web-Seite (dort ein "Verwerfen"-Button in Liste und Detailansicht) — beide nutzen denselben serverseitigen Endpunkt.
+
 ### Mein Konto (Ergänzung)
 Im nicht-editierbaren Zustand zusätzlich zu "Zur Website": ein **"Datenschutz"**-Link und die App-Version, direkt unter dem "Abmelden"-Button.
 

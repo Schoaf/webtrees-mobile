@@ -425,4 +425,17 @@ class WebtreesClient {
     );
     return response.data as Map<String, dynamic>;
   }
+
+  /// Discards a request entirely (the row and any photo files it's
+  /// holding) under the reviewer's own session. Same endpoint the web
+  /// "Verwerfen" form posts to — it always responds with a redirect, so
+  /// (like [login]) success is just the status code, not a JSON body.
+  Future<bool> shareRequestDelete(String tree, int id) async {
+    final response = await _dio.postUri(
+      _shareModuleUri('RequestDelete', tree),
+      data: {'id': id},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.statusCode == 302;
+  }
 }

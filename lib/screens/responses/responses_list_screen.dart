@@ -19,6 +19,10 @@ class ResponsesListScreen extends ConsumerStatefulWidget {
 
 class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
   late Future<List<Map<String, dynamic>>> _future;
+  // A local, mutable copy of whatever _future last resolved to - Dismissible
+  // needs a list it can remove an item from directly (as soon as the delete
+  // is confirmed) rather than re-fetching and rebuilding from scratch.
+  List<Map<String, dynamic>>? _requests;
 
   @override
   void initState() {
@@ -32,7 +36,45 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
     return client.shareRequestList(tree);
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() => setState(() {
+    _requests = null;
+    _future = _load();
+  });
+
+  Future<bool> _confirmDelete(BuildContext context, int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Anfrage verwerfen?'),
+        content: const Text(
+          'Die Anfrage und eine eventuell hinterlegte Foto-Vorschau werden endgültig gelöscht.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Verwerfen'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return false;
+    }
+
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+
+    try {
+      return await client.shareRequestDelete(tree, id);
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +96,7 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
                     );
                   }
 
-                  final requests = snapshot.data!;
+                  final requests = _requests ??= List.of(snapshot.data!);
 
                   if (requests.isEmpty) {
                     return const Center(
@@ -76,85 +118,106 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
                       final applied = item['status'] == 'applied';
                       final responder = item['responder'] as String? ?? '';
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Material(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          clipBehavior: Clip.antiAlias,
-                          elevation: 0,
-                          child: InkWell(
-                            onTap: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ResponseDetailScreen(
-                                    id: item['id'] as int,
+                      return Dismissible(
+                        key: ValueKey(item['id']),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (_) =>
+                            _confirmDelete(context, item['id'] as int),
+                        onDismissed: (_) =>
+                            setState(() => _requests!.removeAt(index)),
+                        background: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          alignment: Alignment.centerRight,
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade400,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.white,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Material(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            clipBehavior: Clip.antiAlias,
+                            elevation: 0,
+                            child: InkWell(
+                              onTap: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ResponseDetailScreen(
+                                      id: item['id'] as int,
+                                    ),
                                   ),
+                                );
+                                _reload();
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  boxShadow: AppColors.cardShadow,
                                 ),
-                              );
-                              _reload();
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                boxShadow: AppColors.cardShadow,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item['name'] as String? ?? '',
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w500,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                        if (responder.isNotEmpty) ...[
-                                          const SizedBox(height: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            'Von $responder',
+                                            item['name'] as String? ?? '',
                                             style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textSecondary,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppColors.textPrimary,
                                             ),
                                           ),
+                                          if (responder.isNotEmpty) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Von $responder',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
                                         ],
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: applied
-                                          ? AppColors.background
-                                          : AppColors.primary,
-                                      borderRadius: BorderRadius.circular(
-                                        999,
                                       ),
                                     ),
-                                    child: Text(
-                                      applied ? 'Übernommen' : 'Neue Antwort',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
                                         color: applied
-                                            ? AppColors.textSecondary
-                                            : Colors.white,
+                                            ? AppColors.background
+                                            : AppColors.primary,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        applied ? 'Übernommen' : 'Neue Antwort',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: applied
+                                              ? AppColors.textSecondary
+                                              : Colors.white,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),

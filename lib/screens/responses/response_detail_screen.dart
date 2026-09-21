@@ -59,9 +59,7 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
       final nextId = result['nextId'] as int?;
       if (nextId != null) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => ResponseDetailScreen(id: nextId),
-          ),
+          MaterialPageRoute(builder: (_) => ResponseDetailScreen(id: nextId)),
         );
       } else {
         Navigator.of(context).pop();
@@ -78,13 +76,60 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
     }
   }
 
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Anfrage verwerfen?'),
+        content: const Text(
+          'Die Anfrage und eine eventuell hinterlegte Foto-Vorschau werden endgültig gelöscht.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Verwerfen'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+
+    try {
+      final ok = await client.shareRequestDelete(tree, widget.id);
+      if (!mounted) return;
+      if (ok) {
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Konnte nicht verworfen werden.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Konnte nicht verworfen werden: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _Header(onBack: () => Navigator.of(context).pop()),
+            _Header(
+              onBack: () => Navigator.of(context).pop(),
+              onDelete: _delete,
+            ),
             Expanded(
               child: FutureBuilder<Map<String, dynamic>>(
                 future: _future,
@@ -145,10 +190,8 @@ class _Body extends ConsumerWidget {
     // array as JSON "[]" rather than "{}" - defend against that shape too
     // rather than crashing to a blank screen if that ever slips through again.
     final compareRaw = data['compare'];
-    final compare = (compareRaw is Map ? compareRaw : {}).cast<
-      String,
-      Map<String, dynamic>
-    >();
+    final compare = (compareRaw is Map ? compareRaw : {})
+        .cast<String, Map<String, dynamic>>();
     final note = data['note'] as String? ?? '';
     final photoUrl = data['photoUrl'] as String? ?? '';
 
@@ -294,10 +337,7 @@ class _CompareCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.only(left: 4), child: child),
         ],
       ),
     );
@@ -355,18 +395,12 @@ class _ForLine extends StatelessWidget {
       children: [
         Text(
           'Für: $name',
-          style: const TextStyle(
-            fontSize: 15,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
         ),
         if (responder.isNotEmpty)
           Text(
             'Von: $responder',
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textTertiary,
-            ),
+            style: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
           ),
       ],
     );
@@ -374,9 +408,10 @@ class _ForLine extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onBack});
+  const _Header({required this.onBack, required this.onDelete});
 
   final VoidCallback onBack;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +437,14 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 48),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(
+              Icons.delete_outline,
+              color: AppColors.textPrimary,
+            ),
+            tooltip: 'Anfrage verwerfen',
+          ),
         ],
       ),
     );
