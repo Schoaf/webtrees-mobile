@@ -74,6 +74,7 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
                     itemBuilder: (context, index) {
                       final item = requests[index];
                       final applied = item['status'] == 'applied';
+                      final responder = item['responder'] as String? ?? '';
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -104,13 +105,29 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: Text(
-                                      item['name'] as String? ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.textPrimary,
-                                      ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item['name'] as String? ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        if (responder.isNotEmpty) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Von $responder',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   Container(

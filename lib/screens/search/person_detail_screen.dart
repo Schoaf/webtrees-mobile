@@ -420,18 +420,27 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             ListTile(
               leading: const Icon(Icons.copy_outlined),
               title: const Text('Link kopieren'),
+              subtitle: const Text(
+                'Link in die Zwischenablage kopieren, um ihn selbst zu verschicken',
+              ),
               onTap: () =>
                   Navigator.of(context).pop(_AskForHelpChoice.copyLink),
             ),
             ListTile(
               leading: const Icon(Icons.ios_share),
               title: const Text('Teilen'),
+              subtitle: const Text(
+                'Über eine andere App teilen, z. B. WhatsApp oder Nachrichten',
+              ),
               onTap: () =>
                   Navigator.of(context).pop(_AskForHelpChoice.shareLink),
             ),
             ListTile(
               leading: const Icon(Icons.email_outlined),
               title: const Text('Per E-Mail senden'),
+              subtitle: const Text(
+                'Direkt aus der App eine E-Mail mit dem Link verschicken',
+              ),
               onTap: () => Navigator.of(context).pop(_AskForHelpChoice.email),
             ),
           ],

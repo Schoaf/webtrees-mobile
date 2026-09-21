@@ -139,8 +139,13 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final name = data['name'] as String? ?? '';
+    final responder = data['responder'] as String? ?? '';
     final appliedAlready = data['applied'] as bool? ?? false;
-    final compare = (data['compare'] as Map<String, dynamic>? ?? {}).cast<
+    // The server always sends an object here, but PHP serializes an empty
+    // array as JSON "[]" rather than "{}" - defend against that shape too
+    // rather than crashing to a blank screen if that ever slips through again.
+    final compareRaw = data['compare'];
+    final compare = (compareRaw is Map ? compareRaw : {}).cast<
       String,
       Map<String, dynamic>
     >();
@@ -150,6 +155,7 @@ class _Body extends ConsumerWidget {
     if (appliedAlready) {
       return _InfoMessage(
         name: name,
+        responder: responder,
         text: 'Diese Antwort wurde bereits übernommen.',
       );
     }
@@ -157,6 +163,7 @@ class _Body extends ConsumerWidget {
     if (compare.isEmpty && note.isEmpty && photoUrl.isEmpty) {
       return _InfoMessage(
         name: name,
+        responder: responder,
         text: 'Es wurden keine Änderungen vorgeschlagen.',
       );
     }
@@ -164,13 +171,7 @@ class _Body extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          'Für: $name',
-          style: const TextStyle(
-            fontSize: 15,
-            color: AppColors.textSecondary,
-          ),
-        ),
+        _ForLine(name: name, responder: responder),
         const SizedBox(height: 16),
         if (photoUrl.isNotEmpty)
           _CompareCard(
@@ -304,9 +305,14 @@ class _CompareCard extends StatelessWidget {
 }
 
 class _InfoMessage extends StatelessWidget {
-  const _InfoMessage({required this.name, required this.text});
+  const _InfoMessage({
+    required this.name,
+    required this.responder,
+    required this.text,
+  });
 
   final String name;
+  final String responder;
   final String text;
 
   @override
@@ -316,13 +322,7 @@ class _InfoMessage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Für: $name',
-            style: const TextStyle(
-              fontSize: 15,
-              color: AppColors.textSecondary,
-            ),
-          ),
+          _ForLine(name: name, responder: responder),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
@@ -338,6 +338,37 @@ class _InfoMessage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ForLine extends StatelessWidget {
+  const _ForLine({required this.name, required this.responder});
+
+  final String name;
+  final String responder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Für: $name',
+          style: const TextStyle(
+            fontSize: 15,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        if (responder.isNotEmpty)
+          Text(
+            'Von: $responder',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textTertiary,
+            ),
+          ),
+      ],
     );
   }
 }
