@@ -115,7 +115,6 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
                     itemCount: requests.length,
                     itemBuilder: (context, index) {
                       final item = requests[index];
-                      final applied = item['status'] == 'applied';
                       final responder = item['responder'] as String? ?? '';
 
                       return Dismissible(
@@ -192,29 +191,9 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
                                         ],
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: applied
-                                            ? AppColors.background
-                                            : AppColors.primary,
-                                        borderRadius: BorderRadius.circular(
-                                          999,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        applied ? 'Übernommen' : 'Neue Antwort',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: applied
-                                              ? AppColors.textSecondary
-                                              : Colors.white,
-                                        ),
-                                      ),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: AppColors.textTertiary,
                                     ),
                                   ],
                                 ),

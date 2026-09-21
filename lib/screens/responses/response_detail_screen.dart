@@ -272,7 +272,7 @@ class _Body extends ConsumerWidget {
           ),
         const SizedBox(height: 8),
         FilledButton(
-          onPressed: applying ? null : onApply,
+          onPressed: (applying || accepted.isEmpty) ? null : onApply,
           child: applying
               ? const SizedBox(
                   height: 18,
