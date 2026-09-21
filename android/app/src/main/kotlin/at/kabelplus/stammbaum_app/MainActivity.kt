@@ -1,5 +1,7 @@
 package at.kabelplus.stammbaum_app
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity, not FlutterActivity - local_auth's BiometricPrompt
+// requires a FragmentActivity to attach to.
+class MainActivity : FlutterFragmentActivity()

@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Wird verwendet, um ein Foto für eine Person aufzunehmen.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Wird verwendet, um die App per Face ID zu entsperren.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Wird verwendet, um ein Foto für eine Person auszuwählen.</string>
 	<key>UIApplicationSceneManifest</key>

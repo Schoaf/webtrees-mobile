@@ -6,6 +6,8 @@
          level, which surfaces as a DNS/host-lookup failure rather than a
          clear permission error. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- For the biometric app-lock (local_auth). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:label="stammbaum_app"
         android:name="${applicationName}"

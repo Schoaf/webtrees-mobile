@@ -60,7 +60,7 @@ Eigene Seite (nicht dasselbe wie eine Personen-Detailseite): Benutzername, Name 
 
 Der Stift oben rechts schaltet auf Bearbeiten um: **Name** wird zum Textfeld, die **Startperson** lässt sich über "Startperson ändern" per Personensuche neu wählen, unten ein fixierter Speichern-Button. Benutzername und Rolle bleiben absichtlich schreibgeschützt (Rolle ist serverseitig festgelegt), die **verknüpfte Person** ebenfalls — das Ändern der Verknüpfung ist in webtrees selbst eine Admin-Funktion (Benutzerverwaltung), keine Selbstbedienung, und die App hält sich an diese Grenze. Jedes Feld lässt sich zum Kopieren antippen.
 
-Unten ein **Abmelden**-Button — meldet sofort ab und springt direkt zum Anmelden-Bildschirm (nicht erst bei der nächsten Navigation). Darunter ein Link **"Zur Website"** zur vollen Webseite.
+Unten ein **Abmelden**-Button — meldet sofort ab und springt direkt zum Anmelden-Bildschirm (nicht erst bei der nächsten Navigation). Ist Biometrie am Gerät verfügbar, direkt darunter ein Schalter **"Mit Biometrie sperren"** (siehe "Biometrie-Sperre" unten). Darunter ein Link **"Zur Website"** zur vollen Webseite.
 
 ![Mein Konto](docs/screenshots/account.png)
 
@@ -68,6 +68,9 @@ Unten ein **Abmelden**-Button — meldet sofort ab und springt direkt zum Anmeld
 Eigener, zur App passender Anmelde-Bildschirm (vorher ein unformatierter Standard-Screen mit englischem Text — das sah aus wie ein Platzhalter, war aber schon immer der echte, gegen Produktion laufende Bildschirm). Fehlermeldungen sind jetzt verständlich statt einer rohen Exception: falsches Passwort, Server nicht erreichbar (Verbindungsproblem) und ein allgemeiner Fallback werden unterschieden.
 
 Oben zentriert das App-Logo, darunter (sobald geladen) der Name des Stammbaums. Unten ein Footer mit "Stammbaum ansehen" (externer Browser), "Datenschutz" (verlinkt auf die Datenschutzerklärung der Website — es gibt noch kein eigenes Impressum) und der App-Version.
+
+### Biometrie-Sperre
+Optional, in "Mein Konto" zuschaltbar (nur sichtbar, wenn das Gerät Biometrie unterstützt): sperrt nicht den Login selbst, sondern das *Anzeigen* einer aus einem vorherigen App-Start automatisch wiederhergestellten Sitzung — ein frischer, manueller Login per Benutzername/Passwort ist nie zusätzlich Biometrie-gesperrt. Fällt bei fehlender/fehlgeschlagener Biometrie auf den Geräte-Code (PIN/Muster) zurück, damit ein Sensor-Ausfall niemanden aussperrt.
 
 ### Antworten erhalten
 Auf dem Start-Bildschirm erscheint, sobald mindestens eine unbeantwortete Rückmeldung aus "Um Mithilfe bitten" (`webtrees-share`) vorliegt, eine Karte **"Antworten erhalten"** — gleiche Optik/Größe wie der Geburtstage-Block, mit Badge für die Anzahl. Es gibt noch keine native Ansicht zum Prüfen der Antworten in der App; ein Tap öffnet die Prüfen-Seite im externen Browser (wie "Zur Website").

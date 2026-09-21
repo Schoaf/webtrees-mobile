@@ -26,6 +26,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   bool _saving = false;
   String? _saveError;
   String? _appVersion;
+  bool _biometricSupported = false;
+  bool _biometricEnabled = false;
 
   final _realNameController = TextEditingController();
   Map<String, dynamic>? _pendingStartPerson;
@@ -38,6 +40,19 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _appVersion = info.version);
     });
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final biometrics = ref.read(biometricAuthProvider);
+    final supported = await biometrics.isDeviceSupported();
+    final enabled = supported && await biometrics.isEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricSupported = supported;
+        _biometricEnabled = enabled;
+      });
+    }
   }
 
   @override
@@ -362,6 +377,29 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           icon: const Icon(Icons.logout, size: 18),
                           label: const Text('Abmelden'),
                         ),
+                        if (_biometricSupported) ...[
+                          const SizedBox(height: 12),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text(
+                              'Mit Biometrie sperren',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            subtitle: const Text(
+                              'Face ID/Fingerabdruck beim App-Start',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            value: _biometricEnabled,
+                            onChanged: (value) async {
+                              await ref
+                                  .read(biometricAuthProvider)
+                                  .setEnabled(value);
+                              if (mounted) {
+                                setState(() => _biometricEnabled = value);
+                              }
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         TextButton.icon(
                           onPressed: () => launchUrl(

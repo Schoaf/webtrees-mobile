@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../api/webtrees_client.dart';
 import '../repositories/quick_note_store.dart';
+import '../services/biometric_auth_service.dart';
 
 const _secureStorage = FlutterSecureStorage();
 
@@ -88,6 +89,10 @@ String shareRequestReviewUrl(WidgetRef ref) {
 
 final quickNoteStoreProvider = Provider<QuickNoteStore>(
   (ref) => QuickNoteStore(),
+);
+
+final biometricAuthProvider = Provider<BiometricAuthService>(
+  (ref) => BiometricAuthService(),
 );
 
 class AuthState {

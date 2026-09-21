@@ -43,16 +43,29 @@ class _AppRoot extends ConsumerStatefulWidget {
 
 class _AppRootState extends ConsumerState<_AppRoot> {
   bool _restoring = true;
+  // Only ever set true right after a *silently restored* session from a
+  // previous launch - a fresh interactive login (just typed a password)
+  // never needs an extra biometric step on top of that.
+  bool _needsBiometricUnlock = false;
   final _appLinks = AppLinks();
 
   @override
   void initState() {
     super.initState();
-    ref.read(authControllerProvider.notifier).tryRestoreSession().whenComplete(
-      () {
-        if (mounted) setState(() => _restoring = false);
-      },
-    );
+    ref
+        .read(authControllerProvider.notifier)
+        .tryRestoreSession()
+        .then((_) async {
+          if (ref.read(authControllerProvider).loggedIn) {
+            final enabled = await ref.read(biometricAuthProvider).isEnabled();
+            if (enabled && mounted) {
+              setState(() => _needsBiometricUnlock = true);
+            }
+          }
+        })
+        .whenComplete(() {
+          if (mounted) setState(() => _restoring = false);
+        });
     _listenForSharedPersonLinks();
   }
 
@@ -83,8 +96,83 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (_needsBiometricUnlock) {
+      return _LockScreen(
+        onUnlocked: () => setState(() => _needsBiometricUnlock = false),
+      );
+    }
+
     final auth = ref.watch(authControllerProvider);
     return auth.loggedIn ? const _HomeShell() : const LoginScreen();
+  }
+}
+
+/// Shown once, right after a session was silently restored from a previous
+/// launch, if the user opted into the biometric app-lock (see
+/// [BiometricAuthService]). Prompts automatically on first build so the
+/// common case (unlock succeeds) needs no extra tap; a manual retry button
+/// covers cancellation or a failed attempt.
+class _LockScreen extends ConsumerStatefulWidget {
+  const _LockScreen({required this.onUnlocked});
+
+  final VoidCallback onUnlocked;
+
+  @override
+  ConsumerState<_LockScreen> createState() => _LockScreenState();
+}
+
+class _LockScreenState extends ConsumerState<_LockScreen> {
+  bool _authenticating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _authenticate());
+  }
+
+  Future<void> _authenticate() async {
+    if (_authenticating) return;
+    setState(() => _authenticating = true);
+    final ok = await ref.read(biometricAuthProvider).authenticate();
+    if (!mounted) return;
+    setState(() => _authenticating = false);
+    if (ok) widget.onUnlocked();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.fingerprint, size: 56),
+              const SizedBox(height: 16),
+              const Text(
+                'App gesperrt',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _authenticating ? null : _authenticate,
+                child: _authenticating
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Entsperren'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
