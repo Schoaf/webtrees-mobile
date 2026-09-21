@@ -66,6 +66,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         })
         .toList();
 
+    int unreadResponses;
+    try {
+      unreadResponses = await client.shareRequestUnreadCount(tree);
+    } catch (_) {
+      // webtrees-share may not be installed/enabled - don't let that break
+      // the rest of the home screen.
+      unreadResponses = 0;
+    }
+
     return _HomeData(
       treeTitle: treeInfo['title'] as String? ?? 'Stammbaum',
       individualCount: treeInfo['individuals'] as int? ?? 0,
@@ -75,6 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       birthdaysThisWeek: birthdaysThisWeek,
       linkedXref: userXref.isNotEmpty ? userXref : null,
       linkedPhotoUrl: linkedPerson?['thumb'] as String?,
+      unreadResponses: unreadResponses,
     );
   }
 
@@ -180,6 +190,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                           ),
                         ),
+                      ],
+                      if (data.unreadResponses > 0) ...[
+                        const SizedBox(height: 26),
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.mark_email_unread_outlined,
+                              size: 17,
+                              color: AppColors.textSecondary,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Antworten',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        _ResponsesCard(count: data.unreadResponses),
                       ],
                       if (data.birthdaysThisWeek.isNotEmpty) ...[
                         const SizedBox(height: 26),
@@ -441,6 +474,88 @@ class _BirthdayList extends StatelessWidget {
   }
 }
 
+/// Summary card for unreviewed "ask a relative" answers (see webtrees-share)
+/// — same card styling as [_BirthdayList], sized like a single person row,
+/// per Andreas's request to make it as prominent as the birthdays card.
+/// There's no native in-app review screen yet, so tapping it opens the
+/// review list on the website instead, same pattern as "Zur Website".
+class _ResponsesCard extends ConsumerWidget {
+  const _ResponsesCard({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppColors.cardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => launchUrl(
+            Uri.parse(shareRequestReviewUrl(ref)),
+            mode: LaunchMode.externalApplication,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Antworten erhalten',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        count == 1
+                            ? 'Eine Anfrage wartet auf Prüfung'
+                            : '$count Anfragen warten auf Prüfung',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HomeData {
   const _HomeData({
     required this.treeTitle,
@@ -450,6 +565,7 @@ class _HomeData {
     required this.birthdaysThisWeek,
     required this.linkedXref,
     required this.linkedPhotoUrl,
+    required this.unreadResponses,
   });
 
   final String treeTitle;
@@ -465,6 +581,10 @@ class _HomeData {
   /// [startPerson] (the tree's Startperson).
   final String? linkedXref;
   final String? linkedPhotoUrl;
+
+  /// How many "ask a relative" requests (see webtrees-share) have an answer
+  /// this account hasn't reviewed yet.
+  final int unreadResponses;
 }
 
 class _UnsyncedNotes extends ConsumerWidget {

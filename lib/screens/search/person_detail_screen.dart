@@ -10,6 +10,7 @@ import '../../utils/gedcom.dart';
 import '../../utils/server_error.dart';
 import '../../widgets/add_fact_sheet.dart';
 import '../../widgets/ask_for_help_email_screen.dart';
+import '../../widgets/gedcom_date_field.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
@@ -1278,13 +1279,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
           children: [
             _fieldLabel(field.label),
             const SizedBox(height: 6),
-            TextField(
-              controller: field.dateController,
-              decoration: const InputDecoration(
-                labelText: 'Datum',
-                hintText: 'z. B. 3 MAI 1980',
-              ),
-            ),
+            GedcomDateField(controller: field.dateController!),
             const SizedBox(height: 8),
             PlaceAutocompleteField(
               controller: field.placeController!,
@@ -1304,10 +1299,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
             ),
             if (field.dateController != null) ...[
               const SizedBox(height: 8),
-              TextField(
-                controller: field.dateController,
-                decoration: const InputDecoration(labelText: 'Datum'),
-              ),
+              GedcomDateField(controller: field.dateController!),
             ],
             if (field.placeController != null) ...[
               const SizedBox(height: 8),

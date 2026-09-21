@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../state/app_providers.dart';
@@ -24,6 +25,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   bool _editing = false;
   bool _saving = false;
   String? _saveError;
+  String? _appVersion;
 
   final _realNameController = TextEditingController();
   Map<String, dynamic>? _pendingStartPerson;
@@ -33,6 +35,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   void initState() {
     super.initState();
     _future = _load();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _appVersion = info.version);
+    });
   }
 
   @override
@@ -366,6 +371,25 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           icon: const Icon(Icons.open_in_new, size: 16),
                           label: const Text('Zur Website (Vollversion)'),
                         ),
+                        const SizedBox(height: 4),
+                        TextButton.icon(
+                          onPressed: () => launchUrl(
+                            Uri.parse(privacyPolicyUrl(ref)),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          icon: const Icon(Icons.privacy_tip_outlined, size: 16),
+                          label: const Text('Datenschutz'),
+                        ),
+                        if (_appVersion != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            'App-Version $_appVersion',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
                       ],
                     ],
                   ),

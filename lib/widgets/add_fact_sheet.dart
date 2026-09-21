@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/quick_note_store.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
+import 'gedcom_date_field.dart';
 
 /// Result of the sheet: whether a fact was actually posted to webtrees, or
 /// only saved locally because the server couldn't be reached.
@@ -195,12 +196,9 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                 ),
                 if (_selectedTag != null) ...[
                   const SizedBox(height: 12),
-                  TextField(
+                  GedcomDateField(
                     controller: _dateController,
-                    decoration: const InputDecoration(
-                      labelText: 'Datum (optional)',
-                      hintText: 'z. B. 3 MAI 1980',
-                    ),
+                    labelText: 'Datum (optional)',
                   ),
                 ],
                 const SizedBox(height: 20),

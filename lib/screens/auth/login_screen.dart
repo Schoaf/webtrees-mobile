@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
@@ -16,6 +18,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _loading = false;
   String? _error;
+  String? _treeTitle;
+  String? _appVersion;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTreeTitle();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _appVersion = info.version);
+    });
+  }
+
+  // Best-effort only: just for the "welcome to <tree>" subtitle under the
+  // logo, so any failure (offline, unreachable server) is silently ignored
+  // rather than blocking the login form itself.
+  Future<void> _loadTreeTitle() async {
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+
+    try {
+      final info = await client.info(tree);
+      final trees = (info['trees'] as List<dynamic>?) ?? const [];
+      Map<String, dynamic>? match;
+      for (final t in trees.cast<Map<String, dynamic>>()) {
+        if (t['name'] == tree) {
+          match = t;
+          break;
+        }
+      }
+      final title = match?['title'] as String?;
+      if (mounted && title != null && title.isNotEmpty) {
+        setState(() => _treeTitle = title);
+      }
+    } catch (_) {
+      // Ignored - see comment above.
+    }
+  }
 
   @override
   void dispose() {
@@ -45,31 +84,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                boxShadow: AppColors.cardShadow,
-              ),
-              child: const Text(
-                'Anmelden',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(32, 56, 32, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 80,
                 ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 24),
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 220,
+                      fit: BoxFit.contain,
+                    ),
+                    if (_treeTitle != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _treeTitle!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 40),
                     TextField(
                       controller: _usernameController,
                       decoration: const InputDecoration(
@@ -77,7 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 18),
                     TextField(
                       controller: _passwordController,
                       decoration: const InputDecoration(labelText: 'Passwort'),
@@ -94,24 +135,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    FilledButton(
-                      onPressed: _loading ? null : _submit,
-                      child: _loading
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Anmelden'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _loading ? null : _submit,
+                        child: _loading
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Anmelden'),
+                      ),
                     ),
+                    const SizedBox(height: 56),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      children: [
+                        TextButton(
+                          onPressed: () => launchUrl(
+                            Uri.parse(ref.read(serverUrlProvider)),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          child: const Text('Stammbaum ansehen'),
+                        ),
+                        TextButton(
+                          onPressed: () => launchUrl(
+                            Uri.parse(privacyPolicyUrl(ref)),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          child: const Text('Datenschutz'),
+                        ),
+                      ],
+                    ),
+                    if (_appVersion != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'App-Version $_appVersion',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

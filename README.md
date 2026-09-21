@@ -67,6 +67,14 @@ Unten ein **Abmelden**-Button — meldet sofort ab und springt direkt zum Anmeld
 ### Anmelden
 Eigener, zur App passender Anmelde-Bildschirm (vorher ein unformatierter Standard-Screen mit englischem Text — das sah aus wie ein Platzhalter, war aber schon immer der echte, gegen Produktion laufende Bildschirm). Fehlermeldungen sind jetzt verständlich statt einer rohen Exception: falsches Passwort, Server nicht erreichbar (Verbindungsproblem) und ein allgemeiner Fallback werden unterschieden.
 
+Oben zentriert das App-Logo, darunter (sobald geladen) der Name des Stammbaums. Unten ein Footer mit "Stammbaum ansehen" (externer Browser), "Datenschutz" (verlinkt auf die Datenschutzerklärung der Website — es gibt noch kein eigenes Impressum) und der App-Version.
+
+### Antworten erhalten
+Auf dem Start-Bildschirm erscheint, sobald mindestens eine unbeantwortete Rückmeldung aus "Um Mithilfe bitten" (`webtrees-share`) vorliegt, eine Karte **"Antworten erhalten"** — gleiche Optik/Größe wie der Geburtstage-Block, mit Badge für die Anzahl. Es gibt noch keine native Ansicht zum Prüfen der Antworten in der App; ein Tap öffnet die Prüfen-Seite im externen Browser (wie "Zur Website").
+
+### Mein Konto (Ergänzung)
+Im nicht-editierbaren Zustand zusätzlich zu "Zur Website": ein **"Datenschutz"**-Link und die App-Version, direkt unter dem "Abmelden"-Button.
+
 ## Design
 
 Das komplette UI-Design (alle Screens, bearbeitbar) liegt als Claude-Design-Canvas vor: **"Stammbaum App Screens"**. Es spiegelt jeweils den aktuellen Stand der App wider und wird bei größeren UI-Änderungen aktualisiert.

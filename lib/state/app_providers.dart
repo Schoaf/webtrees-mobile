@@ -63,6 +63,29 @@ final webtreesClientProvider = Provider<WebtreesClient>((ref) {
   return WebtreesClient(baseUrl: url);
 });
 
+/// The tree's privacy-policy page - the nearest thing to a legal-notice page
+/// this site has (see the "Datenschutz" link in the account/login screens'
+/// footers). Route format matches webtrees' own module-route convention,
+/// same as [WebtreesClient]'s own URL building.
+String privacyPolicyUrl(WidgetRef ref) {
+  final server = ref.read(serverUrlProvider);
+  final base = server.endsWith('/') ? server : '$server/';
+  final tree = ref.read(treeNameProvider);
+  final route = Uri.encodeComponent('/module/privacy-policy/Page/$tree');
+  return '${base}index.php?route=$route';
+}
+
+/// The webtrees-share module's "Anfragen" review list - there's no native
+/// in-app screen for reviewing answers yet, so the unread-responses card
+/// opens this on the website instead, same as [privacyPolicyUrl].
+String shareRequestReviewUrl(WidgetRef ref) {
+  final server = ref.read(serverUrlProvider);
+  final base = server.endsWith('/') ? server : '$server/';
+  final tree = ref.read(treeNameProvider);
+  final route = Uri.encodeComponent('/module/_webtrees-share_/RequestReview/$tree');
+  return '${base}index.php?route=$route';
+}
+
 final quickNoteStoreProvider = Provider<QuickNoteStore>(
   (ref) => QuickNoteStore(),
 );

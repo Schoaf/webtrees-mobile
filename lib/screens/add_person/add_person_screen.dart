@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/gedcom_date.dart';
 import '../../widgets/place_autocomplete_field.dart';
 
 const _relationLabels = {
@@ -267,19 +267,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                     onChanged: (v) => setState(() => _sex = v),
                   ),
                   const SizedBox(height: 18),
-                  TextField(
-                    controller: _birthDateController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp('[0-9.]')),
-                    ],
-                    decoration: const InputDecoration(
-                      labelText: 'Geburtsdatum',
-                      hintText: 'TT.MM.JJJJ',
-                    ),
-                  ),
+                  _BirthDatePicker(controller: _birthDateController),
                   const SizedBox(height: 18),
                   PlaceAutocompleteField(
                     controller: _birthPlaceController,
@@ -388,6 +376,80 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Same "always a picker, never free-text" convention as the person-detail
+/// edit form's [GedcomDateField], but this screen sends the birth date to
+/// postAddIndividual as "TT.MM.JJJJ" rather than GEDCOM syntax, so it needs
+/// its own converter pair rather than reusing that widget directly.
+class _BirthDatePicker extends StatefulWidget {
+  const _BirthDatePicker({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  State<_BirthDatePicker> createState() => _BirthDatePickerState();
+}
+
+class _BirthDatePickerState extends State<_BirthDatePicker> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() => setState(() {});
+
+  Future<void> _pickDate() async {
+    final parsed = germanDdMmYyyyToDateTime(widget.controller.text);
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: parsed ?? DateTime(now.year - 30, now.month, now.day),
+      firstDate: DateTime(1500),
+      lastDate: DateTime(now.year + 100),
+      helpText: 'Geburtsdatum',
+      cancelText: 'Abbrechen',
+      confirmText: 'Übernehmen',
+    );
+    if (picked != null) {
+      widget.controller.text = dateTimeToGermanDdMmYyyy(picked);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final raw = widget.controller.text;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(4),
+      onTap: _pickDate,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Geburtsdatum',
+          suffixIcon: raw.isEmpty
+              ? const Icon(Icons.calendar_today_outlined)
+              : IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Datum entfernen',
+                  onPressed: () => setState(() => widget.controller.clear()),
+                ),
+        ),
+        child: Text(
+          raw.isEmpty ? 'TT.MM.JJJJ' : raw,
+          style: raw.isEmpty
+              ? TextStyle(color: Theme.of(context).hintColor)
+              : null,
         ),
       ),
     );
