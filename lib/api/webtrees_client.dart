@@ -385,4 +385,44 @@ class WebtreesClient {
     );
     return (response.data as Map<String, dynamic>)['unread'] as int? ?? 0;
   }
+
+  /// `{requests: [{id, xref, name, status, respondedAt}, ...]}` — the
+  /// creator's own answered/applied share requests, for the native
+  /// "Antworten" review screen.
+  Future<List<Map<String, dynamic>>> shareRequestList(String tree) async {
+    final response = await _dio.getUri(_shareModuleUri('RequestList', tree));
+    final data = response.data as Map<String, dynamic>;
+    return (data['requests'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  /// `{id, name, applied, compare: {FIELD: {before, after}}, note, photoUrl}`
+  /// for one request — the before/after fields a guest changed, ready to
+  /// review and selectively accept.
+  Future<Map<String, dynamic>> shareRequestDetail(String tree, int id) async {
+    // Uri's queryParameters only accepts String/Iterable<String> values - an
+    // int here throws "type 'int' is not a subtype of type 'Iterable<...>'"
+    // deep inside dart:core, which is exactly what surfaced as "Konnte
+    // nicht laden" with no useful detail.
+    final response = await _dio.getUri(
+      _shareModuleUri('RequestDetail', tree, {'id': '$id'}),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  /// Applies exactly the fields/note/photo in [accept] (a `{key: true}` map
+  /// for whatever the reviewer ticked) to the tree, under the reviewer's own
+  /// session. Returns `{ok, nextId}` — `nextId` is the next request still
+  /// waiting for review, or null once none are left.
+  Future<Map<String, dynamic>> shareRequestApply(
+    String tree,
+    int id,
+    Map<String, bool> accept,
+  ) async {
+    final response = await _dio.postUri(
+      _shareModuleUri('RequestApply', tree),
+      data: {'id': id, 'accept': accept},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }

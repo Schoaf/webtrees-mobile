@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/add_person/add_person_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/responses/response_detail_screen.dart';
 import 'screens/search/person_detail_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'state/app_providers.dart';
 import 'theme/app_theme.dart';
 import 'utils/person_deep_link.dart';
+import 'utils/share_review_deep_link.dart';
 
 void main() {
   runApp(const ProviderScope(child: StammbaumApp()));
@@ -66,22 +68,36 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         .whenComplete(() {
           if (mounted) setState(() => _restoring = false);
         });
-    _listenForSharedPersonLinks();
+    _listenForDeepLinks();
   }
 
-  /// Opens a shared person link (Universal Link/App Link) directly to that
-  /// person's detail screen, whether the app was already running or just
-  /// launched by tapping the link. Only acts once logged in — if a link
-  /// arrives before that, it's simply dropped and the person opens the
-  /// login screen like any other cold start.
-  void _listenForSharedPersonLinks() {
+  /// Opens a shared person link or a "you got a response" review-request
+  /// link (both plain Universal Links/App Links on stammbaum.familiescharf.at)
+  /// directly to the matching screen, whether the app was already running or
+  /// just launched by tapping the link. Only acts once logged in — if a link
+  /// arrives before that, it's simply dropped and the person opens the login
+  /// screen like any other cold start (same as it always has for person
+  /// links; there's no "come back here after login" for review links yet).
+  void _listenForDeepLinks() {
     void handle(Uri uri) {
-      final xref = personXrefFromLink(uri);
-      if (xref == null) return;
       if (!ref.read(authControllerProvider).loggedIn) return;
-      rootNavigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)),
-      );
+
+      final xref = personXrefFromLink(uri);
+      if (xref != null) {
+        rootNavigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)),
+        );
+        return;
+      }
+
+      final reviewId = shareReviewIdFromLink(uri);
+      if (reviewId != null) {
+        rootNavigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => ResponseDetailScreen(id: reviewId),
+          ),
+        );
+      }
     }
 
     _appLinks.getInitialLink().then((uri) {

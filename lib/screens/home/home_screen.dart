@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/gedcom.dart';
 import '../../widgets/person_card.dart';
 import '../account/account_screen.dart';
+import '../responses/responses_list_screen.dart';
 import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
 
@@ -496,9 +497,8 @@ class _ResponsesCard extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => launchUrl(
-            Uri.parse(shareRequestReviewUrl(ref)),
-            mode: LaunchMode.externalApplication,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ResponsesListScreen()),
           ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

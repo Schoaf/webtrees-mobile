@@ -73,7 +73,11 @@ Oben zentriert das App-Logo, darunter (sobald geladen) der Name des Stammbaums. 
 Optional, in "Mein Konto" zuschaltbar (nur sichtbar, wenn das Gerät Biometrie unterstützt): sperrt nicht den Login selbst, sondern das *Anzeigen* einer aus einem vorherigen App-Start automatisch wiederhergestellten Sitzung — ein frischer, manueller Login per Benutzername/Passwort ist nie zusätzlich Biometrie-gesperrt. Fällt bei fehlender/fehlgeschlagener Biometrie auf den Geräte-Code (PIN/Muster) zurück, damit ein Sensor-Ausfall niemanden aussperrt.
 
 ### Antworten erhalten
-Auf dem Start-Bildschirm erscheint, sobald mindestens eine unbeantwortete Rückmeldung aus "Um Mithilfe bitten" (`webtrees-share`) vorliegt, eine Karte **"Antworten erhalten"** — gleiche Optik/Größe wie der Geburtstage-Block, mit Badge für die Anzahl. Es gibt noch keine native Ansicht zum Prüfen der Antworten in der App; ein Tap öffnet die Prüfen-Seite im externen Browser (wie "Zur Website").
+Auf dem Start-Bildschirm erscheint, sobald mindestens eine unbeantwortete Rückmeldung aus "Um Mithilfe bitten" (`webtrees-share`) vorliegt, eine Karte **"Antworten erhalten"** — gleiche Optik/Größe wie der Geburtstage-Block, mit Badge für die Anzahl. Ein Tap öffnet eine eigene, native Liste (`ResponsesListScreen`) aller beantworteten/übernommenen Anfragen — bewusst als Tabelle/Liste, nicht als Dropdown, zum Auswählen welche man prüfen möchte.
+
+In der Detailansicht (`ResponseDetailScreen`) genau wie auf der Web-Seite: vor/nach-Vergleich pro Feld, jeweils mit eigener Checkbox (nichts vorausgewählt — man muss aktiv ansticken, was man übernehmen möchte), dazu Notiz und Foto. Der Button heißt **"Ausgewähltes übernehmen"**. Nach dem Übernehmen springt die App automatisch zur nächsten noch offenen Antwort (falls vorhanden) — genau wie auf der Web-Seite —, sonst zurück zur Liste.
+
+Der Link aus der "Antwort erhalten"-Mail ist ein normaler Universal Link auf `stammbaum.familiescharf.at` — ist die App installiert und man eingeloggt, öffnet er direkt die passende Detailansicht statt der Web-Seite (siehe `shareReviewIdFromLink`, gleiches Prinzip wie bei geteilten Personen-Links).
 
 ### Mein Konto (Ergänzung)
 Im nicht-editierbaren Zustand zusätzlich zu "Zur Website": ein **"Datenschutz"**-Link und die App-Version, direkt unter dem "Abmelden"-Button.
