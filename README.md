@@ -1,4 +1,4 @@
-# Stammbaum App
+# webtrees-mobile
 
 Flutter-Begleit-App (Android/iOS) für die selbst gehostete [webtrees](https://webtrees.net)-Instanz der Familie Scharf. Die App spricht über das Custom-Modul `webtreesand-api` mit dem Server — es gibt keine eigene Backend-API.
 

@@ -1,4 +1,4 @@
-package at.kabelplus.stammbaum_app
+package net.webtrees.webtreesmobile
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

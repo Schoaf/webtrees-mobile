@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:stammbaum_app/main.dart';
+import 'package:webtrees_mobile/main.dart';
 
 void main() {
   testWidgets('shows the login screen when not authenticated', (WidgetTester tester) async {

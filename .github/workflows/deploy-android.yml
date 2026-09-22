@@ -39,6 +39,6 @@ jobs:
       - uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: at.kabelplus.stammbaum_app
+          packageName: net.webtrees.webtreesmobile
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: internal
