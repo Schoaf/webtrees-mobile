@@ -8,6 +8,6 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: StammbaumApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Anmelden'), findsWidgets);
   });
 }

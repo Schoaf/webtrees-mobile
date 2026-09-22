@@ -176,20 +176,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return Center(child: Text(_error!));
-    if (!_searched)
+    if (!_searched) {
       return const Center(
         child: Text(
           'Suche nach einem Namen.',
           style: TextStyle(color: AppColors.textTertiary),
         ),
       );
-    if (_results.isEmpty)
+    }
+    if (_results.isEmpty) {
       return const Center(
         child: Text(
           'Keine Treffer.',
           style: TextStyle(color: AppColors.textTertiary),
         ),
       );
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
