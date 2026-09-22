@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
 /// A circular avatar — a stored photo when there is one, else a sex-coded
-/// silhouette — with a tombstone badge for a deceased person.
+/// silhouette — with a diagonal banderole across the top-left for a
+/// deceased person (matches the family-tree view's card treatment).
 class PersonAvatar extends StatelessWidget {
   const PersonAvatar({
     super.key,
@@ -55,32 +58,25 @@ class PersonAvatar extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             ClipOval(
-              child: hasPhoto
-                  ? Image.network(
-                      photoUrl!,
-                      headers: photoHeaders,
-                      width: size,
-                      height: size,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _Silhouette(
-                        background: background,
-                        foreground: foreground,
-                      ),
-                    )
-                  : _Silhouette(background: background, foreground: foreground),
-            ),
-            if (isDead)
-              Positioned(
-                top: -size * 0.08,
-                right: -size * 0.1,
-                child: SizedBox(
-                  width: size * 0.48,
-                  height: size * 0.48,
-                  child: CustomPaint(
-                    painter: _TombstonePainter(color: AppColors.textSecondary),
-                  ),
-                ),
+              child: Stack(
+                children: [
+                  hasPhoto
+                      ? Image.network(
+                          photoUrl!,
+                          headers: photoHeaders,
+                          width: size,
+                          height: size,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _Silhouette(
+                            background: background,
+                            foreground: foreground,
+                          ),
+                        )
+                      : _Silhouette(background: background, foreground: foreground),
+                  if (isDead) _Banderole(size: size),
+                ],
               ),
+            ),
             if (editable)
               Positioned(
                 bottom: -size * 0.06,
@@ -103,6 +99,27 @@ class PersonAvatar extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A diagonal banderole across the top-left of the (already-clipped)
+/// circular avatar — deliberately wide/long and let the parent `ClipOval`
+/// crop it, rather than computing the exact chord geometry.
+class _Banderole extends StatelessWidget {
+  const _Banderole({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: size * 0.08,
+      left: -size * 0.3,
+      child: Transform.rotate(
+        angle: -math.pi / 4,
+        child: Container(width: size * 1.3, height: size * 0.18, color: AppColors.textPrimary),
       ),
     );
   }
@@ -156,71 +173,3 @@ class _PersonSilhouettePainter extends CustomPainter {
       oldDelegate.color != color;
 }
 
-/// A simple, unambiguous headstone silhouette — an arched top on a
-/// rectangular base with a cross, so it reads clearly even at small sizes
-/// (unlike a generic building/church icon).
-class _TombstonePainter extends CustomPainter {
-  const _TombstonePainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    // Same shape/cross proportions as the very first hand-drawn tombstone
-    // (edge-to-edge, cross reaching up into the arch) — later tweaks meant
-    // to fit an outline stroke ended up shrinking and re-centering the
-    // whole thing, which is what made the cross look wrong. The Stack this
-    // sits in uses clipBehavior: Clip.none, so the stroke isn't clipped by
-    // running the shape edge-to-edge.
-    final baseTop = h * 0.3;
-    final path = Path()
-      ..moveTo(w * 0.02, h)
-      ..lineTo(w * 0.02, baseTop)
-      ..arcToPoint(
-        Offset(w * 0.98, baseTop),
-        radius: Radius.circular(w * 0.49),
-        clockwise: true,
-      )
-      ..lineTo(w * 0.98, h)
-      ..close();
-
-    // A white outline so the badge reads clearly against a photo or a
-    // similarly-colored silhouette, without embedding it in a circular
-    // backdrop.
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeJoin = StrokeJoin.round
-        ..strokeWidth = w * 0.1,
-    );
-    canvas.drawPath(path, paint);
-
-    // A large, high-contrast cross so it reads clearly even at small
-    // avatar sizes — the previous thin cross was easy to mistake for a
-    // padlock shackle.
-    final crossPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final crossW = w * 0.16;
-    canvas.drawRect(
-      Rect.fromLTWH(w / 2 - crossW / 2, h * 0.08, crossW, h * 0.5),
-      crossPaint,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(w * 0.22, h * 0.2, w * 0.56, crossW),
-      crossPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _TombstonePainter oldDelegate) =>
-      oldDelegate.color != color;
-}
