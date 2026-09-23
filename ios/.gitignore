@@ -27,6 +27,10 @@ Flutter/flutter_export_environment.sh
 ServiceDefinitions.json
 Runner/GeneratedPluginRegistrant.*
 
+# App Store Connect API key - never commit, only used locally to configure
+# the GitHub Actions secret for TestFlight uploads.
+*.p8
+
 # Exceptions to above rules.
 !default.mode1v3
 !default.mode2v3
