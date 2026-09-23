@@ -35,11 +35,14 @@ jobs:
 
       # Manual signing (not automatic) since there's no interactive Xcode
       # account session on the runner - the profile name must match what
-      # download-provisioning-profiles just installed (default naming:
-      # "AppStore <bundle-id>").
+      # download-provisioning-profiles just installed. Passed via `env`
+      # (not inlined into the script) so the JSON's own quote characters
+      # can't collide with the shell/python quoting around it.
       - name: Write ExportOptions.plist
+        env:
+          PROFILES_JSON: ${{ steps.profiles.outputs.profiles }}
         run: |
-          PROFILE_NAME=$(python3 -c "import json; print(json.loads('''${{ steps.profiles.outputs.profiles }}''')[0]['name'])")
+          PROFILE_NAME=$(python3 -c "import json, os; print(json.loads(os.environ['PROFILES_JSON'])[0]['name'])")
           cat > ios/ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
