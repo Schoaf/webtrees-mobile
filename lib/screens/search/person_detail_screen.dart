@@ -14,6 +14,7 @@ import '../../widgets/gedcom_date_field.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
+import '../tree_view/tree_view_screen.dart';
 
 /// Facts always shown; everything else is collapsed under "Mehr anzeigen"
 /// so the record-metadata clutter (reference numbers, last-changed, ...)
@@ -621,28 +622,46 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
                             child: Column(
                               children: [
-                                PersonAvatar(
-                                  sex: person['sex'] as String? ?? 'U',
-                                  isDead: person['isDead'] as bool? ?? false,
-                                  size: 84,
-                                  photoUrl: photoUrl,
-                                  photoHeaders: ref
-                                      .read(webtreesClientProvider)
-                                      .imageHeaders,
-                                  editable: _editing && canEdit,
-                                  onTap: _editing
-                                      ? (canEdit ? _pickAndUploadPhoto : null)
-                                      : (hasPhoto
-                                            ? () => _openPhotoViewer(
-                                                media.isNotEmpty
-                                                    ? (media.first['file']
-                                                              as String? ??
-                                                          photoUrl)
-                                                    : photoUrl,
-                                              )
-                                            : (canEdit
-                                                  ? _pickAndUploadPhoto
-                                                  : null)),
+                                Stack(
+                                  clipBehavior: Clip.none,
+                                  alignment: Alignment.center,
+                                  children: [
+                                    PersonAvatar(
+                                      sex: person['sex'] as String? ?? 'U',
+                                      isDead: person['isDead'] as bool? ?? false,
+                                      size: 84,
+                                      photoUrl: photoUrl,
+                                      photoHeaders: ref
+                                          .read(webtreesClientProvider)
+                                          .imageHeaders,
+                                      editable: _editing && canEdit,
+                                      onTap: _editing
+                                          ? (canEdit ? _pickAndUploadPhoto : null)
+                                          : (hasPhoto
+                                                ? () => _openPhotoViewer(
+                                                    media.isNotEmpty
+                                                        ? (media.first['file']
+                                                                  as String? ??
+                                                              photoUrl)
+                                                        : photoUrl,
+                                                  )
+                                                : (canEdit
+                                                      ? _pickAndUploadPhoto
+                                                      : null)),
+                                    ),
+                                    if (!_editing)
+                                      Positioned(
+                                        left: -52,
+                                        child: _TreeViewButton(
+                                          onTap: () => Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  TreeViewScreen(xref: widget.xref),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
@@ -756,6 +775,30 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     final birthDate = birth?['date'] as Map<String, dynamic>?;
     final age = _ageInYears(birthDate?['jd'] as num?);
     return age == null ? (person['lifespan'] as String? ?? '') : '$age Jahre';
+  }
+}
+
+/// Opens the family-tree view, centered on this person — the round
+/// tree-icon button to the left of the avatar.
+class _TreeViewButton extends StatelessWidget {
+  const _TreeViewButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.secondary.withValues(alpha: 0.12),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: const Padding(
+          padding: EdgeInsets.all(10),
+          child: Icon(Icons.park_outlined, size: 20, color: AppColors.secondary),
+        ),
+      ),
+    );
   }
 }
 
