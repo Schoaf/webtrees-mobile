@@ -1,1 +1,12 @@
 #include "Generated.xcconfig"
+
+// Release is always the App Store distribution build - sign manually with
+// the Apple Distribution certificate/profile rather than relying on Xcode's
+// automatic signing, which needs an interactive account session and isn't
+// available on CI runners (see .github/workflows/deploy-ios.yml). Debug
+// builds are untouched, so local `flutter run` still uses automatic
+// Development signing as before.
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Apple Distribution
+DEVELOPMENT_TEAM = YU5BS285KA
+PROVISIONING_PROFILE_SPECIFIER = iOS Team Store Provisioning Profile: net.webtrees.webtreesmobile
