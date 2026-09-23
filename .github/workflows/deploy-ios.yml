@@ -81,6 +81,11 @@ jobs:
         id: ipa
         run: echo "path=$(find build/ios/ipa -name '*.ipa' | head -1)" >> "$GITHUB_OUTPUT"
 
+      # wait-for-processing polls Apple with the same API token the whole
+      # time, which can outlive the App Store Connect JWT's ~20min lifetime
+      # on a slow processing run and fail with a spurious 401 - the actual
+      # upload has already succeeded by that point regardless, so don't
+      # wait; check processing status in App Store Connect directly.
       - name: Upload to TestFlight
         uses: apple-actions/upload-testflight-build@v5
         with:
@@ -88,3 +93,4 @@ jobs:
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          wait-for-processing: 'false'
