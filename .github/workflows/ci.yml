@@ -18,4 +18,84 @@ jobs:
 
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
-      - run: flutter test
+
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      # --coverage writes coverage/lcov.info; --file-reporter additionally
+      # writes machine-readable JSON test results to a file, independent of
+      # the (default, human-readable) stdout reporter - so CI logs stay
+      # readable while we still get a file to build reports from.
+      - name: Run tests
+        run: flutter test --coverage --file-reporter json:test-results.json
+
+      # Codecov's Test Analytics only understands JUnit XML, not Dart's own
+      # test-JSON format - junitreport's `tojunit` converts one to the other.
+      - name: Convert test results to JUnit XML
+        if: always()
+        run: |
+          dart pub global activate junitreport
+          export PATH="$PATH":"$HOME/.pub-cache/bin"
+          cat test-results.json | tojunit --output test-results.xml
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: Flutter Tests
+          path: test-results.json
+          reporter: flutter-json
+
+      # TODO: currently at ~23% (target 60%) - warn-only until real tests
+      # close the gap, then drop `continue-on-error` to make this a hard gate.
+      - name: Enforce coverage threshold (project-wide, min 60%)
+        if: success()
+        continue-on-error: true
+        uses: VeryGoodOpenSource/very_good_coverage@v3
+        with:
+          path: coverage/lcov.info
+          min_coverage: 60
+
+      # The API client (lib/api/) is the app's interface to the webtrees
+      # backend - held to a stricter bar than the rest of the app.
+      - name: Extract API-layer coverage
+        if: success()
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y lcov
+          lcov --extract coverage/lcov.info 'lib/api/*' -o coverage/api-lcov.info
+
+      # TODO: currently at ~14% (target 90%) - warn-only until real tests
+      # close the gap, then drop `continue-on-error` to make this a hard gate.
+      - name: Enforce coverage threshold (lib/api, min 90%)
+        if: success()
+        continue-on-error: true
+        uses: VeryGoodOpenSource/very_good_coverage@v3
+        with:
+          path: coverage/api-lcov.info
+          min_coverage: 90
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+
+      - name: Upload test results to Codecov
+        if: always()
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results.xml
