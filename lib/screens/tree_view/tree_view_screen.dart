@@ -448,6 +448,9 @@ class _SiblingsFrame extends StatelessWidget {
       centerGroup = activeCard;
     } else {
       final p = partner!;
+      const gap = 10.0;
+      const activeWidth = _kCardWidth * _kActiveZoom;
+      const bubbleSize = 22.0;
       centerGroup = Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
@@ -457,8 +460,9 @@ class _SiblingsFrame extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               activeCard,
-              Transform.translate(
-                offset: const Offset(-10, 10),
+              const SizedBox(width: gap),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
                 child: Column(
                   children: [
                     p.partner == null
@@ -488,7 +492,15 @@ class _SiblingsFrame extends StatelessWidget {
               ),
             ],
           ),
-          Positioned(top: 36, child: _RelationshipBubble(status: p.maritalStatus)),
+          // Sits in the gap between the two cards (like the parents-row
+          // bubble), not overlapping either card's own content - a small
+          // badge is fine overlapping a seam; a whole card overlapping
+          // another card's content is not.
+          Positioned(
+            top: 36,
+            left: activeWidth + gap / 2 - bubbleSize / 2,
+            child: _RelationshipBubble(status: p.maritalStatus),
+          ),
         ],
       );
     }
@@ -632,11 +644,16 @@ class _ChildrenFrame extends StatelessWidget {
           Positioned(
             top: -8,
             left: 16,
+            right: 16,
             child: Container(
               color: const Color(0xFFF4F5F7),
               padding: const EdgeInsets.symmetric(horizontal: 6),
+              // A long partner name (compound surnames are common) must not
+              // overflow past the frame's own border uncontrolled.
               child: Text(
                 partner.partner == null ? 'KINDER, ELTERNTEIL UNBEKANNT' : 'KINDER MIT ${partner.partner!.firstName.toUpperCase()}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
               ),
             ),
