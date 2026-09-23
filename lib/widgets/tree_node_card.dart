@@ -83,7 +83,11 @@ class TreeNodeCard extends StatelessWidget {
       child: Container(
         width: width,
         constraints: minHeight == null ? null : BoxConstraints(minHeight: minHeight!),
-        padding: const EdgeInsets.fromLTRB(6, 10, 6, 8),
+        // Bottom padding is generous on purpose: the children-count corner
+        // badge is an 18px circle sitting mostly inside the card (only 3px
+        // actually pokes outside), so anything less than ~16px here lets it
+        // cover the birth-year text right above it.
+        padding: const EdgeInsets.fromLTRB(6, 10, 6, 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -91,6 +95,11 @@ class TreeNodeCard extends StatelessWidget {
         ),
         child: Stack(
           clipBehavior: Clip.none,
+          // Stack's default alignment is top-left for non-positioned
+          // children, not center - the Column below shrink-wraps to its
+          // widest child (usually narrower than the full card width), so
+          // without this it sits left-aligned instead of centered.
+          alignment: Alignment.topCenter,
           children: [
             Column(
               mainAxisSize: MainAxisSize.min,
