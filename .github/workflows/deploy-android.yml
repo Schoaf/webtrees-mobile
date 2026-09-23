@@ -3,6 +3,7 @@ name: Deploy Android to Play Internal Testing
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   deploy:
