@@ -257,7 +257,12 @@ class _CornerCircle extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        shape: BoxShape.circle,
+        // A true circle (BoxShape.circle) inscribes its decoration using
+        // the smaller of width/height as the diameter - fine for a lone
+        // icon, but a badge with "icon+N" content is wider than tall, so
+        // the content visibly spilled past the drawn circle's edge. A pill
+        // shape stretches to match the content's actual bounds instead.
+        borderRadius: BorderRadius.circular(999),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       alignment: Alignment.center,

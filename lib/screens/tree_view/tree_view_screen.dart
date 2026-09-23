@@ -507,7 +507,10 @@ class _SiblingsFrame extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      padding: const EdgeInsets.fromLTRB(4, 16, 4, 10),
+      // Top padding needs to clear the frame label, which floats at
+      // top: -8 (relative to this padded box, not the outer border) -
+      // 16 left its text baseline overlapping the first row of cards.
+      padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
         borderRadius: BorderRadius.circular(16),
@@ -633,7 +636,8 @@ class _ChildrenFrame extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(maxWidth: 378),
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      padding: const EdgeInsets.fromLTRB(4, 16, 4, 10),
+      // Same fix as the siblings frame: clear the floating label above.
+      padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
         borderRadius: BorderRadius.circular(16),
