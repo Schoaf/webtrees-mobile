@@ -14,6 +14,7 @@ import '../../widgets/gedcom_date_field.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
+import '../../widgets/tree_icons.dart';
 import '../tree_view/tree_view_screen.dart';
 
 /// Facts always shown; everything else is collapsed under "Mehr anzeigen"
@@ -795,7 +796,7 @@ class _TreeViewButton extends StatelessWidget {
         customBorder: const CircleBorder(),
         child: const Padding(
           padding: EdgeInsets.all(10),
-          child: Icon(Icons.park_outlined, size: 20, color: AppColors.secondary),
+          child: GenealogyTreeIcon(size: 20, color: AppColors.secondary),
         ),
       ),
     );

@@ -102,13 +102,18 @@ class TreeViewController extends Notifier<TreeViewState> {
         selectedPartnerXref: state.selectedPartnerXref,
         childrenExpanded: state.childrenExpanded,
       );
-    } on Exception {
+    } catch (e) {
+      // Not `on Exception`: a malformed/unexpected field in TreeNeighborhood
+      // .fromJson's parsing throws a TypeError (a dart Error, not an
+      // Exception) - `on Exception` alone silently swallows that, leaving
+      // the screen stuck on its loading spinner forever with no visible
+      // error at all.
       state = TreeViewState(
         history: state.history,
         pos: state.pos,
         cache: state.cache,
         loading: false,
-        error: 'Konnte nicht laden.',
+        error: 'Konnte nicht laden ($e).',
         selectedPartnerXref: state.selectedPartnerXref,
         childrenExpanded: state.childrenExpanded,
       );

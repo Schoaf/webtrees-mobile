@@ -130,4 +130,30 @@ void main() {
     expect(state.loading, isFalse);
     expect(state.error, 'private');
   });
+
+  test('a malformed response (TypeError during parsing) surfaces as an error, not an eternal spinner', () async {
+    // person.xref missing -> TreeNode.fromJson's `json['xref'] as String`
+    // throws a TypeError, not an Exception - regression test for a real
+    // device bug where this hung on the loading spinner forever because
+    // `on Exception` alone doesn't catch Error subtypes like TypeError.
+    when(() => client.individual('Famtree', 'I1')).thenAnswer(
+      (_) async => {
+        'ok': true,
+        'person': {'name': 'No Xref'},
+        'facts': <dynamic>[],
+        'parentFamilies': <dynamic>[],
+        'spouseFamilies': <dynamic>[],
+        'siblings': <dynamic>[],
+        'extraChildrenByParent': {'father': 0, 'mother': 0},
+      },
+    );
+
+    controllerFor('I1');
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(treeViewControllerProvider('I1'));
+    expect(state.loading, isFalse);
+    expect(state.error, isNotNull);
+  });
 }
