@@ -71,7 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     try {
       unreadResponses = await client.shareRequestUnreadCount(tree);
     } catch (_) {
-      // webtrees-share may not be installed/enabled - don't let that break
+      // webtrees-contribution-request may not be installed/enabled - don't let that break
       // the rest of the home screen.
       unreadResponses = 0;
     }
@@ -475,7 +475,7 @@ class _BirthdayList extends StatelessWidget {
   }
 }
 
-/// Summary card for unreviewed "ask a relative" answers (see webtrees-share)
+/// Summary card for unreviewed "ask a relative" answers (see webtrees-contribution-request)
 /// — same card styling as [_BirthdayList], sized like a single person row,
 /// per Andreas's request to make it as prominent as the birthdays card.
 /// There's no native in-app review screen yet, so tapping it opens the
@@ -582,7 +582,7 @@ class _HomeData {
   final String? linkedXref;
   final String? linkedPhotoUrl;
 
-  /// How many "ask a relative" requests (see webtrees-share) have an answer
+  /// How many "ask a relative" requests (see webtrees-contribution-request) have an answer
   /// this account hasn't reviewed yet.
   final int unreadResponses;
 }

@@ -1,6 +1,6 @@
 /// Conversion between GEDCOM's plain "12 MAR 1930" date syntax and [DateTime],
 /// for the date pickers in edit mode. Deliberately narrow, same as the
-/// server-side counterpart (webtrees-share's GedcomSnapshot): GEDCOM date
+/// server-side counterpart (webtrees-contribution-request's GedcomSnapshot): GEDCOM date
 /// qualifiers (ABT, ranges, ...) aren't picker-representable and are left as
 /// free text rather than discarded.
 library;

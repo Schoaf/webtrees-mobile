@@ -91,7 +91,7 @@ class WebtreesClient {
 
   /// webtrees names every custom module's route `_<folder-name>_`
   /// (ModuleService::customModules) regardless of what the README shows for
-  /// readability — `modules_v4/webtrees-share` really is `_webtrees-share_`
+  /// readability — `modules_v4/webtrees-contribution-request` really is `_webtrees-contribution-request_`
   /// on the wire, same as `_webtreesand-api_`.
   Uri _moduleUri(
     String action,
@@ -112,7 +112,7 @@ class WebtreesClient {
     String action,
     String tree, [
     Map<String, dynamic>? query,
-  ]) => _moduleUri(action, tree, query, '_webtrees-share_');
+  ]) => _moduleUri(action, tree, query, '_webtrees-contribution-request_');
 
   /// `GET Info` — also the way we discover/refresh the CSRF token and the
   /// server's own idea of its base URL (see [login]).
@@ -325,7 +325,7 @@ class WebtreesClient {
     return data.whereType<String>().toList();
   }
 
-  // --- webtrees-share: "ask a relative to help" (separate, optional module,
+  // --- webtrees-contribution-request: "ask a relative to help" (separate, optional module,
   // not to be confused with the plain-link/text share in person_detail) ---
 
   /// Snapshots [xref]'s key facts and creates a share request for it.

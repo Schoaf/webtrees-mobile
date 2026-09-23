@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
 
-/// Lets the user personalize and send the webtrees-share "please help" email
+/// Lets the user personalize and send the webtrees-contribution-request "please help" email
 /// — subject/body are server-rendered (see [WebtreesClient.sendShareRequestEmail]),
 /// only the recipient and the free-text personal message come from here.
 class AskForHelpEmailScreen extends ConsumerStatefulWidget {

@@ -5,7 +5,7 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import 'response_detail_screen.dart';
 
-/// Native equivalent of webtrees-share's request-review-list.phtml — every
+/// Native equivalent of webtrees-contribution-request's request-review-list.phtml — every
 /// answered/applied "ask a relative" request for this account, tap a row to
 /// review it. Reached from the home screen's "Antworten erhalten" card and
 /// from the "you got a response" email's deep link.

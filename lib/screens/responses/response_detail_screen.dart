@@ -14,7 +14,7 @@ const _fieldLabels = {
   'DEAT_PLAC': 'Sterbeort',
 };
 
-/// Native equivalent of webtrees-share's request-review.phtml — one
+/// Native equivalent of webtrees-contribution-request's request-review.phtml — one
 /// request's before/after field comparison, with a checkbox per field
 /// (and note/photo) to select what to accept. Nothing is pre-selected, same
 /// as the web page: ticking is how you say "yes, take this".

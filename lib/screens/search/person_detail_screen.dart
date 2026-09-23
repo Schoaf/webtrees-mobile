@@ -357,7 +357,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     }
   }
 
-  /// Creates a webtrees-share request for this person, then lets the user
+  /// Creates a webtrees-contribution-request request for this person, then lets the user
   /// copy/share the link or send it by email. Distinct from [_openShareMenu]:
   /// this link needs no webtrees login at all and is meant for a relative
   /// who'll never have an account, not someone who already does.
@@ -495,7 +495,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   }
 
   /// The person's normal webtrees page — a plain link, not the temporary,
-  /// login-free webtrees-share link from [_openAskForHelp]. Whoever opens it
+  /// login-free webtrees-contribution-request link from [_openAskForHelp]. Whoever opens it
   /// needs their own webtrees login, same as visiting the site directly; if
   /// they have the app installed, Universal/App Links open it there instead
   /// of a browser (see AASA/assetlinks.json).
@@ -831,7 +831,7 @@ class _Header extends StatelessWidget {
   final VoidCallback? onEditToggle;
   final VoidCallback? onShare;
 
-  /// "Um Mithilfe bitten" (webtrees-share) — deliberately not folded into
+  /// "Um Mithilfe bitten" (webtrees-contribution-request) — deliberately not folded into
   /// [onShare]'s menu: it starts a stateful request/response flow with a
   /// relative, not a one-off system share action, and is a separate,
   /// optional server module besides.
