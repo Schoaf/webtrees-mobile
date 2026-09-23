@@ -91,7 +91,12 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                     return Center(child: Text('Konnte nicht laden: ${treeState.error}'));
                   }
                   if (neighborhood == null) {
-                    return const SizedBox.shrink();
+                    // Shouldn't be reachable (build() always starts loading,
+                    // _load() always ends in either data or an error) - but
+                    // rendering nothing at all here is exactly how an
+                    // unexpected state would look identical to "the button
+                    // did nothing", so show something instead of guessing.
+                    return const Center(child: Text('Unbekannter Zustand.'));
                   }
 
                   return Stack(

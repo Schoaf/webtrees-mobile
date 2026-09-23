@@ -623,45 +623,59 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
                             child: Column(
                               children: [
-                                Stack(
-                                  clipBehavior: Clip.none,
-                                  alignment: Alignment.center,
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    PersonAvatar(
-                                      sex: person['sex'] as String? ?? 'U',
-                                      isDead: person['isDead'] as bool? ?? false,
-                                      size: 84,
-                                      photoUrl: photoUrl,
-                                      photoHeaders: ref
-                                          .read(webtreesClientProvider)
-                                          .imageHeaders,
-                                      editable: _editing && canEdit,
-                                      onTap: _editing
-                                          ? (canEdit ? _pickAndUploadPhoto : null)
-                                          : (hasPhoto
-                                                ? () => _openPhotoViewer(
-                                                    media.isNotEmpty
-                                                        ? (media.first['file']
-                                                                  as String? ??
-                                                              photoUrl)
-                                                        : photoUrl,
-                                                  )
-                                                : (canEdit
-                                                      ? _pickAndUploadPhoto
-                                                      : null)),
-                                    ),
-                                    if (!_editing)
-                                      Positioned(
-                                        left: -52,
-                                        child: _TreeViewButton(
-                                          onTap: () => Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  TreeViewScreen(xref: widget.xref),
+                                    // Balances the tree-view button's width
+                                    // on the other side so the avatar stays
+                                    // centered, matching the layout before
+                                    // this button existed. Plain Row instead
+                                    // of a negative-offset Positioned/Stack:
+                                    // simpler and can't run into clipping or
+                                    // hit-testing edge cases.
+                                    const SizedBox(width: 40),
+                                    Expanded(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          if (!_editing) ...[
+                                            _TreeViewButton(
+                                              onTap: () => Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      TreeViewScreen(xref: widget.xref),
+                                                ),
+                                              ),
                                             ),
+                                            const SizedBox(width: 12),
+                                          ],
+                                          PersonAvatar(
+                                            sex: person['sex'] as String? ?? 'U',
+                                            isDead: person['isDead'] as bool? ?? false,
+                                            size: 84,
+                                            photoUrl: photoUrl,
+                                            photoHeaders: ref
+                                                .read(webtreesClientProvider)
+                                                .imageHeaders,
+                                            editable: _editing && canEdit,
+                                            onTap: _editing
+                                                ? (canEdit ? _pickAndUploadPhoto : null)
+                                                : (hasPhoto
+                                                      ? () => _openPhotoViewer(
+                                                          media.isNotEmpty
+                                                              ? (media.first['file']
+                                                                        as String? ??
+                                                                    photoUrl)
+                                                              : photoUrl,
+                                                        )
+                                                      : (canEdit
+                                                            ? _pickAndUploadPhoto
+                                                            : null)),
                                           ),
-                                        ),
+                                        ],
                                       ),
+                                    ),
+                                    const SizedBox(width: 40),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
