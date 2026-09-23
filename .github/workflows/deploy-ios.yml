@@ -34,15 +34,24 @@ jobs:
           api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
 
       # Manual signing (not automatic) since there's no interactive Xcode
-      # account session on the runner - the profile name must match what
-      # download-provisioning-profiles just installed. Passed via `env`
-      # (not inlined into the script) so the JSON's own quote characters
-      # can't collide with the shell/python quoting around it.
+      # account session on the runner. There can be more than one ACTIVE
+      # App Store profile for this bundle id (e.g. an old Xcode-managed one
+      # alongside the manually-managed one this pipeline actually needs -
+      # an Xcode-managed profile can't be used with CODE_SIGN_STYLE=Manual
+      # at all), so this selects by exact name rather than taking index 0.
+      # Must match PROVISIONING_PROFILE_SPECIFIER in ios/Flutter/Release.xcconfig.
+      # Passed via `env` (not inlined into the script) so the JSON's own
+      # quote characters can't collide with the shell/python quoting.
       - name: Write ExportOptions.plist
         env:
           PROFILES_JSON: ${{ steps.profiles.outputs.profiles }}
         run: |
-          PROFILE_NAME=$(python3 -c "import json, os; print(json.loads(os.environ['PROFILES_JSON'])[0]['name'])")
+          PROFILE_NAME=$(python3 -c "
+          import json, os
+          profiles = json.loads(os.environ['PROFILES_JSON'])
+          match = next(p for p in profiles if p['name'] == 'webtrees-mobile CI App Store')
+          print(match['name'])
+          ")
           cat > ios/ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

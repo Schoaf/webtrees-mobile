@@ -9,4 +9,4 @@
 CODE_SIGN_STYLE = Manual
 CODE_SIGN_IDENTITY = Apple Distribution
 DEVELOPMENT_TEAM = YU5BS285KA
-PROVISIONING_PROFILE_SPECIFIER = iOS Team Store Provisioning Profile: net.webtrees.webtreesmobile
+PROVISIONING_PROFILE_SPECIFIER = webtrees-mobile CI App Store
