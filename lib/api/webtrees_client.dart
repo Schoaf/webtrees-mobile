@@ -53,6 +53,11 @@ class WebtreesClient {
   final String _baseUrl;
   final Dio _dio;
 
+  /// Test-only hook: exposes the internal [Dio] instance so tests can swap
+  /// in a fake [HttpClientAdapter] and exercise real request-building/
+  /// interceptor logic without touching the network. Not used by app code.
+  Dio get debugDio => _dio;
+
   String? _cookie;
   String? _csrfToken;
   String? _serverBaseUrl;
