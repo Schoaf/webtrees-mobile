@@ -58,11 +58,8 @@ jobs:
           path: test-results.json
           reporter: flutter-json
 
-      # TODO: currently at ~23% (target 60%) - warn-only until real tests
-      # close the gap, then drop `continue-on-error` to make this a hard gate.
       - name: Enforce coverage threshold (project-wide, min 60%)
         if: success()
-        continue-on-error: true
         uses: VeryGoodOpenSource/very_good_coverage@v3
         with:
           path: coverage/lcov.info
@@ -76,11 +73,8 @@ jobs:
           sudo apt-get update -y && sudo apt-get install -y lcov
           lcov --extract coverage/lcov.info 'lib/api/*' -o coverage/api-lcov.info
 
-      # TODO: currently at ~14% (target 90%) - warn-only until real tests
-      # close the gap, then drop `continue-on-error` to make this a hard gate.
       - name: Enforce coverage threshold (lib/api, min 90%)
         if: success()
-        continue-on-error: true
         uses: VeryGoodOpenSource/very_good_coverage@v3
         with:
           path: coverage/api-lcov.info
