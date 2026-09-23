@@ -15,7 +15,7 @@ Oben rechts: Initialen oder Foto der mit dem Konto verknüpften Person — antip
 Personensuche mit Live-Ergebnissen. Jede Zeile zeigt:
 - Foto oder Silhouette, nach Geschlecht eingefärbt
 - einen farbigen Balken am linken Rand als zusätzliches Geschlechts-Kennzeichen (auch erkennbar, wenn ein Foto hinterlegt ist)
-- ein Grabstein-Symbol für verstorbene Personen — nur die Umrisse mit weißem Rand, ohne kreisförmigen Hintergrund
+- eine diagonale Banderole über der linken oberen Ecke für verstorbene Personen (ersetzt das frühere Grabstein-Symbol — einheitliches Design mit der Stammbaum-Ansicht)
 - darunter: bei lebenden Personen das **volle Geburtsdatum** (kein Bindestrich); erst bei verstorbenen Personen "Jahr–Jahr". Gilt überall, wo diese Zeile erscheint (Suche, Eltern/Ehepartner/Kinder, Mein Konto).
 
 ![Suche](docs/screenshots/search.png)
@@ -37,6 +37,17 @@ Oben links neben "Bearbeiten": ein **Teilen**-Button. "Daten teilen" öffnet den
 Ab der dritten verschachtelten Person (z. B. Eltern → Groß­eltern → Urgroß­eltern) erscheint unten links ein schwebender Home-Button, damit man nicht mehrfach "Zurück" tippen muss. Schwebende Buttons (Home, Fakt hinzufügen) erscheinen sofort, ohne Einflug-Animation.
 
 ![Person](docs/screenshots/person_detail.png)
+
+### Stammbaum-Ansicht
+Runder Baum-Button links neben dem Foto auf der Personen-Detailseite öffnet eine eigene, frei verschiebbare (pan, keine Scrollbars) Ansicht: Eltern, Vollgeschwister, alle Partner samt deren Kinder rund um eine "aktuelle Person". Reine Anzeige — einzige Aktion ist das Antippen einer Karte, wodurch diese Person zur neuen aktuellen Person wird und sich die Ansicht komplett neu um sie aufbaut (kein Aufklappen einzelner Karten). Der i-Button unten rechts auf der aktuellen Person springt in die normale (bearbeitbare) Detailseite.
+
+Kopfzeile: Zurück-Pfeil verlässt die Ansicht, Undo/Redo rechts navigiert wie ein Browser-Verlauf durch die angetippten Personen (ein neuer Tap nach Undo verwirft die Redo-Einträge). Bereits besuchte Personen werden zwischengespeichert — Undo/Redo lädt nicht neu nach.
+
+Karten zeigen Vorname, Geburtsjahr, Foto/Silhouette (Banderole bei Verstorbenen) sowie Status-Ecken: Vorfahren-Symbol (nur bei Eltern/Partnern — zeigt, ob diese Person selbst bekannte Eltern hat), Nachfahren-Symbol mit Kinderzahl (nur bei Geschwistern/Kindern), Partner-Ringe (nur bei Eltern, falls diese noch weitere, nicht angezeigte Partnerschaften haben). Hat ein Elternteil Kinder aus anderen Beziehungen, hängt darunter ein kleiner "+N"-Hinweis. Hat die aktuelle Person mehrere Partner, erscheinen darunter Chips zum Wechseln — tauscht Partnerkarte, Beziehungssymbol und Kinder-Rahmen auf die gewählte Familie.
+
+**Bekannte Lücke:** die Vorname-Zeile eines Partners unter Geschwister-Karten (Design zeigt sie, falls ein Geschwisterkind selbst einen Partner hat) bleibt derzeit leer — die dafür nötigen Daten liefert der Server für Geschwister-Einträge noch nicht.
+
+*(Screenshot folgt noch — die Vorschau während der Entwicklung lief gegen Testdaten, kein echter Gerätescreenshot.)*
 
 ### Person — Bearbeiten
 Der Stift-Button oben rechts schaltet die Ansicht auf bearbeitbar um (Stift wird zu X zum Abbrechen). Alle vorhandenen Fakten sind editierbar, auch die sonst unter "Mehr anzeigen" versteckten. Ein Ort-Feld (z. B. Wohnsitz) bietet Autovervollständigung aus den vorhandenen Orten des Stammbaums. Unten ein fixierter **Speichern**-Button.
@@ -100,6 +111,9 @@ Das komplette UI-Design (alle Screens, bearbeitbar) liegt als Claude-Design-Canv
 
 ### Hinweis zum Server
 "Geburtstage diese Woche" nutzt den bestehenden `Anniversaries`-Endpunkt des `webtreesand-api`-Moduls. Dessen Julian-Day-Berechnung (`->julianDay()` auf `CarbonImmutable`, nie eine echte Carbon-Methode) führte serverseitig zu einem 500-Fehler — behoben in `modules_v4/webtreesand-api/WebtreesAndApiModule.php` (nutzt jetzt `Fisharebest\ExtCalendar\GregorianCalendar`, dieselbe Kalender-Bibliothek, die webtrees selbst mitliefert). Geprüft: Der Fehler existiert **nicht** in webtrees-Core selbst — daher kein Pull-Request nötig, nur der third-party-Modul-Fix. (Ein erster Versuch nutzte `TimestampFactory::todayJulianDay()`, das es in webtrees-Core zwar gibt, aber erst ab einer neueren Version als der auf Produktion laufenden 2.2.6 — das brach kurzzeitig die Produktion, bevor auf die versionsunabhängige Variante gewechselt wurde.) Ist auf Produktion deployt und verifiziert.
+
+### Hinweis zum Server: Stammbaum-Ansicht
+`Individual` liefert jetzt zusätzlich `siblings[]` und `extraChildrenByParent`, und jede darin verschachtelte Person (Eltern, Partner, Kinder) trägt `hasParents`/`partnersCount`/`childrenCount`, jede Partner-Familie ein `maritalStatus` — alles additive, opt-in-berechnete Felder (`personSummary(..., $with_counts: true)`), nur für `Individual` aktiv. Die Personenliste/-suche (`Individuals`) bleibt unverändert schnell, ohne die zusätzlichen Datenbankzugriffe pro Treffer. Kein neuer Endpunkt nötig — `TreeViewScreen` nutzt denselben `individual()`-Aufruf, den auch die normale Personen-Detailseite macht.
 
 ### Behoben: "Server nicht erreichbar" auf echten Android-Geräten
 Jeder Release-Build hatte schlicht **keine Internet-Berechtigung** — `android/app/src/main/AndroidManifest.xml` (der `main`-Manifest, der in Release-Builds verwendet wird) fehlte `<uses-permission android:name="android.permission.INTERNET"/>` komplett; nur die von Flutter automatisch erzeugten `debug`/`profile`-Manifest-Varianten hatten sie, weshalb der Fehler im Emulator/bei `flutter run` nie auffiel. Ein anfänglicher Verdacht auf ein TLS/Zertifikatsproblem (ISRG Root X2) erwies sich als falsche Spur — bestätigt durch Reproduktion des exakten Release-APKs auf dem Emulator, wo derselbe Fehler auftrat, während der Emulator-Browser dieselbe Seite problemlos lud. Behoben durch Ergänzen der fehlenden Berechtigung; `network_security_config.xml` (Vertrauen zu User-CA-Zertifikaten) blieb als harmloser Nebeneffekt bestehen, war aber nie die eigentliche Ursache.
