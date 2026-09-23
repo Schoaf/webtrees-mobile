@@ -7,11 +7,13 @@ import '../models/tree_neighborhood.dart';
 /// same coordinates as the design boards' inline SVGs, in the style of the
 /// existing `CustomPainter`s in `person_avatar.dart`.
 
-/// A small genealogy-tree diagram — nodes connected by lines (two "parent"
-/// dots above, one "person" dot in the middle, two "child" dots below) —
-/// for the entry-point button into the tree view. Deliberately not a
-/// literal tree/plant glyph (a first attempt using Icons.park_outlined
-/// read as exactly that and was rejected).
+/// A small pedigree-chart diagram (one root expanding up into two, then
+/// four ancestors) — for the entry-point button into the tree view.
+/// Deliberately not a literal tree/plant glyph (a first attempt using
+/// Icons.park_outlined read as exactly that and was rejected); this is
+/// Andreas-approved "Option C" from three fork-style candidates, chosen
+/// over a plain single fork (too generic) and a converging-hourglass shape
+/// (visually collapsed into a plain "X").
 class GenealogyTreeIcon extends StatelessWidget {
   const GenealogyTreeIcon({super.key, this.color = Colors.black, this.size = 20});
 
@@ -40,22 +42,29 @@ class _GenealogyTreeIconPainter extends CustomPainter {
       ..strokeWidth = w * 0.09
       ..strokeCap = StrokeCap.round;
 
-    final topLeft = Offset(w * 0.22, h * 0.14);
-    final topRight = Offset(w * 0.78, h * 0.14);
-    final middle = Offset(w * 0.5, h * 0.5);
-    final bottomLeft = Offset(w * 0.22, h * 0.86);
-    final bottomRight = Offset(w * 0.78, h * 0.86);
+    final root = Offset(w * 0.5, h * 0.86);
+    final gen1 = [Offset(w * 0.28, h * 0.52), Offset(w * 0.72, h * 0.52)];
+    final gen2 = [
+      Offset(w * 0.14, h * 0.14),
+      Offset(w * 0.42, h * 0.14),
+      Offset(w * 0.58, h * 0.14),
+      Offset(w * 0.86, h * 0.14),
+    ];
 
-    canvas.drawLine(topLeft, middle, linePaint);
-    canvas.drawLine(topRight, middle, linePaint);
-    canvas.drawLine(middle, bottomLeft, linePaint);
-    canvas.drawLine(middle, bottomRight, linePaint);
+    canvas.drawLine(root, gen1[0], linePaint);
+    canvas.drawLine(root, gen1[1], linePaint);
+    canvas.drawLine(gen1[0], gen2[0], linePaint);
+    canvas.drawLine(gen1[0], gen2[1], linePaint);
+    canvas.drawLine(gen1[1], gen2[2], linePaint);
+    canvas.drawLine(gen1[1], gen2[3], linePaint);
 
-    final r = w * 0.1;
-    for (final p in [topLeft, topRight, bottomLeft, bottomRight]) {
-      canvas.drawCircle(p, r, dotPaint);
+    canvas.drawCircle(root, w * 0.11, dotPaint);
+    for (final p in gen1) {
+      canvas.drawCircle(p, w * 0.09, dotPaint);
     }
-    canvas.drawCircle(middle, r * 1.15, dotPaint);
+    for (final p in gen2) {
+      canvas.drawCircle(p, w * 0.075, dotPaint);
+    }
   }
 
   @override
