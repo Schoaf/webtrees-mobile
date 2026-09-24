@@ -99,8 +99,10 @@ void main() {
   });
 
   group('mobileSiteUrl', () {
-    test('adds mobile=1 to a plain server URL', () {
-      expect(mobileSiteUrl('https://example.org/').toString(), 'https://example.org/?mobile=1');
+    test('adds index.php and mobile=1 to a plain server URL', () {
+      expect(mobileSiteUrl('https://example.org/').toString(), 'https://example.org/index.php?mobile=1');
+      expect(mobileSiteUrl('https://example.org').toString(), 'https://example.org/index.php?mobile=1');
+      expect(mobileSiteUrl('https://example.org/webtrees/').toString(), 'https://example.org/webtrees/index.php?mobile=1');
     });
 
     test('keeps an existing route parameter', () {
