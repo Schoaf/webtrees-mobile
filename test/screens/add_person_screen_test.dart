@@ -26,7 +26,11 @@ void main() {
     addTearDown(container.dispose);
   });
 
-  Future<void> pumpScreen(WidgetTester tester) async {
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    String? linkedXref,
+    String? linkedName,
+  }) async {
     // This screen's whole form (name, sex, birth date/place, relative
     // search, and any "extra detail" rows) is meant to be scrolled through
     // on a phone - but a ListView only builds/hit-tests items near its
@@ -45,11 +49,11 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(
+        child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          locale: Locale('de'),
-          home: AddPersonScreen(),
+          locale: const Locale('de'),
+          home: AddPersonScreen(linkedXref: linkedXref, linkedName: linkedName),
         ),
       ),
     );
@@ -230,4 +234,67 @@ void main() {
       ).called(1);
     },
   );
+
+  group('pre-linked via linkedXref/linkedName (reached from a person\'s own "Person hinzufügen")', () {
+    testWidgets('pre-fills "Verknüpft mit" read-only and blocks Save until a relation is chosen', (tester) async {
+      await pumpScreen(tester, linkedXref: 'I7', linkedName: 'Anna Muster');
+
+      expect(find.text('Anna Muster'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Anna Muster'), findsOneWidget);
+      final field = tester.widget<TextField>(find.widgetWithText(TextField, 'Anna Muster'));
+      expect(field.readOnly, isTrue);
+
+      // Relation chips show (a relative is already "selected"), but none
+      // pre-chosen - unlike the free-form search flow, which defaults to
+      // "child" the instant a relative is picked.
+      expect(find.text('als Kind'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).at(0), 'Lena');
+      await tester.pump();
+      expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+
+      await tester.tap(find.text('als Kind'));
+      await tester.pump();
+      expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
+    });
+
+    testWidgets('save sends the pre-linked xref and the chosen relation', (tester) async {
+      when(
+        () => client.postAddIndividual(
+          'Famtree',
+          relation: 'father',
+          relativeTo: 'I7',
+          given: 'Franz',
+          surname: '',
+          sex: 'M',
+          birthDate: null,
+          birthPlace: null,
+        ),
+      ).thenAnswer((_) async => {'ok': true, 'xref': 'I99'});
+
+      await pumpScreen(tester, linkedXref: 'I7', linkedName: 'Anna Muster');
+
+      await tester.enterText(find.byType(TextField).at(0), 'Franz');
+      await tester.tap(find.text('als Vater'));
+      await tester.pump();
+
+      await tester.tap(find.text('Speichern'));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      verify(
+        () => client.postAddIndividual(
+          'Famtree',
+          relation: 'father',
+          relativeTo: 'I7',
+          given: 'Franz',
+          surname: '',
+          sex: 'M',
+          birthDate: null,
+          birthPlace: null,
+        ),
+      ).called(1);
+    });
+  });
 }

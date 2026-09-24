@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
+import '../add_person/add_person_screen.dart';
 import '../tree_view/tree_view_screen.dart';
 
 /// Facts always shown; everything else is collapsed under "Mehr anzeigen"
@@ -149,6 +151,12 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       GlobalKey<_EditFactsSectionState>();
   final _savingNotifier = ValueNotifier<bool>(false);
 
+  // The add-person FAB collapses to an icon while actively scrolling (so it
+  // covers less of the content) and expands back to icon+label 2s after
+  // scrolling stops - starts expanded since nothing's scrolled yet.
+  bool _fabExpanded = true;
+  Timer? _fabIdleTimer;
+
   @override
   void initState() {
     super.initState();
@@ -158,7 +166,20 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   @override
   void dispose() {
     _savingNotifier.dispose();
+    _fabIdleTimer?.cancel();
     super.dispose();
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollStartNotification ||
+        notification is ScrollUpdateNotification) {
+      if (_fabExpanded) setState(() => _fabExpanded = false);
+      _fabIdleTimer?.cancel();
+      _fabIdleTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _fabExpanded = true);
+      });
+    }
+    return false;
   }
 
   Future<Map<String, dynamic>> _load() {
@@ -203,8 +224,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   /// animation, so it's simply there or not.
   Widget? _buildFabs({required bool canEdit, required String name}) {
     final showHome = widget.depth >= 2;
-    final showAddFact = canEdit;
-    if (!showHome && !showAddFact) return null;
+    final showAddPerson = canEdit;
+    if (!showHome && !showAddPerson) return null;
     final l10n = AppLocalizations.of(context)!;
 
     return Row(
@@ -221,18 +242,36 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           )
         else
           const SizedBox.shrink(),
-        if (showAddFact)
-          FloatingActionButton.extended(
-            heroTag: 'addFactFab_${widget.xref}',
-            onPressed: () => _openAddFact(name),
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.bolt),
-            label: Text(l10n.addFactLabel),
-          )
+        if (showAddPerson)
+          _fabExpanded
+              ? FloatingActionButton.extended(
+                  heroTag: 'addPersonFab_${widget.xref}',
+                  onPressed: () => _openAddPerson(name),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.person_add),
+                  label: Text(l10n.addPersonTitle),
+                )
+              : FloatingActionButton(
+                  heroTag: 'addPersonFab_${widget.xref}',
+                  onPressed: () => _openAddPerson(name),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  tooltip: l10n.addPersonTitle,
+                  child: const Icon(Icons.person_add),
+                )
         else
           const SizedBox.shrink(),
       ],
+    );
+  }
+
+  Future<void> _openAddPerson(String name) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            AddPersonScreen(linkedXref: widget.xref, linkedName: name),
+      ),
     );
   }
 
@@ -616,6 +655,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             .cast<Map<String, dynamic>>();
         final spouseFamilies = (data['spouseFamilies'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
+        final siblings = (data['siblings'] as List<dynamic>? ?? [])
+            .cast<Map<String, dynamic>>();
         final media = (data['media'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
         final canEdit = data['canEdit'] as bool? ?? false;
@@ -729,7 +770,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
               ],
             ),
           ),
-          if (!_editing && facts.isNotEmpty) _FactsCard(facts: facts),
+          if (!_editing && facts.isNotEmpty)
+            _FactsCard(
+              facts: facts,
+              onAddFact: canEdit ? () => _openAddFact(name) : null,
+            ),
           if (_editing)
             _EditFactsSection(
               key: _editKey,
@@ -740,7 +785,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             ),
         ];
 
-        // "Die Verwandten" - parents, spouse(s) and children.
+        // "Die Verwandten" - webtrees' own reading order: parents, then
+        // siblings (both share the same primary parent family), then one
+        // group per family this person is a spouse/parent in - partner
+        // plus their children bracketed together so it reads as one family
+        // unit rather than two separate lists to mentally re-match.
         final relatives = <Widget>[
           for (final family in parentFamilies) ...[
             if (family['husband'] != null || family['wife'] != null)
@@ -755,36 +804,31 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                 depth: widget.depth,
               ),
           ],
+          if (siblings.isNotEmpty)
+            _Section(
+              title: l10n.siblingsLabel,
+              people: siblings,
+              depth: widget.depth,
+            ),
           for (final family in spouseFamilies) ...[
-            if (family['spouse'] != null)
-              _Section(
-                title:
-                    (family['spouse'] as Map<String, dynamic>)['sex'] == 'F'
-                    ? l10n.spouseFemaleTitle
-                    : l10n.spouseMaleTitle,
-                people: [family['spouse'] as Map<String, dynamic>],
+            if (family['spouse'] != null ||
+                (family['children'] as List<dynamic>? ?? []).isNotEmpty)
+              _FamilySection(
+                title: family['spouse'] != null
+                    ? l10n.familyWithLabel(
+                        stripNameSlashes(
+                          (family['spouse'] as Map<String, dynamic>)['name']
+                                  as String? ??
+                              '',
+                        ),
+                      )
+                    : l10n.familyUnknownPartnerLabel,
+                partner: family['spouse'] as Map<String, dynamic>?,
+                children: (family['children'] as List<dynamic>? ?? [])
+                    .cast<Map<String, dynamic>>(),
                 depth: widget.depth,
               ),
           ],
-          if (spouseFamilies
-              .expand((f) => f['children'] as List<dynamic>? ?? [])
-              .isNotEmpty)
-            _Section(
-              title: l10n.childrenTitle(
-                spouseFamilies.fold<int>(
-                  0,
-                  (n, f) =>
-                      n + (f['children'] as List<dynamic>? ?? []).length,
-                ),
-              ),
-              people: spouseFamilies
-                  .expand(
-                    (f) => (f['children'] as List<dynamic>? ?? [])
-                        .cast<Map<String, dynamic>>(),
-                  )
-                  .toList(),
-              depth: widget.depth,
-            ),
         ];
 
         return Scaffold(
@@ -866,59 +910,72 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                             : () => _openAskForHelp(name),
                       ),
                       Expanded(
-                        child: Stack(
-                          children: [
-                            if (useTwoColumn)
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: ListView(
-                                      padding: EdgeInsets.zero,
-                                      children: headerAndFacts,
+                        // The floating add-person/home FABs sit on top of
+                        // this content, so the last item needs enough
+                        // trailing space to scroll clear of them rather
+                        // than staying stuck underneath.
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: _handleScrollNotification,
+                          child: Stack(
+                            children: [
+                              if (useTwoColumn)
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: ListView(
+                                        padding: EdgeInsets.zero,
+                                        children: [
+                                          ...headerAndFacts,
+                                          if (fab != null)
+                                            const SizedBox(height: 88),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const VerticalDivider(
-                                    width: 1,
-                                    color: AppColors.divider,
-                                  ),
-                                  Expanded(
-                                    child: ListView(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      children: [
-                                        ...relatives,
-                                        const SizedBox(height: 24),
-                                      ],
+                                    const VerticalDivider(
+                                      width: 1,
+                                      color: AppColors.divider,
                                     ),
-                                  ),
-                                ],
-                              )
-                            else
-                              ListView(
-                                padding: EdgeInsets.zero,
-                                children: [
-                                  ...headerAndFacts,
-                                  ...relatives,
-                                  const SizedBox(height: 24),
-                                ],
-                              ),
-                            // Spans the corner of the whole screen (well,
-                            // this body area below the header bar) rather
-                            // than just the small header avatar, so a
-                            // deceased person's status reads clearly at a
-                            // glance - including in the two-column tablet
-                            // layout above.
-                            if (isDead)
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                child: SizedBox(
-                                  width: banderoleCorner,
-                                  height: banderoleCorner,
-                                  child: const DeathBanderole(),
+                                    Expanded(
+                                      child: ListView(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        children: [
+                                          ...relatives,
+                                          SizedBox(
+                                            height: fab != null ? 88 : 24,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              else
+                                ListView(
+                                  padding: EdgeInsets.zero,
+                                  children: [
+                                    ...headerAndFacts,
+                                    ...relatives,
+                                    SizedBox(height: fab != null ? 88 : 24),
+                                  ],
                                 ),
-                              ),
-                          ],
+                              // Spans the corner of the whole screen (well,
+                              // this body area below the header bar) rather
+                              // than just the small header avatar, so a
+                              // deceased person's status reads clearly at a
+                              // glance - including in the two-column tablet
+                              // layout above.
+                              if (isDead)
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  child: SizedBox(
+                                    width: banderoleCorner,
+                                    height: banderoleCorner,
+                                    child: const DeathBanderole(),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1062,9 +1119,12 @@ class _Header extends StatelessWidget {
 }
 
 class _FactsCard extends StatefulWidget {
-  const _FactsCard({required this.facts});
+  const _FactsCard({required this.facts, this.onAddFact});
 
   final List<Map<String, dynamic>> facts;
+
+  /// Null hides the "Fakt hinzufügen" chip entirely (view-only access).
+  final VoidCallback? onAddFact;
 
   @override
   State<_FactsCard> createState() => _FactsCardState();
@@ -1083,6 +1143,13 @@ class _FactsCardState extends State<_FactsCard> {
       visible.where((f) => !_primaryFactTags.contains(f['tag'])).toList(),
     );
     final shown = _expanded ? [...primary, ...secondary] : primary;
+    // Normally only appears once "Mehr anzeigen" is expanded - but if there
+    // are no secondary facts at all, there's no toggle to expand in the
+    // first place, so it would never show. Falling back to "always show
+    // when there's nothing to expand" keeps a way to add a fact for a
+    // freshly-added person who only has the primary facts so far.
+    final showAddFactChip =
+        widget.onAddFact != null && (_expanded || secondary.isEmpty);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -1144,6 +1211,18 @@ class _FactsCardState extends State<_FactsCard> {
                       color: AppColors.primary,
                     ),
                   ],
+                ),
+              ),
+            ),
+          if (showAddFactChip)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ActionChip(
+                  avatar: const Icon(Icons.add, size: 16),
+                  label: Text(AppLocalizations.of(context)!.addFactLabel),
+                  onPressed: widget.onAddFact,
                 ),
               ),
             ),
@@ -1624,6 +1703,95 @@ class _Section extends StatelessWidget {
                 ),
               ],
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One spouse family: partner and children bracketed together under a
+/// "Familie mit X" title, so the group reads as one family unit at a
+/// glance rather than two separately-labelled lists (partner, then a
+/// disconnected "Kinder" section) someone has to mentally re-match -
+/// matching how webtrees' own person page groups a family.
+class _FamilySection extends StatelessWidget {
+  const _FamilySection({
+    required this.title,
+    required this.partner,
+    required this.children,
+    this.depth = 0,
+  });
+
+  final String title;
+  final Map<String, dynamic>? partner;
+  final List<Map<String, dynamic>> children;
+  final int depth;
+
+  @override
+  Widget build(BuildContext context) {
+    void openPerson(Map<String, dynamic> person) =>
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PersonDetailScreen(
+              xref: person['xref'] as String,
+              depth: depth + 1,
+            ),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The bracket: a left rule spanning the partner+children
+                // group - "these all belong to this family" without
+                // repeating a "Kinder" label per child.
+                Container(
+                  width: 2,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      if (partner != null)
+                        PersonCard(
+                          person: partner!,
+                          onTap: () => openPerson(partner!),
+                        ),
+                      for (var i = 0; i < children.length; i++) ...[
+                        if (partner != null || i > 0)
+                          const SizedBox(height: 8),
+                        PersonCard(
+                          person: children[i],
+                          onTap: () => openPerson(children[i]),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

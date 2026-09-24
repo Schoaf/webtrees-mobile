@@ -127,19 +127,29 @@ void main() {
     expect(clipboardText, '3. Mai 1980 · Wien');
   });
 
-  testWidgets('shows the "Fakt hinzufügen" FAB only when canEdit is true', (tester) async {
+  testWidgets('shows the "Person hinzufügen" FAB only when canEdit is true', (tester) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: true));
     await pumpScreen(tester);
-    expect(find.text('Fakt hinzufügen'), findsOneWidget);
+    expect(find.text('Person hinzufügen'), findsOneWidget);
   });
 
-  testWidgets('hides the "Fakt hinzufügen" FAB and the edit-mode toggle when canEdit is false', (tester) async {
+  testWidgets('hides the "Person hinzufügen" FAB and the edit-mode toggle when canEdit is false', (tester) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: false));
 
     await pumpScreen(tester);
 
-    expect(find.text('Fakt hinzufügen'), findsNothing);
+    expect(find.text('Person hinzufügen'), findsNothing);
     expect(find.byTooltip('Bearbeiten'), findsNothing);
+  });
+
+  testWidgets('the "Fakt hinzufügen" chip appears in the facts card once expanded, and is hidden when canEdit is false', (
+    tester,
+  ) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: true));
+    await pumpScreen(tester);
+    await tester.tap(find.textContaining('Mehr anzeigen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fakt hinzufügen'), findsOneWidget);
   });
 
   testWidgets('the Home shortcut FAB only appears once nested two Person screens deep', (tester) async {
@@ -152,7 +162,7 @@ void main() {
     expect(find.byTooltip('Zum Start'), findsOneWidget);
   });
 
-  testWidgets('shows Eltern, spouse and Kinder sections with the right titles and people', (tester) async {
+  testWidgets('shows Eltern and a "Familie mit X" group with the partner and children', (tester) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
 
     await pumpScreen(tester);
@@ -161,17 +171,30 @@ void main() {
     expect(find.text('Franz Muster', findRichText: true), findsOneWidget);
     expect(find.text('Maria Muster', findRichText: true), findsOneWidget);
 
-    // The rest of the list (spouse/children sections) is below the fold at
-    // the test surface's default size, so it isn't built yet - a plain
+    // The rest of the list (the family group) is below the fold at the
+    // test surface's default size, so it isn't built yet - a plain
     // ListView's slivers only inflate children near the viewport, even
     // though its `children:` list is a fully eager Dart List<Widget>.
     // Scroll it into view rather than asserting on unbuilt widgets.
-    await tester.scrollUntilVisible(find.text('Ehepartner', findRichText: false), 300);
+    await tester.scrollUntilVisible(find.text('Familie mit Karl Beispiel'), 300);
 
-    expect(find.text('Ehepartner', findRichText: false), findsOneWidget);
+    expect(find.text('Familie mit Karl Beispiel'), findsOneWidget);
     expect(find.text('Karl Beispiel', findRichText: true), findsOneWidget);
-    expect(find.text('Kinder (1)'), findsOneWidget);
     expect(find.text('Lena Beispiel', findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('shows a Geschwister section when the person has siblings', (tester) async {
+    final json = personJson('I1');
+    json['siblings'] = [
+      {'xref': 'I6', 'name': 'Peter Muster', 'sex': 'M', 'isDead': false},
+    ];
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+
+    await pumpScreen(tester);
+    await tester.scrollUntilVisible(find.text('Geschwister'), 300);
+
+    expect(find.text('Geschwister'), findsOneWidget);
+    expect(find.text('Peter Muster', findRichText: true), findsOneWidget);
   });
 
   testWidgets('tapping a child pushes another PersonDetailScreen one level deeper', (tester) async {
@@ -331,6 +354,18 @@ void main() {
 
       await pumpScreen(tester);
 
+      // The "Fakt hinzufügen" chip lives inside the facts card, revealed
+      // once "Mehr anzeigen" is expanded - not the FAB (that's now "Person
+      // hinzufügen").
+      await tester.tap(find.textContaining('Mehr anzeigen'));
+      await tester.pumpAndSettle();
+
+      // In the small test viewport, the newly-revealed chip ends up right
+      // behind the floating "Person hinzufügen" FAB, which sits on top and
+      // would otherwise absorb the tap - same as a real (short) screen,
+      // where scrolling a bit further clears it.
+      await tester.ensureVisible(find.text('Fakt hinzufügen'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Fakt hinzufügen'));
       await tester.pumpAndSettle();
 
