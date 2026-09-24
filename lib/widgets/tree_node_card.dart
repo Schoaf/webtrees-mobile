@@ -5,6 +5,14 @@ import '../theme/app_theme.dart';
 import 'person_avatar.dart';
 import 'tree_icons.dart';
 
+// The card's own inner padding - deliberately asymmetric (generous bottom
+// padding so the descendants-count badge has somewhere to sit without
+// covering the birth-year text right above it). _CornerBadge positions
+// against the CARD's true edges, not the padded Stack's, so it has to
+// subtract this back out per side - sharing this constant is what keeps
+// the two in sync.
+const _kCardPadding = EdgeInsets.fromLTRB(6, 10, 6, 16);
+
 /// One card in the family-tree view (`PersonCardV4d` in the design). Purely
 /// presentational — which badges to show is a per-role decision made by
 /// whoever builds the tree layout (see `treeCardSuppression` doc in
@@ -83,11 +91,7 @@ class TreeNodeCard extends StatelessWidget {
       child: Container(
         width: width,
         constraints: minHeight == null ? null : BoxConstraints(minHeight: minHeight!),
-        // Bottom padding is generous on purpose: the children-count corner
-        // badge is an 18px circle sitting mostly inside the card (only 3px
-        // actually pokes outside), so anything less than ~16px here lets it
-        // cover the birth-year text right above it.
-        padding: const EdgeInsets.fromLTRB(6, 10, 6, 16),
+        padding: _kCardPadding,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -233,18 +237,23 @@ class _CornerBadge extends StatelessWidget {
   final bool right;
   final Widget child;
 
-  // Pushed further past the card's own edge than a plain "sits right at the
-  // corner" -3 would - reads as tucked into the corner rather than resting
-  // just inside the card.
-  static const _edgeOffset = -6.0;
+  // How far the badge pokes out past the CARD's own true edge (negative =
+  // outside it) - the same 2px on every side, so it reads as tucked evenly
+  // into the corner rather than drifting toward whichever side happens to
+  // have less padding.
+  static const _trueEdgeGap = -2.0;
 
   @override
   Widget build(BuildContext context) {
+    // This Positioned lives inside the padded Stack, not against the
+    // card's true edges directly - subtracting the card's own padding
+    // back out is what makes _trueEdgeGap actually uniform on screen
+    // despite the card's padding being asymmetric (see _kCardPadding).
     return Positioned(
-      top: top ? _edgeOffset : null,
-      bottom: top ? null : _edgeOffset,
-      left: right ? null : _edgeOffset,
-      right: right ? _edgeOffset : null,
+      top: top ? _trueEdgeGap - _kCardPadding.top : null,
+      bottom: top ? null : _trueEdgeGap - _kCardPadding.bottom,
+      left: right ? null : _trueEdgeGap - _kCardPadding.left,
+      right: right ? _trueEdgeGap - _kCardPadding.right : null,
       child: _CornerCircle(child: child),
     );
   }

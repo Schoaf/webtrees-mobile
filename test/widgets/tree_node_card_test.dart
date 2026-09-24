@@ -93,6 +93,47 @@ void main() {
     expect(cardTapped, isFalse);
   });
 
+  testWidgets('corner badges sit a true, equal 2px past the card\'s real edges on every side', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const TreeNodeCard(
+          firstName: 'Anna',
+          sex: 'F',
+          isDead: false,
+          birthYear: 1958,
+          showAncestorsIcon: true,
+          showPartnerIcon: true,
+          showChildrenIcon: true,
+          childrenCount: 2,
+        ),
+      ),
+    );
+
+    // Regression test: the card's own content padding is deliberately
+    // asymmetric (fromLTRB(6, 10, 6, 16) - see _kCardPadding), but a
+    // corner badge's Positioned offset is relative to that PADDED content
+    // box, not the card's actual outer edge - so a naive uniform offset
+    // produced wildly different real-world gaps per side (0px on the left,
+    // 10px floating above the bottom) even though the numbers looked
+    // symmetric. True distance from the card's real edge is
+    // padding-on-that-side + the (negative) Positioned offset.
+    const cardPadding = EdgeInsets.fromLTRB(6, 10, 6, 16);
+    final positioneds = tester
+        .widgetList<Positioned>(find.descendant(of: find.byType(TreeNodeCard), matching: find.byType(Positioned)))
+        .toList();
+
+    final topLeft = positioneds.firstWhere((p) => p.top != null && p.left != null && p.right == null && p.bottom == null);
+    final topRight = positioneds.firstWhere((p) => p.top != null && p.right != null && p.left == null && p.bottom == null);
+    final bottomLeft = positioneds.firstWhere((p) => p.bottom != null && p.left != null && p.right == null && p.top == null);
+
+    expect(cardPadding.top + topLeft.top!, closeTo(-2, 0.01));
+    expect(cardPadding.left + topLeft.left!, closeTo(-2, 0.01));
+    expect(cardPadding.top + topRight.top!, closeTo(-2, 0.01));
+    expect(cardPadding.right + topRight.right!, closeTo(-2, 0.01));
+    expect(cardPadding.bottom + bottomLeft.bottom!, closeTo(-2, 0.01));
+    expect(cardPadding.left + bottomLeft.left!, closeTo(-2, 0.01));
+  });
+
   testWidgets('UnknownPersonCard shows the placeholder text and has no tap handler', (tester) async {
     await tester.pumpWidget(_wrap(const UnknownPersonCard()));
 

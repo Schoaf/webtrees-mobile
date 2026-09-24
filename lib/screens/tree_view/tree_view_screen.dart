@@ -17,12 +17,13 @@ const _kMinScale = 0.5;
 const _kMaxScale = 2.5;
 
 // Shared padding for the "GESCHWISTER"/"KINDER MIT X" frames (siblings and
-// children groups): more breathing room to the cards left/right, less
+// children groups): more breathing room to the cards left/right than
 // above/below - the frame border already reads as a boundary on its own,
-// so a tight top/bottom didn't need as much air as the sides did.
+// so a tighter top/bottom didn't need as much air as the sides did. Top and
+// bottom stay equal to each other.
 const _kFrameHorizontalPadding = 10.0;
 const _kFrameTopPadding = 12.0;
-const _kFrameBottomPadding = 5.0;
+const _kFrameBottomPadding = _kFrameTopPadding;
 // The floating label's vertical center sits ~8px above the border (so it
 // straddles the 1.5px border line like a fieldset legend) - its Positioned
 // top is relative to the padded Stack, which itself starts _kFrameTopPadding
@@ -709,13 +710,50 @@ class _ChildrenFrame extends StatelessWidget {
   final int extraChildrenCount;
   final void Function(String xref) onSelectPerson;
 
+  static const _mainLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5);
+  static const _extraLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280));
+  // Both labels' own horizontal padding (6 + 5.5, see where they're used
+  // below) plus each one's left:16/right:16 anchor inset.
+  static const _labelChromeWidth = 6 + 5.5 + 16;
+
+  double _textWidth(String text, TextStyle style) {
+    final painter = TextPainter(text: TextSpan(text: text, style: style), textDirection: TextDirection.ltr, maxLines: 1)..layout();
+    return painter.width;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final children = partner.children;
+    final mainLabelText = (partner.partner == null
+            ? l10n.childrenUnknownParentLabel
+            : l10n.childrenWithPartnerLabel(partner.partner!.firstName))
+        .toUpperCase();
+    final extraLabelText = extraChildrenCount > 0 ? l10n.moreChildrenWithOtherPartnerLabel(extraChildrenCount) : null;
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 378),
+      constraints: BoxConstraints(
+        // Both labels float on the same top border, anchored to opposite
+        // edges - with only a handful of narrow child cards the frame
+        // otherwise shrink-wraps far narrower than the two labels combined
+        // need, and they overlap each other. Only enforced when the extra-
+        // children label is actually showing; the single-label case never
+        // needed it (a lone left-anchored label just ends wherever it ends).
+        minWidth: extraLabelText == null
+            ? 0
+            // Clamped to maxWidth: BoxConstraints throws if min > max, and
+            // with a genuinely long partner name plus a long count both
+            // labels are already individually ellipsized well before their
+            // combined width could get anywhere near this frame's 378 cap.
+            : math.min(
+                378,
+                _textWidth(mainLabelText, _mainLabelStyle) +
+                    _textWidth(extraLabelText, _extraLabelStyle) +
+                    _labelChromeWidth * 2 +
+                    12, // breathing room between the two labels
+              ),
+        maxWidth: 378,
+      ),
       margin: const EdgeInsets.symmetric(horizontal: 6),
       // Same label-straddles-the-border treatment as the siblings frame.
       padding: const EdgeInsets.fromLTRB(
@@ -781,15 +819,10 @@ class _ChildrenFrame extends StatelessWidget {
                 // that same 0.5 cancels it out.
                 padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
                 child: Text(
-                  (partner.partner == null
-                          ? l10n.childrenUnknownParentLabel
-                          : l10n.childrenWithPartnerLabel(
-                              partner.partner!.firstName,
-                            ))
-                      .toUpperCase(),
+                  mainLabelText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+                  style: _mainLabelStyle,
                 ),
               ),
             ),
@@ -798,17 +831,14 @@ class _ChildrenFrame extends StatelessWidget {
           // a hint that the active person has children with (an)other
           // partner(s) too, not shown in this frame (which only ever lists
           // the one currently-selected partner's children).
-          if (extraChildrenCount > 0)
+          if (extraLabelText != null)
             Positioned(
               top: _kFrameLabelTopOffset,
               right: 16,
               child: Container(
                 color: const Color(0xFFF4F5F7),
                 padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
-                child: Text(
-                  l10n.moreChildrenWithOtherPartnerLabel(extraChildrenCount),
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
-                ),
+                child: Text(extraLabelText, style: _extraLabelStyle),
               ),
             ),
         ],
