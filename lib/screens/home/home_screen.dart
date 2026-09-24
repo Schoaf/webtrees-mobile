@@ -12,7 +12,6 @@ import '../../widgets/tablet_bounded_body.dart';
 import '../account/account_screen.dart';
 import '../responses/responses_list_screen.dart';
 import '../search/person_detail_screen.dart';
-import '../search/search_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -171,11 +170,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                       children: [
                         _SearchEntryButton(
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const SearchScreen(),
-                            ),
-                          ),
+                          // Switches the bottom-nav tab instead of pushing a
+                          // route: SearchScreen has no back button of its
+                          // own (it's meant to live inside the tab bar), so
+                          // pushing it stranded people with no way back to
+                          // the main menu.
+                          onTap: () =>
+                              ref.read(selectedTabProvider.notifier).select(1),
                         ),
                         const SizedBox(height: 18),
                         if (data.startPerson != null) ...[

@@ -107,6 +107,29 @@ void main() {
     expect(find.text('Antworten erhalten'), findsNothing);
   });
 
+  testWidgets('tapping the search entry switches the bottom-nav tab, not a pushed route', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
+    when(() => client.anniversaries('Famtree', days: 7)).thenAnswer((_) async => {'data': <dynamic>[]});
+    when(() => client.shareRequestUnreadCount('Famtree')).thenAnswer((_) async => 0);
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(container.read(selectedTabProvider), 0);
+
+    await tester.tap(find.text('Person suchen…'));
+    await tester.pumpAndSettle();
+
+    // A regression test for a real bug: this button used to push a new
+    // SearchScreen route on top of the bottom-nav Scaffold, stranding
+    // people on a screen with no way back to the main menu. It must
+    // instead switch main.dart's tab index, same as the bottom-nav bar
+    // itself would.
+    expect(container.read(selectedTabProvider), 1);
+    expect(find.byType(BackButton), findsNothing);
+  });
+
   testWidgets('shows the unread-responses card with correct singular/plural text and navigates on tap', (
     tester,
   ) async {
