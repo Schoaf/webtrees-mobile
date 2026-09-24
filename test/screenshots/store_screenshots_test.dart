@@ -84,6 +84,16 @@ class _Target {
 // devicePixelRatio (matches the real device's ratio).
 const _iosTarget = _Target('ios', Size(1284, 2778), 3.0);
 
+// iOS: 6.9" iPhone display (iPhone 16 Pro Max class) - a separate,
+// independently-required upload slot from the 6.5" one above, confirmed
+// directly against Andreas's App Store Connect: it shows a greyed-out
+// auto-scaled preview of the 6.5" set for the 6.7" slot but NOT for 6.9",
+// which stayed empty and blocking - so 6.9" needs its own explicit
+// screenshots, it isn't auto-derived from 6.5" the way 6.7" apparently is.
+// 1320x2868 at a 3.0 devicePixelRatio (matches the real device's ratio) is
+// 440x956 logical points.
+const _iosTarget69 = _Target('ios-6.9', Size(1320, 2868), 3.0);
+
 // iOS: 13" iPad display (iPad Pro 12.9"/13" class) - also verified against
 // App Store Connect's own upload screen: that slot accepts 2064x2752,
 // 2752x2064, 2048x2732 or 2732x2048. Landscape 2732x2048 (the
@@ -144,6 +154,7 @@ const _tablet10Target = _Target(
 
 const _targets = [
   _iosTarget,
+  _iosTarget69,
   _ipadTarget,
   _androidTarget,
   _tablet7Target,
