@@ -82,7 +82,14 @@ const _iosTarget = _Target('ios', Size(1320, 2868), 3.0);
 // file only adds screenshot tooling, no widget changes).
 const _androidTarget = _Target('android', Size(1080, 2400), 2.0);
 
-const _targets = [_iosTarget, _androidTarget];
+// Play Console's "7-inch tablet" / "10-inch tablet" screenshot slots -
+// separate pixel ranges (320-3840 / 1080-7680) from the phone slot. Sizes
+// below are clean, safely-in-range resolutions at a 2.0 devicePixelRatio,
+// not tied to any specific real device.
+const _tablet7Target = _Target('android-tablet7', Size(1200, 1920), 2.0);
+const _tablet10Target = _Target('android-tablet10', Size(1600, 2560), 2.0);
+
+const _targets = [_iosTarget, _androidTarget, _tablet7Target, _tablet10Target];
 
 /// Blank top inset reserved on every render, as a fraction of the target's
 /// physical width - matches (with headroom) the notch's own footprint in

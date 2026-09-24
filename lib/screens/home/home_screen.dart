@@ -263,7 +263,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                             TextButton.icon(
                               onPressed: () => launchUrl(
-                                Uri.parse(ref.read(serverUrlProvider)),
+                                mobileSiteUrl(ref.read(serverUrlProvider)),
                                 mode: LaunchMode.externalApplication,
                               ),
                               icon: const Icon(Icons.open_in_new, size: 14),

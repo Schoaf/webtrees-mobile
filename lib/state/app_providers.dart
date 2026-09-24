@@ -77,6 +77,15 @@ String privacyPolicyUrl(WidgetRef ref) {
   return '${base}index.php?route=$route';
 }
 
+/// A website URL opened from this device, with `mobile=1` so webtrees shows
+/// its "theme for mobile devices" (for the rest of that browser session).
+/// Only for links the app opens itself - links shared with other people
+/// (e.g. the person page link) stay plain, the recipient may be on a desktop.
+Uri mobileSiteUrl(String url) {
+  final uri = Uri.parse(url);
+  return uri.replace(queryParameters: {...uri.queryParameters, 'mobile': '1'});
+}
+
 final quickNoteStoreProvider = Provider<QuickNoteStore>(
   (ref) => QuickNoteStore(),
 );

@@ -98,6 +98,19 @@ void main() {
     });
   });
 
+  group('mobileSiteUrl', () {
+    test('adds mobile=1 to a plain server URL', () {
+      expect(mobileSiteUrl('https://example.org/').toString(), 'https://example.org/?mobile=1');
+    });
+
+    test('keeps an existing route parameter', () {
+      final uri = mobileSiteUrl('https://example.org/index.php?route=%2Fmodule%2Fprivacy-policy%2FPage%2Ftree');
+
+      expect(uri.path, '/index.php');
+      expect(uri.queryParameters, {'route': '/module/privacy-policy/Page/tree', 'mobile': '1'});
+    });
+  });
+
   group('AuthController.login', () {
     test('on success, saves the session and reflects the logged-in user', () async {
       var infoCallCount = 0;

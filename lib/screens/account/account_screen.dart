@@ -408,7 +408,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         const SizedBox(height: 12),
                         TextButton.icon(
                           onPressed: () => launchUrl(
-                            Uri.parse(ref.read(serverUrlProvider)),
+                            mobileSiteUrl(ref.read(serverUrlProvider)),
                             mode: LaunchMode.externalApplication,
                           ),
                           icon: const Icon(Icons.open_in_new, size: 16),
@@ -417,7 +417,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         const SizedBox(height: 4),
                         TextButton.icon(
                           onPressed: () => launchUrl(
-                            Uri.parse(privacyPolicyUrl(ref)),
+                            mobileSiteUrl(privacyPolicyUrl(ref)),
                             mode: LaunchMode.externalApplication,
                           ),
                           icon: const Icon(Icons.privacy_tip_outlined, size: 16),

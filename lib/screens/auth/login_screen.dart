@@ -173,14 +173,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         children: [
                           TextButton(
                             onPressed: () => launchUrl(
-                              Uri.parse(ref.read(serverUrlProvider)),
+                              mobileSiteUrl(ref.read(serverUrlProvider)),
                               mode: LaunchMode.externalApplication,
                             ),
                             child: Text(l10n.viewFamilyTreeButton),
                           ),
                           TextButton(
                             onPressed: () => launchUrl(
-                              Uri.parse(privacyPolicyUrl(ref)),
+                              mobileSiteUrl(privacyPolicyUrl(ref)),
                               mode: LaunchMode.externalApplication,
                             ),
                             child: Text(l10n.privacyPolicy),
