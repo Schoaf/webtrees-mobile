@@ -561,9 +561,14 @@ class _SiblingsFrame extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      // Top padding needs to clear the frame label, which floats at
-      // top: -8 (relative to this padded box, not the outer border) -
-      // 16 left its text baseline overlapping the first row of cards.
+      // The frame label straddles the border like a fieldset legend (hence
+      // painting its background over the border line) - its Positioned top
+      // is relative to this padded box, not the outer border, so it needs
+      // to counteract that top padding to land back on the border: -32
+      // relative to the padded box == -8 relative to the border itself
+      // (24 padding - 32), landing the label's vertical center right on
+      // the 1.5px border line for its ~16px text height. Top padding here
+      // is what stops the row of cards below from starting underneath it.
       padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
@@ -595,7 +600,7 @@ class _SiblingsFrame extends StatelessWidget {
           // height (e.g. a card showing an extra detail line), which
           // otherwise hid the label text behind them.
           Positioned(
-            top: -8,
+            top: -32,
             left: 16,
             child: Container(
               color: const Color(0xFFF4F5F7),
@@ -696,7 +701,7 @@ class _ChildrenFrame extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(maxWidth: 378),
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      // Same fix as the siblings frame: clear the floating label above.
+      // Same label-straddles-the-border treatment as the siblings frame.
       padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
@@ -746,7 +751,7 @@ class _ChildrenFrame extends StatelessWidget {
           // border and can otherwise end up hidden behind the first row of
           // cards.
           Positioned(
-            top: -8,
+            top: -32,
             left: 16,
             right: 16,
             child: Container(
