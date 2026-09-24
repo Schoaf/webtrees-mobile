@@ -168,9 +168,8 @@
   "sexLabelMale": "Male",
   "sexLabelFemale": "Female",
   "parentsTitle": "Parents",
-  "spouseFemaleTitle": "Wife",
-  "spouseMaleTitle": "Husband",
-  "childrenTitle": "Children ({count})",
+  "familyWithLabel": "Family with {name}",
+  "familyUnknownPartnerLabel": "Family, unknown partner",
 
   "unknownStateMessage": "Unknown state.",
   "leaveTreeTooltip": "Leave family tree",

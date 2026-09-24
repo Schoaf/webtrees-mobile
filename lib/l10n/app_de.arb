@@ -306,14 +306,13 @@
   "sexLabelMale": "Männlich",
   "sexLabelFemale": "Weiblich",
   "parentsTitle": "Eltern",
-  "spouseFemaleTitle": "Ehepartnerin",
-  "spouseMaleTitle": "Ehepartner",
-  "childrenTitle": "Kinder ({count})",
-  "@childrenTitle": {
+  "familyWithLabel": "Familie mit {name}",
+  "@familyWithLabel": {
     "placeholders": {
-      "count": {"type": "int"}
+      "name": {"type": "String"}
     }
   },
+  "familyUnknownPartnerLabel": "Familie, unbekannter Partner",
 
   "unknownStateMessage": "Unbekannter Zustand.",
   "leaveTreeTooltip": "Stammbaum verlassen",

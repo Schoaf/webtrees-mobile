@@ -655,6 +655,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             .cast<Map<String, dynamic>>();
         final spouseFamilies = (data['spouseFamilies'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
+        final siblings = (data['siblings'] as List<dynamic>? ?? [])
+            .cast<Map<String, dynamic>>();
         final media = (data['media'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
         final canEdit = data['canEdit'] as bool? ?? false;
@@ -783,7 +785,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             ),
         ];
 
-        // "Die Verwandten" - parents, spouse(s) and children.
+        // "Die Verwandten" - webtrees' own reading order: parents, then
+        // siblings (both share the same primary parent family), then one
+        // group per family this person is a spouse/parent in - partner
+        // plus their children bracketed together so it reads as one family
+        // unit rather than two separate lists to mentally re-match.
         final relatives = <Widget>[
           for (final family in parentFamilies) ...[
             if (family['husband'] != null || family['wife'] != null)
@@ -798,36 +804,31 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                 depth: widget.depth,
               ),
           ],
+          if (siblings.isNotEmpty)
+            _Section(
+              title: l10n.siblingsLabel,
+              people: siblings,
+              depth: widget.depth,
+            ),
           for (final family in spouseFamilies) ...[
-            if (family['spouse'] != null)
-              _Section(
-                title:
-                    (family['spouse'] as Map<String, dynamic>)['sex'] == 'F'
-                    ? l10n.spouseFemaleTitle
-                    : l10n.spouseMaleTitle,
-                people: [family['spouse'] as Map<String, dynamic>],
+            if (family['spouse'] != null ||
+                (family['children'] as List<dynamic>? ?? []).isNotEmpty)
+              _FamilySection(
+                title: family['spouse'] != null
+                    ? l10n.familyWithLabel(
+                        stripNameSlashes(
+                          (family['spouse'] as Map<String, dynamic>)['name']
+                                  as String? ??
+                              '',
+                        ),
+                      )
+                    : l10n.familyUnknownPartnerLabel,
+                partner: family['spouse'] as Map<String, dynamic>?,
+                children: (family['children'] as List<dynamic>? ?? [])
+                    .cast<Map<String, dynamic>>(),
                 depth: widget.depth,
               ),
           ],
-          if (spouseFamilies
-              .expand((f) => f['children'] as List<dynamic>? ?? [])
-              .isNotEmpty)
-            _Section(
-              title: l10n.childrenTitle(
-                spouseFamilies.fold<int>(
-                  0,
-                  (n, f) =>
-                      n + (f['children'] as List<dynamic>? ?? []).length,
-                ),
-              ),
-              people: spouseFamilies
-                  .expand(
-                    (f) => (f['children'] as List<dynamic>? ?? [])
-                        .cast<Map<String, dynamic>>(),
-                  )
-                  .toList(),
-              depth: widget.depth,
-            ),
         ];
 
         return Scaffold(
@@ -1702,6 +1703,95 @@ class _Section extends StatelessWidget {
                 ),
               ],
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One spouse family: partner and children bracketed together under a
+/// "Familie mit X" title, so the group reads as one family unit at a
+/// glance rather than two separately-labelled lists (partner, then a
+/// disconnected "Kinder" section) someone has to mentally re-match -
+/// matching how webtrees' own person page groups a family.
+class _FamilySection extends StatelessWidget {
+  const _FamilySection({
+    required this.title,
+    required this.partner,
+    required this.children,
+    this.depth = 0,
+  });
+
+  final String title;
+  final Map<String, dynamic>? partner;
+  final List<Map<String, dynamic>> children;
+  final int depth;
+
+  @override
+  Widget build(BuildContext context) {
+    void openPerson(Map<String, dynamic> person) =>
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PersonDetailScreen(
+              xref: person['xref'] as String,
+              depth: depth + 1,
+            ),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The bracket: a left rule spanning the partner+children
+                // group - "these all belong to this family" without
+                // repeating a "Kinder" label per child.
+                Container(
+                  width: 2,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      if (partner != null)
+                        PersonCard(
+                          person: partner!,
+                          onTap: () => openPerson(partner!),
+                        ),
+                      for (var i = 0; i < children.length; i++) ...[
+                        if (partner != null || i > 0)
+                          const SizedBox(height: 8),
+                        PersonCard(
+                          person: children[i],
+                          onTap: () => openPerson(children[i]),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
