@@ -55,7 +55,13 @@ class _ExtraField {
 }
 
 class AddPersonScreen extends ConsumerStatefulWidget {
-  const AddPersonScreen({super.key});
+  const AddPersonScreen({super.key, this.linkedXref, this.linkedName});
+
+  /// Pre-selects "Verknüpft mit" to a specific person (e.g. reached via
+  /// that person's own "Person hinzufügen" button) instead of the free-form
+  /// search. Both null together, or both set - never just one.
+  final String? linkedXref;
+  final String? linkedName;
 
   @override
   ConsumerState<AddPersonScreen> createState() => _AddPersonScreenState();
@@ -78,6 +84,23 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
 
   bool _saving = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.linkedXref != null) {
+      _selectedRelative = {
+        'xref': widget.linkedXref,
+        'name': widget.linkedName ?? '',
+      };
+      _relativeQueryController.text = widget.linkedName ?? '';
+      // Left at 'none' on purpose (unlike the free-form search flow, which
+      // defaults to 'child' once a relative is picked) - reached via a
+      // specific person's own "Person hinzufügen" button, so which relation
+      // this new person has to them must be an explicit choice, not a
+      // silent default; the Save button stays disabled until it's made.
+    }
+  }
 
   @override
   void dispose() {
@@ -224,6 +247,11 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // A relative is picked but no relation chosen yet - always momentary in
+    // the free-form search flow (it defaults to 'child' the instant one's
+    // picked), but the pre-linked flow leaves it at 'none' on purpose so
+    // saving is blocked until the person picks one themselves.
+    final relationMissing = _selectedRelative != null && _relation == 'none';
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -314,6 +342,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                     TextField(
                       controller: _relativeQueryController,
                       onChanged: _onRelativeQueryChanged,
+                      readOnly: widget.linkedXref != null,
                       decoration: InputDecoration(
                         hintText: l10n.searchPersonOptionalHint,
                       ),
@@ -383,7 +412,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                 child: Column(
                   children: [
                     FilledButton(
-                      onPressed: _saving
+                      onPressed: (_saving || relationMissing)
                           ? null
                           : () => _save(addAnother: false),
                       child: _saving
@@ -398,7 +427,9 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                           : Text(l10n.save),
                     ),
                     TextButton(
-                      onPressed: _saving ? null : () => _save(addAnother: true),
+                      onPressed: (_saving || relationMissing)
+                          ? null
+                          : () => _save(addAnother: true),
                       child: Text(l10n.saveAndAddAnotherButton),
                     ),
                   ],

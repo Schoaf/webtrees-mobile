@@ -127,19 +127,29 @@ void main() {
     expect(clipboardText, '3. Mai 1980 · Wien');
   });
 
-  testWidgets('shows the "Fakt hinzufügen" FAB only when canEdit is true', (tester) async {
+  testWidgets('shows the "Person hinzufügen" FAB only when canEdit is true', (tester) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: true));
     await pumpScreen(tester);
-    expect(find.text('Fakt hinzufügen'), findsOneWidget);
+    expect(find.text('Person hinzufügen'), findsOneWidget);
   });
 
-  testWidgets('hides the "Fakt hinzufügen" FAB and the edit-mode toggle when canEdit is false', (tester) async {
+  testWidgets('hides the "Person hinzufügen" FAB and the edit-mode toggle when canEdit is false', (tester) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: false));
 
     await pumpScreen(tester);
 
-    expect(find.text('Fakt hinzufügen'), findsNothing);
+    expect(find.text('Person hinzufügen'), findsNothing);
     expect(find.byTooltip('Bearbeiten'), findsNothing);
+  });
+
+  testWidgets('the "Fakt hinzufügen" chip appears in the facts card once expanded, and is hidden when canEdit is false', (
+    tester,
+  ) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: true));
+    await pumpScreen(tester);
+    await tester.tap(find.textContaining('Mehr anzeigen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fakt hinzufügen'), findsOneWidget);
   });
 
   testWidgets('the Home shortcut FAB only appears once nested two Person screens deep', (tester) async {
@@ -331,6 +341,18 @@ void main() {
 
       await pumpScreen(tester);
 
+      // The "Fakt hinzufügen" chip lives inside the facts card, revealed
+      // once "Mehr anzeigen" is expanded - not the FAB (that's now "Person
+      // hinzufügen").
+      await tester.tap(find.textContaining('Mehr anzeigen'));
+      await tester.pumpAndSettle();
+
+      // In the small test viewport, the newly-revealed chip ends up right
+      // behind the floating "Person hinzufügen" FAB, which sits on top and
+      // would otherwise absorb the tap - same as a real (short) screen,
+      // where scrolling a bit further clears it.
+      await tester.ensureVisible(find.text('Fakt hinzufügen'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Fakt hinzufügen'));
       await tester.pumpAndSettle();
 
