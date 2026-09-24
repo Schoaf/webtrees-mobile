@@ -596,6 +596,11 @@ void main() {
               'sex': 'M',
               'isDead': true,
               'birth': {'date': {'year': 1952}},
+              // Exercises the ancestors (Y) and partner (rings +N) corner
+              // badges, which the plain fixture below never triggers -
+              // both were invisible to the screenshot pipeline until now.
+              'hasParents': true,
+              'partnersCount': 2,
             },
             'wife': {
               'xref': 'I3',
@@ -647,6 +652,32 @@ void main() {
               },
             ],
           },
+          // An earlier, ended relationship with its own child - Thomas's
+          // (ongoing, so still the default-shown) family doesn't exercise
+          // the "+N weitere Kinder" hint on its own; this does.
+          {
+            'xref': 'F2',
+            'maritalStatus': 'divorced',
+            'marriage': {'date': {'year': 2005}},
+            'spouse': {
+              'xref': 'I10',
+              'name': 'Klaus Berger',
+              'sortName': 'Berger,Klaus',
+              'sex': 'M',
+              'isDead': false,
+              'birth': {'date': {'year': 1980}},
+            },
+            'children': [
+              {
+                'xref': 'I11',
+                'name': 'Noah Berger',
+                'sortName': 'Berger,Noah',
+                'sex': 'M',
+                'isDead': false,
+                'birth': {'date': {'year': 2006}},
+              },
+            ],
+          },
         ],
         'siblings': [
           {
@@ -656,6 +687,9 @@ void main() {
             'sex': 'M',
             'isDead': false,
             'birth': {'date': {'year': 1982}},
+            // Exercises the descendants (branch +N) corner badge on a
+            // sibling card - also never triggered by the plain fixture.
+            'childrenCount': 3,
           },
           {
             'xref': 'I9',

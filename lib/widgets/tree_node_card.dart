@@ -237,11 +237,14 @@ class _CornerBadge extends StatelessWidget {
   final bool right;
   final Widget child;
 
-  // How far the badge pokes out past the CARD's own true edge (negative =
-  // outside it) - the same 2px on every side, so it reads as tucked evenly
-  // into the corner rather than drifting toward whichever side happens to
-  // have less padding.
-  static const _trueEdgeGap = -2.0;
+  // How far the badge sits from the CARD's own true edge (negative = past
+  // it, outside the card) - the same on every side, so it reads as tucked
+  // evenly into the corner rather than drifting toward whichever side
+  // happens to have less padding. -2 (poking 2px past the true edge) read
+  // as floating well outside the card once it was actually made uniform -
+  // flush with the edge looks tucked into the corner without the badge
+  // visually detaching from the card.
+  static const _trueEdgeGap = 0.0;
 
   @override
   Widget build(BuildContext context) {
