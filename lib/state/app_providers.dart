@@ -77,6 +77,45 @@ String privacyPolicyUrl(WidgetRef ref) {
   return '${base}index.php?route=$route';
 }
 
+/// A website URL opened from this device. `mobile=1` makes webtrees show its
+/// "theme for mobile devices" (small pages like the privacy policy),
+/// `mobile=0` its default theme (the full website) - either way for the rest
+/// of that browser session, and overriding webtrees' own phone detection.
+/// Only for links the app opens itself - links shared with other people
+/// (e.g. the person page link) stay plain, the recipient may be on a desktop.
+/// A bare folder URL gets `index.php`: webtrees' redirect from `/` mangles
+/// any query string (`/?mobile=1` -> `/?mobile=1/index.php?route=0`).
+Uri siteUrl(String url, {required bool mobile}) {
+  final uri = Uri.parse(url);
+  final path = uri.path.isEmpty || uri.path.endsWith('/')
+      ? '${uri.path.isEmpty ? '/' : uri.path}index.php'
+      : uri.path;
+  return uri.replace(
+    path: path,
+    queryParameters: {...uri.queryParameters, 'mobile': mobile ? '1' : '0'},
+  );
+}
+
+/// The webtrees "forgot password" page. Same route-building convention as
+/// [privacyPolicyUrl].
+String passwordRequestUrl(WidgetRef ref) {
+  final server = ref.read(serverUrlProvider);
+  final base = server.endsWith('/') ? server : '$server/';
+  final tree = ref.read(treeNameProvider);
+  final route = Uri.encodeComponent('/password-request/$tree');
+  return '${base}index.php?route=$route';
+}
+
+/// The webtrees "create a new account" page. Same route-building convention
+/// as [privacyPolicyUrl].
+String registerUrl(WidgetRef ref) {
+  final server = ref.read(serverUrlProvider);
+  final base = server.endsWith('/') ? server : '$server/';
+  final tree = ref.read(treeNameProvider);
+  final route = Uri.encodeComponent('/register/$tree');
+  return '${base}index.php?route=$route';
+}
+
 final quickNoteStoreProvider = Provider<QuickNoteStore>(
   (ref) => QuickNoteStore(),
 );
