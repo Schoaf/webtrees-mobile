@@ -579,12 +579,10 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final canEdit = data['canEdit'] as bool? ?? false;
         final photoUrl = person['thumb'] as String?;
         final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
-        // Stammbaum-Ansicht is a manager-only feature (webtrees has no
-        // separate site-admin flag in this API, "manager" is the closest
-        // stand-in) - purely a UI gate, nothing server-side enforces it
-        // further.
+        // Stammbaum-Ansicht is an Administrator-only feature - purely a UI
+        // gate, nothing server-side enforces it further.
         final showTreeButton =
-            !_editing && ref.watch(authControllerProvider).isManager;
+            !_editing && ref.watch(authControllerProvider).isAdmin;
 
         final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
 

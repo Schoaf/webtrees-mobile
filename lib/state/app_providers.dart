@@ -90,32 +90,18 @@ class AuthState {
     this.loggedIn = false,
     this.userName,
     this.realName,
-    this.isManager = false,
+    this.isAdmin = false,
   });
 
   final bool loggedIn;
   final String? userName;
   final String? realName;
 
-  /// True for webtrees' highest per-tree role ('manager') on the active
-  /// tree. The API has no separate site-Administrator flag, so this is the
-  /// closest available stand-in for "admin" - used to gate admin-only UI
-  /// (e.g. the Stammbaum-Ansicht entry point), not as a real security
-  /// boundary (the server itself doesn't restrict the underlying endpoints
-  /// any further for this).
-  final bool isManager;
-}
-
-/// Picks out the active tree's role from an `Info` response's `trees` list
-/// (see [WebtreesClient.info] / webtreesand-api's `role()` helper - one of
-/// 'manager', 'moderator', 'editor', 'member', 'visitor').
-bool _isManagerForTree(Map<String, dynamic> info, String tree) {
-  final trees = info['trees'] as List<dynamic>?;
-  if (trees == null) return false;
-  for (final t in trees.cast<Map<String, dynamic>>()) {
-    if (t['name'] == tree) return t['role'] == 'manager';
-  }
-  return false;
+  /// webtrees' real, site-wide Administrator flag (`Auth::isAdmin()`,
+  /// already exposed as `user.isAdmin` in the Info response) - used to gate
+  /// admin-only UI (e.g. the Stammbaum-Ansicht entry point). UI gate only,
+  /// nothing further enforced server-side for this.
+  final bool isAdmin;
 }
 
 /// Error codes for [AuthController.login]. Kept as codes rather than
@@ -167,7 +153,7 @@ class AuthController extends Notifier<AuthState> {
         loggedIn: true,
         userName: user['userName'] as String?,
         realName: user['realName'] as String?,
-        isManager: _isManagerForTree(info, tree),
+        isAdmin: user['isAdmin'] as bool? ?? false,
       );
       return null;
     } on DioException catch (e) {
@@ -225,7 +211,7 @@ class AuthController extends Notifier<AuthState> {
           loggedIn: true,
           userName: user['userName'] as String?,
           realName: user['realName'] as String?,
-          isManager: _isManagerForTree(info, tree),
+          isAdmin: user['isAdmin'] as bool? ?? false,
         );
       } else {
         client.clearSession();

@@ -10,12 +10,12 @@ import 'package:webtrees_mobile/state/app_providers.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
-/// The tree-view button only shows for managers (see
-/// AuthState.isManager) - fake the signed-in state instead of going
+/// The tree-view button only shows for Administrators (see
+/// AuthState.isAdmin) - fake the signed-in state instead of going
 /// through a real login flow just to set that flag.
-class _FakeManagerAuthController extends AuthController {
+class _FakeAdminAuthController extends AuthController {
   @override
-  AuthState build() => const AuthState(loggedIn: true, isManager: true);
+  AuthState build() => const AuthState(loggedIn: true, isAdmin: true);
 }
 
 void main() {
@@ -41,7 +41,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           webtreesClientProvider.overrideWithValue(client),
-          authControllerProvider.overrideWith(_FakeManagerAuthController.new),
+          authControllerProvider.overrideWith(_FakeAdminAuthController.new),
         ],
       );
       addTearDown(container.dispose);
@@ -76,7 +76,7 @@ void main() {
   );
 
   testWidgets(
-    'the tree-view button is hidden for a non-manager',
+    'the tree-view button is hidden for a non-admin',
     (tester) async {
       final client = MockWebtreesClient();
       when(() => client.imageHeaders).thenReturn(<String, String>{});
@@ -95,7 +95,7 @@ void main() {
       );
 
       // No authControllerProvider override - defaults to the logged-out,
-      // non-manager AuthState().
+      // non-admin AuthState().
       final container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
       addTearDown(container.dispose);
 
