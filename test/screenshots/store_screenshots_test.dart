@@ -84,6 +84,21 @@ const _androidTarget = _Target('android', Size(1080, 2400), 2.0);
 
 const _targets = [_iosTarget, _androidTarget];
 
+/// Blank top inset reserved on every render, as a fraction of the target's
+/// physical width - matches (with headroom) the notch's own footprint in
+/// `tool/compose_store_screenshots.py` (SAFE_AREA_FRAC there), so the
+/// notch always lands on guaranteed-blank pixels instead of overlapping
+/// whatever a given screen happens to draw at the very top. Every one of
+/// the four screens here renders its body inside a `SafeArea` (checked:
+/// HomeScreen, SearchScreen, PersonDetailScreen, TreeViewScreen all do),
+/// so setting `tester.view.padding.top` reliably pushes their content down
+/// by this amount, the same way a real notched phone would - this isn't
+/// screen-specific, so it can't silently stop working for a screen whose
+/// top content happens to sit lower (that's what broke the first version
+/// of this: the notch overlapped TreeViewScreen's centered "Stammbaum"
+/// title even though it happened to clear HomeScreen's left-aligned one).
+const _kNotchSafeAreaFraction = 0.09;
+
 Directory get _rawDir => Directory('screenshots/raw');
 
 /// `flutter test`'s headless environment has no fonts registered at all,
@@ -227,8 +242,12 @@ Future<void> _renderAndSave(
 }) async {
   tester.view.physicalSize = target.physicalSize;
   tester.view.devicePixelRatio = target.devicePixelRatio;
+  // Reserve blank space at the very top for stage 2's notch - see
+  // _kNotchSafeAreaFraction.
+  tester.view.padding = FakeViewPadding(top: target.physicalSize.width * _kNotchSafeAreaFraction);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(tester.view.resetPadding);
 
   Widget buildApp() => UncontrolledProviderScope(
     container: container,

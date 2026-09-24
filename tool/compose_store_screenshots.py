@@ -42,6 +42,18 @@ PRIMARY = (0x2F, 0x6F, 0xB0)
 # rather than a hole in the image.
 PHONE_COLOR = (24, 25, 28)
 
+# Must match `_kNotchSafeAreaFraction` in
+# test/screenshots/store_screenshots_test.dart: stage 1 renders every raw
+# screenshot with this fraction of its width reserved as blank space at
+# the very top (a simulated notch safe-area inset, the same way a real
+# notched phone pushes app content down), so the notch drawn below always
+# lands on guaranteed-blank pixels instead of overlapping whatever a given
+# screen draws at the top - which is exactly what went wrong before this:
+# the notch overlapped TreeViewScreen's centered title even though it
+# happened to clear HomeScreen's left-aligned one, because it was drawn at
+# a fixed position with no dedicated blank area under it.
+SAFE_AREA_FRAC = 0.09
+
 
 def _tint(color: tuple[int, int, int], amount: float) -> tuple[int, int, int]:
     """Blend `color` toward white by `amount` (0-1)."""
@@ -137,11 +149,16 @@ def compose(raw_path: pathlib.Path, canvas_size: tuple[int, int]) -> Image.Image
 
     # Notch: a small centered pill at the top of the screen (Dynamic-Island
     # style), drawn in the phone body color so it reads as a cutout in the
-    # screen rather than a sticker on top of the content.
+    # screen rather than a sticker on top of the content. Positioned and
+    # sized to stay within the blank safe-area band stage 1 reserved at the
+    # top of the raw screenshot (see SAFE_AREA_FRAC) - guaranteed to fit
+    # with room to spare below it, whatever the band's exact height works
+    # out to for this image.
+    safe_band_h = screen_w * SAFE_AREA_FRAC
     notch_w = phone_w * 0.26
-    notch_h = phone_w * 0.042
+    notch_h = min(phone_w * 0.04, safe_band_h * 0.55)
     notch_x = phone_x + (phone_w - notch_w) / 2
-    notch_y = screen_y + bezel * 0.6
+    notch_y = screen_y + (safe_band_h - notch_h) * 0.35
     notch = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
     ImageDraw.Draw(notch).rounded_rectangle(
         [notch_x, notch_y, notch_x + notch_w, notch_y + notch_h],
