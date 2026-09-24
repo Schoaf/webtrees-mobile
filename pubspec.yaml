@@ -48,6 +48,9 @@ dependencies:
   app_links: ^7.2.1
   package_info_plus: ^10.2.1
   local_auth: ^2.3.0
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +74,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/images/logo.png

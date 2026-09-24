@@ -1,0 +1,378 @@
+{
+  "@@locale": "de",
+
+  "appLockedTitle": "App gesperrt",
+  "unlockButton": "Entsperren",
+  "unlockAppReason": "Bitte entsperre die App",
+
+  "navHome": "Start",
+  "navSearch": "Suche",
+  "navNew": "Neu",
+
+  "cancel": "Abbrechen",
+  "save": "Speichern",
+  "ok": "OK",
+  "edit": "Bearbeiten",
+  "cancelEditing": "Bearbeiten abbrechen",
+  "share": "Teilen",
+  "dateLabel": "Datum",
+  "apply": "Übernehmen",
+  "removeDateTooltip": "Datum entfernen",
+  "unknown": "Unbekannt",
+  "unknownError": "unbekannter Fehler",
+  "couldNotLoad": "Konnte nicht laden: {error}",
+  "@couldNotLoad": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "genericErrorFallback": "Fehler",
+  "givenName": "Vorname",
+  "surname": "Nachname",
+  "birthDate": "Geburtsdatum",
+  "birthPlace": "Geburtsort",
+  "place": "Ort",
+  "value": "Wert",
+  "appVersion": "App-Version {version}",
+  "@appVersion": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "privacyPolicy": "Datenschutz",
+  "openFullWebsite": "Zur Website (Vollversion)",
+  "startPerson": "Startperson",
+  "responsesTitle": "Antworten",
+  "noNamePlaceholder": "(kein Name)",
+  "rejectedError": "Abgelehnt: {error}",
+  "@rejectedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "saveFailedError": "Speichern fehlgeschlagen: {error}",
+  "@saveFailedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "addFactLabel": "Fakt hinzufügen",
+  "sendByEmailTitle": "Per E-Mail senden",
+  "showLess": "Weniger anzeigen",
+  "discardRequestTitle": "Anfrage verwerfen?",
+  "discardRequestMessage": "Die Anfrage und eine eventuell hinterlegte Foto-Vorschau werden endgültig gelöscht.",
+  "discardButton": "Verwerfen",
+
+  "weekdayMonday": "Montag",
+  "weekdayTuesday": "Dienstag",
+  "weekdayWednesday": "Mittwoch",
+  "weekdayThursday": "Donnerstag",
+  "weekdayFriday": "Freitag",
+  "weekdaySaturday": "Samstag",
+  "weekdaySunday": "Sonntag",
+  "today": "heute",
+  "tomorrow": "morgen",
+  "onWeekdayName": "am {weekday}",
+  "@onWeekdayName": {
+    "placeholders": {
+      "weekday": {"type": "String"}
+    }
+  },
+  "turningYears": "wird {years} · {when}",
+  "@turningYears": {
+    "placeholders": {
+      "years": {"type": "int"},
+      "when": {"type": "String"}
+    }
+  },
+  "searchPersonHint": "Person suchen…",
+  "birthdaysThisWeek": "Geburtstage diese Woche",
+  "individualsInTree": "{count} Personen im Stammbaum",
+  "@individualsInTree": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "responsesReceivedTitle": "Antworten erhalten",
+  "requestsPendingReview": "{count, plural, one{Eine Anfrage wartet auf Prüfung} other{{count} Anfragen warten auf Prüfung}}",
+  "@requestsPendingReview": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "notSynced": "Nicht synchronisiert ({count})",
+  "@notSynced": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "roleManager": "Verwalter",
+  "roleModerator": "Moderator",
+  "roleEditor": "Bearbeiter",
+  "roleMember": "Mitglied",
+  "roleVisitor": "Besucher",
+  "changesSaved": "Änderungen gespeichert.",
+  "myAccountTitle": "Mein Konto",
+  "username": "Benutzername",
+  "nameLabel": "Name",
+  "role": "Rolle",
+  "linkedPersonSectionTitle": "Verknüpfte Person",
+  "noLinkedPersonMessage": "Keine Person mit diesem Konto verknüpft.",
+  "chooseStartPersonTitle": "Startperson wählen",
+  "noStartPersonMessage": "Keine Startperson festgelegt.",
+  "changeStartPersonButton": "Startperson ändern",
+  "logoutButton": "Abmelden",
+  "lockWithBiometricsTitle": "Mit Biometrie sperren",
+  "biometricsSubtitle": "Face ID/Fingerabdruck beim App-Start",
+
+  "relationChild": "als Kind",
+  "relationSpouse": "als Ehepartner:in",
+  "relationFather": "als Vater",
+  "relationMother": "als Mutter",
+  "extraFieldOccupation": "Beruf",
+  "extraFieldReligion": "Konfession",
+  "extraFieldResidence": "Wohnort",
+  "extraFieldNickname": "Spitzname",
+  "extraFieldNote": "Notiz",
+  "pleaseEnterNameError": "Bitte Vor- oder Nachname angeben.",
+  "personSavedMessage": "Person gespeichert.",
+  "connectionFailedError": "Verbindung fehlgeschlagen: {error}",
+  "@connectionFailedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "addPersonTitle": "Person hinzufügen",
+  "birthPlaceHint": "z. B. Wien",
+  "linkedWithLabel": "Verknüpft mit",
+  "searchPersonOptionalHint": "Person suchen (optional)",
+  "addAnotherDetailButton": "Weitere Angabe hinzufügen",
+  "extraFieldPropertyLabel": "Eigenschaft",
+  "saveAndAddAnotherButton": "Speichern & weitere Person hinzufügen",
+  "dateFormatPlaceholder": "TT.MM.JJJJ",
+  "sexLabel": "Geschlecht",
+  "sexOptionMale": "männlich",
+  "sexOptionFemale": "weiblich",
+  "sexOptionDiverse": "divers",
+
+  "passwordLabel": "Passwort",
+  "loginButton": "Anmelden",
+  "viewFamilyTreeButton": "Stammbaum ansehen",
+
+  "noResponsesMessage": "Keine Antworten vorhanden.",
+  "fromResponder": "Von {name}",
+  "@fromResponder": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "titleFieldLabel": "Titel",
+  "deathDate": "Sterbedatum",
+  "deathPlace": "Sterbeort",
+  "allResponsesReviewed": "Alle Antworten geprüft.",
+  "couldNotApplyError": "Konnte nicht übernommen werden: {error}",
+  "@couldNotApplyError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "couldNotDiscardMessage": "Konnte nicht verworfen werden.",
+  "couldNotDiscardError": "Konnte nicht verworfen werden: {error}",
+  "@couldNotDiscardError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "responseAlreadyApplied": "Diese Antwort wurde bereits übernommen.",
+  "noChangesProposed": "Es wurden keine Änderungen vorgeschlagen.",
+  "acceptPhotoLabel": "Foto übernehmen",
+  "previousValueLabel": "Bisher: {value}",
+  "@previousValueLabel": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "emptyValuePlaceholder": "(leer)",
+  "newValueLabel": "Neu: {value}",
+  "@newValueLabel": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "acceptAsNoteLabel": "Als Notiz übernehmen",
+  "applySelectedButton": "Ausgewähltes übernehmen",
+  "forPersonLabel": "Für: {name}",
+  "@forPersonLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "fromResponderLabel": "Von: {name}",
+  "@fromResponderLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "reviewResponseTitle": "Antwort prüfen",
+  "discardRequestTooltip": "Anfrage verwerfen",
+
+  "searchFailedError": "Suche fehlgeschlagen: {error}",
+  "@searchFailedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "searchTitle": "Suche",
+  "enterNameHint": "Name eingeben…",
+  "resultsCount": "{count} Treffer",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "searchPrompt": "Suche nach einem Namen.",
+  "noResults": "Keine Treffer.",
+
+  "noAccessError": "Kein Zugriff: {error}",
+  "@noAccessError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "goHomeTooltip": "Zum Start",
+  "changesSavedPendingApproval": "Änderungen gespeichert — wartet ggf. auf Freigabe.",
+  "factSavedPendingApproval": "Fakt gespeichert — wartet ggf. auf Freigabe.",
+  "savedLocallyOffline": "Server nicht erreichbar — lokal gespeichert, später synchronisieren.",
+  "chooseFromPhotos": "Aus Fotos wählen",
+  "takePhoto": "Foto aufnehmen",
+  "photoUploaded": "Foto hochgeladen.",
+  "uploadFailedError": "Upload fehlgeschlagen: {error}",
+  "@uploadFailedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "shareViaLink": "Per Link teilen",
+  "shareData": "Daten teilen",
+  "requestFailedTitle": "Anfrage fehlgeschlagen",
+  "linkValidTwoDays": "Link gültig für 2 Tage — kein Konto nötig",
+  "copyLinkTitle": "Link kopieren",
+  "copyLinkSubtitle": "Link in die Zwischenablage kopieren, um ihn selbst zu verschicken",
+  "shareViaAppSubtitle": "Über eine andere App teilen, z. B. WhatsApp oder Nachrichten",
+  "sendByEmailSubtitle": "Direkt aus der App eine E-Mail mit dem Link verschicken",
+  "requestFailedError": "Anfrage fehlgeschlagen: {error}",
+  "@requestFailedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "couldNotLoadEmailTemplateError": "Konnte E-Mail-Vorlage nicht laden: {error}",
+  "@couldNotLoadEmailTemplateError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "emailSentMessage": "E-Mail gesendet.",
+  "ageYears": "{age} Jahre",
+  "@ageYears": {
+    "placeholders": {
+      "age": {"type": "int"}
+    }
+  },
+  "askForHelpTooltip": "Um Mithilfe bitten",
+  "showMore": "Mehr anzeigen ({count})",
+  "@showMore": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "fieldSaveError": "{label}: {error}",
+  "@fieldSaveError": {
+    "placeholders": {
+      "label": {"type": "String"},
+      "error": {"type": "String"}
+    }
+  },
+  "sexLabelMale": "Männlich",
+  "sexLabelFemale": "Weiblich",
+  "parentsTitle": "Eltern",
+  "spouseFemaleTitle": "Ehepartnerin",
+  "spouseMaleTitle": "Ehepartner",
+  "childrenTitle": "Kinder ({count})",
+  "@childrenTitle": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "unknownStateMessage": "Unbekannter Zustand.",
+  "leaveTreeTooltip": "Stammbaum verlassen",
+  "treeViewTitle": "Stammbaum",
+  "previousPersonTooltip": "Zur vorherigen Person",
+  "nextPersonTooltip": "Zur nächsten Person",
+  "siblingsLabel": "Geschwister",
+  "childrenUnknownParentLabel": "Kinder, Elternteil unbekannt",
+  "childrenWithPartnerLabel": "Kinder mit {name}",
+  "@childrenWithPartnerLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "showAllCount": "Alle {count} anzeigen",
+  "@showAllCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "couldNotLoadFactTypesError": "Konnte Fakt-Typen nicht laden: {error}",
+  "@couldNotLoadFactTypesError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "factValueHint": "z. B. Bäckerin",
+  "dateOptionalLabel": "Datum (optional)",
+
+  "noPersonalMessagePlaceholder": "(keine persönliche Nachricht)",
+  "pleaseEnterValidEmail": "Bitte eine gültige E-Mail-Adresse angeben.",
+  "sendFailedError": "Senden fehlgeschlagen: {error}",
+  "@sendFailedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "emailAddressLabel": "E-Mail-Adresse",
+  "emailHint": "oma@beispiel.at",
+  "nameOptionalLabel": "Name (optional)",
+  "personalMessageLabel": "Persönliche Nachricht (optional)",
+  "previewLabel": "Vorschau",
+  "sendButton": "Senden",
+
+  "chooseDatePlaceholder": "Datum wählen",
+  "previousValueRaw": "Bisheriger Wert: {raw}",
+  "@previousValueRaw": {
+    "placeholders": {
+      "raw": {"type": "String"}
+    }
+  },
+
+  "maidenNameSuffix": " geb. {maidenName}",
+  "@maidenNameSuffix": {
+    "placeholders": {
+      "maidenName": {"type": "String"}
+    }
+  },
+
+  "authErrorInvalidCredentials": "Benutzername oder Passwort ist falsch.",
+  "authErrorLoginDidNotWork": "Anmeldung hat nicht funktioniert. Bitte erneut versuchen.",
+  "authErrorServerUnreachable": "Server nicht erreichbar. Bitte Internetverbindung prüfen.",
+  "authErrorInsecureConnection": "Der Server konnte nicht sicher erreicht werden.",
+  "authErrorLoginFailedGeneric": "Anmeldung fehlgeschlagen. Bitte später erneut versuchen.",
+  "authErrorInvalidConnectCode": "Der Verbindungscode ist ungültig oder abgelaufen.",
+  "authErrorConnectDidNotWork": "Verbinden hat nicht funktioniert. Bitte erneut versuchen.",
+  "authErrorConnectFailedGeneric": "Verbinden fehlgeschlagen. Bitte später erneut versuchen.",
+  "connectFailedTitle": "Verbinden fehlgeschlagen"
+}

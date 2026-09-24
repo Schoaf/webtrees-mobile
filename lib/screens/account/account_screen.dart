@@ -3,12 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../widgets/person_card.dart';
 import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
+
+/// The server's raw role string (stable, not display text); see
+/// [_roleLabel] for the localized text shown for each. Kept off the
+/// data-loading path (`_AccountScreenState._load`, which runs before the
+/// first build and has no reliable [AppLocalizations] yet) and resolved at
+/// display time in `build()` instead, which always has one.
+String _roleLabel(AppLocalizations l10n, String? role) => switch (role) {
+  'manager' => l10n.roleManager,
+  'moderator' => l10n.roleModerator,
+  'editor' => l10n.roleEditor,
+  'member' => l10n.roleMember,
+  'visitor' => l10n.roleVisitor,
+  _ => '—',
+};
 
 /// "Mein Konto" — the webtrees account itself: username/name/role, which
 /// person record it's linked to, and which person is the tree's
@@ -91,22 +106,13 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     return _AccountData(
       userName: user['userName'] as String? ?? '',
       realName: user['realName'] as String? ?? '',
-      role: _roleLabel(treeInfo['role'] as String?),
+      roleKey: treeInfo['role'] as String?,
       linkedPerson: linkedPerson,
       linkedXref: userXref.isNotEmpty ? userXref : null,
       startPerson: startPerson,
       startXref: defaultXref.isNotEmpty ? defaultXref : null,
     );
   }
-
-  String _roleLabel(String? role) => switch (role) {
-    'manager' => 'Verwalter',
-    'moderator' => 'Moderator',
-    'editor' => 'Bearbeiter',
-    'member' => 'Mitglied',
-    'visitor' => 'Besucher',
-    _ => '—',
-  };
 
   void _startEditing(_AccountData data) {
     setState(() {
@@ -128,7 +134,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   Future<void> _pickStartPerson() async {
     final picked = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(
-        builder: (_) => const SearchScreen(pickerTitle: 'Startperson wählen'),
+        builder: (_) => SearchScreen(
+          pickerTitle: AppLocalizations.of(context)!.chooseStartPersonTitle,
+        ),
       ),
     );
     if (picked == null || !mounted) return;
@@ -143,6 +151,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       _saving = true;
       _saveError = null;
     });
+    final l10n = AppLocalizations.of(context)!;
 
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
@@ -156,7 +165,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             : null,
       );
       if (result['ok'] != true) {
-        throw Exception(result['error'] ?? 'unbekannter Fehler');
+        throw Exception(result['error'] ?? l10n.unknownError);
       }
       if (!mounted) return;
       setState(() {
@@ -166,12 +175,12 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Änderungen gespeichert.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.changesSaved)));
     } on Exception catch (e) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _saveError = 'Speichern fehlgeschlagen: $e';
+        _saveError = l10n.saveFailedError('$e');
       });
     }
   }
@@ -181,6 +190,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     return FutureBuilder<_AccountData>(
       future: _future,
       builder: (context, snapshot) {
+        final l10n = AppLocalizations.of(context)!;
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
             body: SafeArea(child: Center(child: CircularProgressIndicator())),
@@ -190,7 +200,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           return Scaffold(
             body: SafeArea(
               child: Center(
-                child: Text('Konnte nicht laden: ${snapshot.error}'),
+                child: Text(l10n.couldNotLoad('${snapshot.error}')),
               ),
             ),
           );
@@ -213,7 +223,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Speichern'),
+                          : Text(l10n.save),
                     ),
                   ),
                 )
@@ -242,10 +252,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         ),
                         child: Column(
                           children: [
-                            _InfoRow(
-                              label: 'Benutzername',
-                              value: data.userName,
-                            ),
+                            _InfoRow(label: l10n.username, value: data.userName),
                             if (_editing)
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -260,8 +267,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                                 ),
                                 child: TextField(
                                   controller: _realNameController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Name',
+                                  decoration: InputDecoration(
+                                    labelText: l10n.nameLabel,
                                     isDense: true,
                                     border: InputBorder.none,
                                   ),
@@ -273,10 +280,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                                 ),
                               )
                             else
-                              _InfoRow(label: 'Name', value: data.realName),
+                              _InfoRow(label: l10n.nameLabel, value: data.realName),
                             _InfoRow(
-                              label: 'Rolle',
-                              value: data.role,
+                              label: l10n.role,
+                              value: _roleLabel(l10n, data.roleKey),
                               last: true,
                             ),
                           ],
@@ -292,9 +299,9 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         ),
                       ],
                       const SizedBox(height: 24),
-                      const Text(
-                        'Verknüpfte Person',
-                        style: TextStyle(
+                      Text(
+                        l10n.linkedPersonSectionTitle,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary,
@@ -312,13 +319,11 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           ),
                         )
                       else
-                        const _EmptyNote(
-                          text: 'Keine Person mit diesem Konto verknüpft.',
-                        ),
+                        _EmptyNote(text: l10n.noLinkedPersonMessage),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Startperson',
-                        style: TextStyle(
+                      Text(
+                        l10n.startPerson,
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary,
@@ -332,7 +337,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                                 onTap: _pickStartPerson,
                               )
                             : _EmptyNote(
-                                text: 'Keine Startperson festgelegt.',
+                                text: l10n.noStartPersonMessage,
                                 onTap: _pickStartPerson,
                               )
                       else if (data.startPerson != null &&
@@ -347,13 +352,13 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           ),
                         )
                       else
-                        const _EmptyNote(text: 'Keine Startperson festgelegt.'),
+                        _EmptyNote(text: l10n.noStartPersonMessage),
                       if (_editing) ...[
                         const SizedBox(height: 8),
                         TextButton.icon(
                           onPressed: _pickStartPerson,
                           icon: const Icon(Icons.swap_horiz, size: 18),
-                          label: const Text('Startperson ändern'),
+                          label: Text(l10n.changeStartPersonButton),
                         ),
                       ],
                       if (!_editing) ...[
@@ -375,19 +380,19 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             }
                           },
                           icon: const Icon(Icons.logout, size: 18),
-                          label: const Text('Abmelden'),
+                          label: Text(l10n.logoutButton),
                         ),
                         if (_biometricSupported) ...[
                           const SizedBox(height: 12),
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text(
-                              'Mit Biometrie sperren',
-                              style: TextStyle(fontSize: 14),
+                            title: Text(
+                              l10n.lockWithBiometricsTitle,
+                              style: const TextStyle(fontSize: 14),
                             ),
-                            subtitle: const Text(
-                              'Face ID/Fingerabdruck beim App-Start',
-                              style: TextStyle(fontSize: 12),
+                            subtitle: Text(
+                              l10n.biometricsSubtitle,
+                              style: const TextStyle(fontSize: 12),
                             ),
                             value: _biometricEnabled,
                             onChanged: (value) async {
@@ -407,7 +412,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             mode: LaunchMode.externalApplication,
                           ),
                           icon: const Icon(Icons.open_in_new, size: 16),
-                          label: const Text('Zur Website (Vollversion)'),
+                          label: Text(l10n.openFullWebsite),
                         ),
                         const SizedBox(height: 4),
                         TextButton.icon(
@@ -416,12 +421,12 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             mode: LaunchMode.externalApplication,
                           ),
                           icon: const Icon(Icons.privacy_tip_outlined, size: 16),
-                          label: const Text('Datenschutz'),
+                          label: Text(l10n.privacyPolicy),
                         ),
                         if (_appVersion != null) ...[
                           const SizedBox(height: 12),
                           Text(
-                            'App-Version $_appVersion',
+                            l10n.appVersion(_appVersion!),
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textTertiary,
@@ -466,10 +471,10 @@ class _Header extends StatelessWidget {
             onPressed: onBack,
             icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Mein Konto',
-              style: TextStyle(
+              AppLocalizations.of(context)!.myAccountTitle,
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
@@ -482,7 +487,9 @@ class _Header extends StatelessWidget {
               editing ? Icons.close : Icons.edit_outlined,
               color: AppColors.textPrimary,
             ),
-            tooltip: editing ? 'Bearbeiten abbrechen' : 'Bearbeiten',
+            tooltip: editing
+                ? AppLocalizations.of(context)!.cancelEditing
+                : AppLocalizations.of(context)!.edit,
           ),
         ],
       ),
@@ -585,7 +592,7 @@ class _AccountData {
   const _AccountData({
     required this.userName,
     required this.realName,
-    required this.role,
+    required this.roleKey,
     required this.linkedPerson,
     required this.linkedXref,
     required this.startPerson,
@@ -594,7 +601,10 @@ class _AccountData {
 
   final String userName;
   final String realName;
-  final String role;
+
+  /// The server's raw role string ('manager', 'editor', ...); see
+  /// [_roleLabel] for the localized display text.
+  final String? roleKey;
   final Map<String, dynamic>? linkedPerson;
   final String? linkedXref;
   final Map<String, dynamic>? startPerson;

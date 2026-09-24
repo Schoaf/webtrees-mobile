@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/person_card.dart';
+import '../../widgets/tablet_bounded_body.dart';
 import 'person_detail_screen.dart';
 
 /// Priority-2 screen: find a person and review everything stored about
@@ -72,7 +74,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     } on Exception catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Suche fehlgeschlagen: $e';
+        _error = AppLocalizations.of(context)!.searchFailedError('$e');
         _loading = false;
       });
     }
@@ -80,115 +82,122 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                boxShadow: AppColors.cardShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      if (widget.pickerTitle != null)
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      if (widget.pickerTitle != null) const SizedBox(width: 8),
-                      Text(
-                        widget.pickerTitle ?? 'Suche',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    height: 56,
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: AppColors.primary, width: 2),
-                    ),
-                    child: Row(
+        child: TabletBoundedBody(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  boxShadow: AppColors.cardShadow,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        const Icon(
-                          Icons.search,
-                          size: 19,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _queryController,
-                            focusNode: _focusNode,
-                            onChanged: _onChanged,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              isCollapsed: true,
-                              hintText: 'Name eingeben…',
+                        if (widget.pickerTitle != null)
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: AppColors.textPrimary,
                             ),
+                          ),
+                        if (widget.pickerTitle != null)
+                          const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.pickerTitle ?? l10n.searchTitle,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w500,
                               color: AppColors.textPrimary,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  if (_searched) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      '${_results.length} Treffer',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textTertiary,
+                    const SizedBox(height: 14),
+                    Container(
+                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: AppColors.primary, width: 2),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.search,
+                            size: 19,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _queryController,
+                              focusNode: _focusNode,
+                              onChanged: _onChanged,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                isCollapsed: true,
+                                hintText: l10n.enterNameHint,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    if (_searched) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        l10n.resultsCount(_results.length),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            Expanded(child: _buildBody()),
-          ],
+              Expanded(child: _buildBody(l10n)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(AppLocalizations l10n) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return Center(child: Text(_error!));
     if (!_searched) {
-      return const Center(
+      return Center(
         child: Text(
-          'Suche nach einem Namen.',
-          style: TextStyle(color: AppColors.textTertiary),
+          l10n.searchPrompt,
+          style: const TextStyle(color: AppColors.textTertiary),
         ),
       );
     }
     if (_results.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Keine Treffer.',
-          style: TextStyle(color: AppColors.textTertiary),
+          l10n.noResults,
+          style: const TextStyle(color: AppColors.textTertiary),
         ),
       );
     }

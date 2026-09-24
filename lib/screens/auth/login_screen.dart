@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/tablet_bounded_body.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,7 +20,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _loading = false;
   bool _passwordVisible = false;
-  String? _error;
+  AuthError? _error;
   String? _treeTitle;
   String? _appVersion;
 
@@ -83,119 +85,120 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(32, 56, 32, 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight - 80,
-                ),
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/logo.png',
-                      width: 220,
-                      fit: BoxFit.contain,
-                    ),
-                    if (_treeTitle != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        _treeTitle!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textTertiary,
-                        ),
+              child: TabletBoundedBody(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 80,
+                  ),
+                  child: Column(
+                    children: [
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 220,
+                        fit: BoxFit.contain,
                       ),
-                    ],
-                    const SizedBox(height: 40),
-                    TextField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Benutzername',
-                      ),
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const SizedBox(height: 18),
-                    TextField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Passwort',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _passwordVisible
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
+                      if (_treeTitle != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _treeTitle!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textTertiary,
                           ),
-                          onPressed: () => setState(
-                            () => _passwordVisible = !_passwordVisible,
-                          ),
-                        ),
-                      ),
-                      obscureText: !_passwordVisible,
-                      onSubmitted: (_) => _submit(),
-                    ),
-                    const SizedBox(height: 24),
-                    if (_error != null) ...[
-                      Text(
-                        _error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _loading ? null : _submit,
-                        child: _loading
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Anmelden'),
-                      ),
-                    ),
-                    const SizedBox(height: 56),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 12,
-                      children: [
-                        TextButton(
-                          onPressed: () => launchUrl(
-                            Uri.parse(ref.read(serverUrlProvider)),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                          child: const Text('Stammbaum ansehen'),
-                        ),
-                        TextButton(
-                          onPressed: () => launchUrl(
-                            Uri.parse(privacyPolicyUrl(ref)),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                          child: const Text('Datenschutz'),
                         ),
                       ],
-                    ),
-                    if (_appVersion != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'App-Version $_appVersion',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textTertiary,
+                      const SizedBox(height: 40),
+                      TextField(
+                        controller: _usernameController,
+                        decoration: InputDecoration(labelText: l10n.username),
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 18),
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: l10n.passwordLabel,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _passwordVisible
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                            onPressed: () => setState(
+                              () => _passwordVisible = !_passwordVisible,
+                            ),
+                          ),
+                        ),
+                        obscureText: !_passwordVisible,
+                        onSubmitted: (_) => _submit(),
+                      ),
+                      const SizedBox(height: 24),
+                      if (_error != null) ...[
+                        Text(
+                          _error!.message(l10n),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _loading ? null : _submit,
+                          child: _loading
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(l10n.loginButton),
                         ),
                       ),
+                      const SizedBox(height: 56),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        children: [
+                          TextButton(
+                            onPressed: () => launchUrl(
+                              Uri.parse(ref.read(serverUrlProvider)),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            child: Text(l10n.viewFamilyTreeButton),
+                          ),
+                          TextButton(
+                            onPressed: () => launchUrl(
+                              Uri.parse(privacyPolicyUrl(ref)),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            child: Text(l10n.privacyPolicy),
+                          ),
+                        ],
+                      ),
+                      if (_appVersion != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.appVersion(_appVersion!),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             );

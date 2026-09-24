@@ -85,7 +85,10 @@ class TreeViewController extends Notifier<TreeViewState> {
           pos: state.pos,
           cache: state.cache,
           loading: false,
-          error: json['error'] as String? ?? 'Fehler',
+          // Raw server text, or null if it gave none - kept untranslated
+          // here (no BuildContext in a Notifier); TreeViewScreen (which has
+          // one) supplies its own localized fallback text when this is null.
+          error: json['error'] as String?,
           selectedPartnerXref: state.selectedPartnerXref,
           childrenExpanded: state.childrenExpanded,
         );
@@ -113,7 +116,9 @@ class TreeViewController extends Notifier<TreeViewState> {
         pos: state.pos,
         cache: state.cache,
         loading: false,
-        error: 'Konnte nicht laden ($e).',
+        // Raw exception text (no BuildContext here either) - TreeViewScreen
+        // wraps this with its own localized "Couldn't load: ..." prefix.
+        error: '$e',
         selectedPartnerXref: state.selectedPartnerXref,
         childrenExpanded: state.childrenExpanded,
       );

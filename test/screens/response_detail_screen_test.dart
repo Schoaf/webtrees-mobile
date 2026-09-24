@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
+import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/responses/response_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 
@@ -29,6 +30,9 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../api/webtrees_client.dart';
+import '../l10n/app_localizations.dart';
 import '../repositories/quick_note_store.dart';
 import '../services/biometric_auth_service.dart';
 
@@ -92,11 +93,34 @@ class AuthState {
   final String? realName;
 }
 
+/// Error codes for [AuthController.login]. Kept as codes rather than
+/// pre-formatted strings so this state layer doesn't depend on
+/// [AppLocalizations] (there's no BuildContext down here) —
+/// [AuthErrorL10n.message] below maps a code to display text at the call
+/// site, which does have one.
+enum AuthError {
+  invalidCredentials,
+  loginDidNotWork,
+  serverUnreachable,
+  insecureConnection,
+  loginFailedGeneric,
+}
+
+extension AuthErrorL10n on AuthError {
+  String message(AppLocalizations l10n) => switch (this) {
+    AuthError.invalidCredentials => l10n.authErrorInvalidCredentials,
+    AuthError.loginDidNotWork => l10n.authErrorLoginDidNotWork,
+    AuthError.serverUnreachable => l10n.authErrorServerUnreachable,
+    AuthError.insecureConnection => l10n.authErrorInsecureConnection,
+    AuthError.loginFailedGeneric => l10n.authErrorLoginFailedGeneric,
+  };
+}
+
 class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
 
-  Future<String?> login(String username, String password) async {
+  Future<AuthError?> login(String username, String password) async {
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
 
@@ -104,13 +128,13 @@ class AuthController extends Notifier<AuthState> {
       await client.info(tree); // establishes session cookie + CSRF token
       final ok = await client.login(username: username, password: password);
       if (!ok) {
-        return 'Benutzername oder Passwort ist falsch.';
+        return AuthError.invalidCredentials;
       }
 
       final info = await client.info(tree);
       final user = info['user'] as Map<String, dynamic>;
       if (user['loggedIn'] != true) {
-        return 'Anmeldung hat nicht funktioniert. Bitte erneut versuchen.';
+        return AuthError.loginDidNotWork;
       }
 
       await _saveSession(client);
@@ -129,13 +153,12 @@ class AuthController extends Notifier<AuthState> {
         DioExceptionType.sendTimeout ||
         DioExceptionType.receiveTimeout ||
         DioExceptionType.connectionError =>
-          'Server nicht erreichbar. Bitte Internetverbindung prüfen.',
-        DioExceptionType.badCertificate =>
-          'Der Server konnte nicht sicher erreicht werden.',
-        _ => 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.',
+          AuthError.serverUnreachable,
+        DioExceptionType.badCertificate => AuthError.insecureConnection,
+        _ => AuthError.loginFailedGeneric,
       };
     } on Exception {
-      return 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.';
+      return AuthError.loginFailedGeneric;
     }
   }
 

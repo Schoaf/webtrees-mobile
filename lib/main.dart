@@ -2,6 +2,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'l10n/app_localizations.dart';
 import 'screens/add_person/add_person_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -31,6 +32,8 @@ class StammbaumApp extends StatelessWidget {
       title: 'Stammbaum',
       theme: buildAppTheme(),
       navigatorKey: rootNavigatorKey,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const _AppRoot(),
     );
   }
@@ -149,7 +152,11 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   Future<void> _authenticate() async {
     if (_authenticating) return;
     setState(() => _authenticating = true);
-    final ok = await ref.read(biometricAuthProvider).authenticate();
+    final ok = await ref
+        .read(biometricAuthProvider)
+        .authenticate(
+          localizedReason: AppLocalizations.of(context)!.unlockAppReason,
+        );
     if (!mounted) return;
     setState(() => _authenticating = false);
     if (ok) widget.onUnlocked();
@@ -157,6 +164,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Center(
         child: Padding(
@@ -166,9 +174,12 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
             children: [
               const Icon(Icons.fingerprint, size: 56),
               const SizedBox(height: 16),
-              const Text(
-                'App gesperrt',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              Text(
+                l10n.appLockedTitle,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 24),
               FilledButton(
@@ -182,7 +193,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Entsperren'),
+                    : Text(l10n.unlockButton),
               ),
             ],
           ),
@@ -200,20 +211,24 @@ class _HomeShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final index = ref.watch(selectedTabProvider);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: IndexedStack(index: index, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) =>
             ref.read(selectedTabProvider.notifier).select(i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Start',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: l10n.navHome,
           ),
-          NavigationDestination(icon: Icon(Icons.search), label: 'Suche'),
-          NavigationDestination(icon: Icon(Icons.add), label: 'Neu'),
+          NavigationDestination(
+            icon: const Icon(Icons.search),
+            label: l10n.navSearch,
+          ),
+          NavigationDestination(icon: const Icon(Icons.add), label: l10n.navNew),
         ],
       ),
     );

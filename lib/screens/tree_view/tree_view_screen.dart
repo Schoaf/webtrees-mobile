@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
 import '../../state/tree_view_providers.dart';
@@ -61,6 +62,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final treeState = ref.watch(treeViewControllerProvider(widget.xref));
     final controller = ref.read(treeViewControllerProvider(widget.xref).notifier);
     final neighborhood = treeState.activeNeighborhood;
@@ -88,7 +90,13 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (neighborhood == null && treeState.error != null) {
-                    return Center(child: Text('Konnte nicht laden: ${treeState.error}'));
+                    return Center(
+                      child: Text(
+                        l10n.couldNotLoad(
+                          treeState.error ?? l10n.genericErrorFallback,
+                        ),
+                      ),
+                    );
                   }
                   if (neighborhood == null) {
                     // Shouldn't be reachable (build() always starts loading,
@@ -96,7 +104,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                     // rendering nothing at all here is exactly how an
                     // unexpected state would look identical to "the button
                     // did nothing", so show something instead of guessing.
-                    return const Center(child: Text('Unbekannter Zustand.'));
+                    return Center(child: Text(l10n.unknownStateMessage));
                   }
 
                   return Stack(
@@ -159,6 +167,7 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -170,26 +179,26 @@ class _TopBar extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Color(0xFF6B7280)),
-            tooltip: 'Stammbaum verlassen',
+            tooltip: l10n.leaveTreeTooltip,
             onPressed: onBack,
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Stammbaum',
+              l10n.treeViewTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.undo, size: 20),
             color: canUndo ? const Color(0xFF374151) : const Color(0xFFD1D5DB),
-            tooltip: 'Zur vorherigen Person',
+            tooltip: l10n.previousPersonTooltip,
             onPressed: canUndo ? onUndo : null,
           ),
           IconButton(
             icon: const Icon(Icons.redo, size: 20),
             color: canRedo ? const Color(0xFF374151) : const Color(0xFFD1D5DB),
-            tooltip: 'Zur nächsten Person',
+            tooltip: l10n.nextPersonTooltip,
             onPressed: canRedo ? onRedo : null,
           ),
         ],
@@ -524,9 +533,9 @@ class _SiblingsFrame extends StatelessWidget {
             child: Container(
               color: const Color(0xFFF4F5F7),
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: const Text(
-                'GESCHWISTER',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+              child: Text(
+                AppLocalizations.of(context)!.siblingsLabel.toUpperCase(),
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
               ),
             ),
           ),
@@ -629,6 +638,7 @@ class _ChildrenFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final children = partner.children;
     final shown = expanded ? children : children.take(_kChildrenVisibleWithoutExpand).toList();
     final remaining = children.length - shown.length;
@@ -655,7 +665,12 @@ class _ChildrenFrame extends StatelessWidget {
               // A long partner name (compound surnames are common) must not
               // overflow past the frame's own border uncontrolled.
               child: Text(
-                partner.partner == null ? 'KINDER, ELTERNTEIL UNBEKANNT' : 'KINDER MIT ${partner.partner!.firstName.toUpperCase()}',
+                (partner.partner == null
+                        ? l10n.childrenUnknownParentLabel
+                        : l10n.childrenWithPartnerLabel(
+                            partner.partner!.firstName,
+                          ))
+                    .toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
@@ -689,7 +704,11 @@ class _ChildrenFrame extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: TextButton(
                     onPressed: onToggleExpand,
-                    child: Text(expanded ? 'Weniger anzeigen' : 'Alle ${children.length} anzeigen'),
+                    child: Text(
+                      expanded
+                          ? l10n.showLess
+                          : l10n.showAllCount(children.length),
+                    ),
                   ),
                 ),
             ],
