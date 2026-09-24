@@ -34,7 +34,7 @@ const _primaryFactTags = {'SEX', 'BIRT', 'DEAT'};
 /// ones listed.
 ///
 /// NOTE: "Aktualisiert am" (the GEDCOM CHAN / last-changed tag) isn't in
-/// this list because the webtreesand-api module strips it out server-side
+/// this list because the api4webtrees module strips it out server-side
 /// (its SKIP_FACTS list) — it currently can't be fetched via this API at
 /// all, so there's nothing to display yet even though it's on the wishlist.
 const kFactDisplayOrder = ['BIRT', 'DEAT', 'SEX', 'TITL', 'RESI', 'REFN'];

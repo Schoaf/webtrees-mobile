@@ -90,7 +90,7 @@ void main() {
       expect(data['user'], {'loggedIn': false});
       final uri = adapter.requests.single.uri;
       expect(uri.path, '/index.php');
-      expect(uri.queryParameters['route'], '/module/_webtreesand-api_/Info/Famtree');
+      expect(uri.queryParameters['route'], '/module/_api4webtrees_/Info/Famtree');
     });
 
     test('captures the CSRF token and server baseUrl for later requests', () async {
@@ -209,7 +209,7 @@ void main() {
       final uri = adapter.requests.single.uri;
       expect(uri.queryParameters.containsKey('q'), isFalse);
       expect(uri.queryParameters['page'], '1');
-      expect(uri.queryParameters['route'], '/module/_webtreesand-api_/Individuals/Famtree');
+      expect(uri.queryParameters['route'], '/module/_api4webtrees_/Individuals/Famtree');
     });
 
     test('includes q and page when given, and parses the response', () async {

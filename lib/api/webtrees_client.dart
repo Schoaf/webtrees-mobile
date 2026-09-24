@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-/// Talks to a webtrees instance's `webtreesand-api` module.
+/// Talks to a webtrees instance's `api4webtrees` module.
 ///
 /// webtrees uses session-cookie auth (`GET Info` for a CSRF token, `POST
 /// /login`, then `X-CSRF-TOKEN` on writes). We manage the session cookie
@@ -97,12 +97,14 @@ class WebtreesClient {
   /// webtrees names every custom module's route `_<folder-name>_`
   /// (ModuleService::customModules) regardless of what the README shows for
   /// readability — `modules_v4/webtrees-contribution-request` really is `_webtrees-contribution-request_`
-  /// on the wire, same as `_webtreesand-api_`.
+  /// on the wire, same as `_api4webtrees_` (module renamed upstream from
+  /// webtreesand-api to api4webtrees as of v1.7.0; we renamed the deployed
+  /// folder to match rather than keep the old name for compatibility).
   Uri _moduleUri(
     String action,
     String tree, [
     Map<String, dynamic>? query,
-    String moduleSlug = '_webtreesand-api_',
+    String moduleSlug = '_api4webtrees_',
   ]) {
     return Uri.parse(_baseUrl).replace(
       path: '${Uri.parse(_baseUrl).path}index.php',
@@ -316,7 +318,7 @@ class WebtreesClient {
   }
 
   /// Place-name suggestions from the tree's own places, up to 20 — the
-  /// `webtreesand-api` module's own endpoint (API level 8+), not webtrees
+  /// `api4webtrees` module's own endpoint (API level 8+), not webtrees
   /// core's `/autocomplete/place` route. That route isn't a documented,
   /// stable API and the module's README warns it can change with webtrees
   /// 2.3; `Places` is versioned and meant for exactly this. Requires editor
