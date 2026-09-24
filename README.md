@@ -95,6 +95,9 @@ Eine Anfrage lässt sich auch verwerfen (Zeile in der Liste nach links wischen, 
 ### Mein Konto (Ergänzung)
 Im nicht-editierbaren Zustand zusätzlich zu "Zur Website": ein **"Datenschutz"**-Link und die App-Version, direkt unter dem "Abmelden"-Button.
 
+### Website-Links im Mobile-Theme
+Der **Datenschutz**-Link öffnet die Website mit `mobile=1`, also im **Theme für Mobilgeräte** aus den webtrees-Website-Einstellungen. Die Links zur **Vollversion** ("Zur Website", "Stammbaum ansehen") öffnen sie mit `mobile=0`, also im Standard-Theme, auch wenn webtrees das Handy sonst automatisch erkennen würde. Beides gilt für die restliche Browser-Session. Der geteilte Personen-Link bleibt bewusst ohne Parameter, weil der Empfänger vielleicht am Desktop sitzt. Die App öffnet dafür immer `index.php?...`, weil die Weiterleitung von `/` in webtrees jede Query zerstört. Serverseitig: Stammbaum-Commit `e4c205a275`, Upstream-PR [fisharebest/webtrees#5502](https://github.com/fisharebest/webtrees/pull/5502).
+
 ## Design
 
 Das komplette UI-Design (alle Screens, bearbeitbar) liegt als Claude-Design-Canvas vor: **"Stammbaum App Screens"**. Es spiegelt jeweils den aktuellen Stand der App wider und wird bei größeren UI-Änderungen aktualisiert.

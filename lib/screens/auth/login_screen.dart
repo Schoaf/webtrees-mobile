@@ -194,7 +194,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         children: [
                           TextButton.icon(
                             onPressed: () => launchUrl(
-                              Uri.parse(ref.read(serverUrlProvider)),
+                              siteUrl(ref.read(serverUrlProvider), mobile: false),
                               mode: LaunchMode.externalApplication,
                             ),
                             icon: const Icon(Icons.open_in_new, size: 16),
@@ -202,7 +202,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           TextButton.icon(
                             onPressed: () => launchUrl(
-                              Uri.parse(privacyPolicyUrl(ref)),
+                              siteUrl(privacyPolicyUrl(ref), mobile: true),
                               mode: LaunchMode.externalApplication,
                             ),
                             icon: const Icon(

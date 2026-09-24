@@ -72,79 +72,91 @@ class PersonCard extends ConsumerWidget {
             // against — inside a ListView an item's height is otherwise
             // unbounded, and crossAxisAlignment.stretch needs a real number
             // to stretch to.
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Sex is also readable at a glance here — not just on the
-                  // avatar icon, which can be hard to make out once a photo
-                  // is set.
-                  Container(width: 4, color: sexColor),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 11, 12, 11),
-                      child: Row(
-                        children: [
-                          PersonAvatar(
-                            sex: sex,
-                            isDead: isDead,
-                            size: avatarSize,
-                            photoUrl: person['thumb'] as String?,
-                            photoHeaders: photoHeaders,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                RichText(
-                                  overflow: TextOverflow.ellipsis,
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                    children: [
-                                      TextSpan(text: name),
-                                      if (maidenName != null &&
-                                          maidenName!.isNotEmpty)
-                                        TextSpan(
-                                          text: ' geb. $maidenName',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w400,
-                                            color: AppColors.textTertiary,
-                                          ),
+            child: Stack(
+              children: [
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Sex is also readable at a glance here — not just on
+                      // the avatar icon, which can be hard to make out once
+                      // a photo is set.
+                      Container(width: 4, color: sexColor),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 11, 12, 11),
+                          child: Row(
+                            children: [
+                              PersonAvatar(
+                                sex: sex,
+                                isDead: isDead,
+                                size: avatarSize,
+                                photoUrl: person['thumb'] as String?,
+                                photoHeaders: photoHeaders,
+                                // The whole row carries its own banderole
+                                // below, spanning the full card rather than
+                                // just this small avatar circle.
+                                showBanderole: false,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    RichText(
+                                      overflow: TextOverflow.ellipsis,
+                                      text: TextSpan(
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textPrimary,
                                         ),
-                                    ],
-                                  ),
-                                ),
-                                if (lifespan.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      lifespan,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.textSecondary,
+                                        children: [
+                                          TextSpan(text: name),
+                                          if (maidenName != null &&
+                                              maidenName!.isNotEmpty)
+                                            TextSpan(
+                                              text: ' geb. $maidenName',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w400,
+                                                color: AppColors.textTertiary,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
+                                    if (lifespan.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          lifespan,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: AppColors.textTertiary,
+                              ),
+                            ],
                           ),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: AppColors.textTertiary,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                // Spans the entire row (not just the avatar) so a deceased
+                // person is unmistakable even when the avatar is small or
+                // covered by a photo.
+                if (isDead) const Positioned.fill(child: DeathBanderole()),
+              ],
             ),
           ),
         ),
