@@ -239,7 +239,12 @@ def main() -> None:
             with Image.open(raw_path) as im:
                 size = im.size
             composed = compose(raw_path, size, is_tablet=is_tablet)
-            out_path = out_dir / raw_path.name
+            # Prefixed with the platform dir name (e.g. "ios-6.9_home.png"):
+            # every store's upload picker shows only the bare filename, not
+            # which folder it came from, and "home.png" repeated across
+            # five differently-sized platform dirs is impossible to tell
+            # apart once they're all sitting in one flat OS file picker.
+            out_path = out_dir / f"{platform_dir.name}_{raw_path.name}"
             composed.save(out_path, "PNG")
             print(f"{raw_path.relative_to(REPO_ROOT)} -> {out_path.relative_to(REPO_ROOT)} ({size[0]}x{size[1]})")
             count += 1
