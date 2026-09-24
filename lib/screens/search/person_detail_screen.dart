@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
@@ -14,6 +15,7 @@ import '../../widgets/gedcom_date_field.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
+import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
 import '../tree_view/tree_view_screen.dart';
 
@@ -154,8 +156,10 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       _future = _load();
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Änderungen gespeichert — wartet ggf. auf Freigabe.'),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)!.changesSavedPendingApproval,
+        ),
       ),
     );
   }
@@ -177,6 +181,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     final showHome = widget.depth >= 2;
     final showAddFact = canEdit;
     if (!showHome && !showAddFact) return null;
+    final l10n = AppLocalizations.of(context)!;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,7 +192,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             backgroundColor: AppColors.secondary,
             foregroundColor: Colors.white,
             onPressed: _goHome,
-            tooltip: 'Zum Start',
+            tooltip: l10n.goHomeTooltip,
             child: const Icon(Icons.home),
           )
         else
@@ -199,7 +204,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             icon: const Icon(Icons.bolt),
-            label: const Text('Fakt hinzufügen'),
+            label: Text(l10n.addFactLabel),
           )
         else
           const SizedBox.shrink(),
@@ -219,21 +224,16 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     );
     if (!mounted || result == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
     switch (result) {
       case AddFactResult.posted:
         setState(() => _future = _load());
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Fakt gespeichert — wartet ggf. auf Freigabe.'),
-          ),
+          SnackBar(content: Text(l10n.factSavedPendingApproval)),
         );
       case AddFactResult.savedLocally:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Server nicht erreichbar — lokal gespeichert, später synchronisieren.",
-            ),
-          ),
+          SnackBar(content: Text(l10n.savedLocallyOffline)),
         );
       case AddFactResult.cancelled:
         break;
@@ -261,6 +261,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   }
 
   Future<void> _pickAndUploadPhoto() async {
+    final l10n = AppLocalizations.of(context)!;
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (_) => SafeArea(
@@ -269,12 +270,12 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Aus Fotos wählen'),
+              title: Text(l10n.chooseFromPhotos),
               onTap: () => Navigator.of(context).pop(ImageSource.gallery),
             ),
             ListTile(
               leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Foto aufnehmen'),
+              title: Text(l10n.takePhoto),
               onTap: () => Navigator.of(context).pop(ImageSource.camera),
             ),
           ],
@@ -305,17 +306,21 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       if (!mounted) return;
       if (result['ok'] == true) {
         setState(() => _future = _load());
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Foto hochgeladen.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.photoUploaded)));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Abgelehnt: ${result['error']}')),
+          SnackBar(
+            content: Text(l10n.rejectedError('${result['error']}')),
+          ),
         );
       }
     } on Exception catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Upload fehlgeschlagen: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.uploadFailedError('$e'))),
+      );
     }
   }
 
@@ -323,6 +328,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     required Map<String, dynamic> person,
     required List<Map<String, dynamic>> facts,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final choice = await showModalBottomSheet<_ShareChoice>(
       context: context,
       builder: (_) => SafeArea(
@@ -331,12 +337,12 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.link),
-              title: const Text('Per Link teilen'),
+              title: Text(l10n.shareViaLink),
               onTap: () => Navigator.of(context).pop(_ShareChoice.link),
             ),
             ListTile(
               leading: const Icon(Icons.text_snippet_outlined),
-              title: const Text('Daten teilen'),
+              title: Text(l10n.shareData),
               onTap: () => Navigator.of(context).pop(_ShareChoice.data),
             ),
           ],
@@ -365,15 +371,16 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   /// worth being able to read/select in full — so a dialog instead of the
   /// usual one-line SnackBar.
   void _showServerErrorDialog(String message) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Anfrage fehlgeschlagen'),
+        title: Text(l10n.requestFailedTitle),
         content: SingleChildScrollView(child: SelectableText(message)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(l10n.ok),
           ),
         ],
       ),
@@ -381,6 +388,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   }
 
   Future<void> _openAskForHelp(String name) async {
+    final l10n = AppLocalizations.of(context)!;
     final tree = ref.read(treeNameProvider);
     final client = ref.read(webtreesClientProvider);
 
@@ -395,7 +403,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     if (!mounted) return;
     if (request['ok'] != true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Anfrage fehlgeschlagen: ${request['error']}')),
+        SnackBar(content: Text(l10n.requestFailedError('${request['error']}'))),
       );
       return;
     }
@@ -409,40 +417,37 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Link gültig für 2 Tage — kein Konto nötig',
-                  style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
+                  l10n.linkValidTwoDays,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.copy_outlined),
-              title: const Text('Link kopieren'),
-              subtitle: const Text(
-                'Link in die Zwischenablage kopieren, um ihn selbst zu verschicken',
-              ),
+              title: Text(l10n.copyLinkTitle),
+              subtitle: Text(l10n.copyLinkSubtitle),
               onTap: () =>
                   Navigator.of(context).pop(_AskForHelpChoice.copyLink),
             ),
             ListTile(
               leading: const Icon(Icons.ios_share),
-              title: const Text('Teilen'),
-              subtitle: const Text(
-                'Über eine andere App teilen, z. B. WhatsApp oder Nachrichten',
-              ),
+              title: Text(l10n.share),
+              subtitle: Text(l10n.shareViaAppSubtitle),
               onTap: () =>
                   Navigator.of(context).pop(_AskForHelpChoice.shareLink),
             ),
             ListTile(
               leading: const Icon(Icons.email_outlined),
-              title: const Text('Per E-Mail senden'),
-              subtitle: const Text(
-                'Direkt aus der App eine E-Mail mit dem Link verschicken',
-              ),
+              title: Text(l10n.sendByEmailTitle),
+              subtitle: Text(l10n.sendByEmailSubtitle),
               onTap: () => Navigator.of(context).pop(_AskForHelpChoice.email),
             ),
           ],
@@ -465,6 +470,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     required String tree,
     required String token,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final client = ref.read(webtreesClientProvider);
     final Map<String, dynamic> template;
     try {
@@ -472,7 +478,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     } on Exception catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Konnte E-Mail-Vorlage nicht laden: $e')),
+        SnackBar(content: Text(l10n.couldNotLoadEmailTemplateError('$e'))),
       );
       return;
     }
@@ -489,8 +495,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       ),
     );
     if (sent == true && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('E-Mail gesendet.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.emailSentMessage)));
     }
   }
 
@@ -532,6 +539,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _future,
       builder: (context, snapshot) {
+        final l10n = AppLocalizations.of(context)!;
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
             body: SafeArea(child: Center(child: CircularProgressIndicator())),
@@ -541,7 +549,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           return Scaffold(
             body: SafeArea(
               child: Center(
-                child: Text('Konnte nicht laden: ${snapshot.error}'),
+                child: Text(l10n.couldNotLoad('${snapshot.error}')),
               ),
             ),
           );
@@ -551,13 +559,15 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         if (data['ok'] == false) {
           return Scaffold(
             body: SafeArea(
-              child: Center(child: Text('Kein Zugriff: ${data['error']}')),
+              child: Center(
+                child: Text(l10n.noAccessError('${data['error']}')),
+              ),
             ),
           );
         }
 
         final person = data['person'] as Map<String, dynamic>;
-        final name = person['name'] as String? ?? '(kein Name)';
+        final name = person['name'] as String? ?? l10n.noNamePlaceholder;
         final facts = (data['facts'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
         final parentFamilies = (data['parentFamilies'] as List<dynamic>? ?? [])
@@ -569,208 +579,246 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final canEdit = data['canEdit'] as bool? ?? false;
         final photoUrl = person['thumb'] as String?;
         final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+        // Stammbaum-Ansicht is a manager-only feature (webtrees has no
+        // separate site-admin flag in this API, "manager" is the closest
+        // stand-in) - purely a UI gate, nothing server-side enforces it
+        // further.
+        final showTreeButton =
+            !_editing && ref.watch(authControllerProvider).isManager;
 
         final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
 
         return Scaffold(
           bottomNavigationBar: _editing
-              ? SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: _savingNotifier,
-                      builder: (context, saving, _) => FilledButton(
-                        onPressed: saving
-                            ? null
-                            : () => _editKey.currentState?.save(),
-                        child: saving
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Speichern'),
+              ? TabletBoundedBody(
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: _savingNotifier,
+                        builder: (context, saving, _) => FilledButton(
+                          onPressed: saving
+                              ? null
+                              : () => _editKey.currentState?.save(),
+                          child: saving
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(AppLocalizations.of(context)!.save),
+                        ),
                       ),
                     ),
                   ),
                 )
               : null,
-          body: Stack(
-            children: [
-              SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    _Header(
-                      name: name,
-                      editing: _editing,
-                      onEditToggle: canEdit ? _toggleEditing : null,
-                      onShare: _editing
-                          ? null
-                          : () => _openShareMenu(person: person, facts: facts),
-                      onAskForHelp: (_editing || !canEdit)
-                          ? null
-                          : () => _openAskForHelp(name),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    // Balances the tree-view button's width
-                                    // on the other side so the avatar stays
-                                    // centered, matching the layout before
-                                    // this button existed. Plain Row instead
-                                    // of a negative-offset Positioned/Stack:
-                                    // simpler and can't run into clipping or
-                                    // hit-testing edge cases.
-                                    const SizedBox(width: 40),
-                                    Expanded(
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          if (!_editing) ...[
-                                            _TreeViewButton(
-                                              onTap: () => Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      TreeViewScreen(xref: widget.xref),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                          ],
-                                          PersonAvatar(
-                                            sex: person['sex'] as String? ?? 'U',
-                                            isDead: person['isDead'] as bool? ?? false,
-                                            size: 84,
-                                            photoUrl: photoUrl,
-                                            photoHeaders: ref
-                                                .read(webtreesClientProvider)
-                                                .imageHeaders,
-                                            editable: _editing && canEdit,
-                                            onTap: _editing
-                                                ? (canEdit ? _pickAndUploadPhoto : null)
-                                                : (hasPhoto
-                                                      ? () => _openPhotoViewer(
-                                                          media.isNotEmpty
-                                                              ? (media.first['file']
-                                                                        as String? ??
-                                                                    photoUrl)
-                                                              : photoUrl,
-                                                        )
-                                                      : (canEdit
-                                                            ? _pickAndUploadPhoto
-                                                            : null)),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 40),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  stripNameSlashes(name),
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                if (_lifespanText(person).isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      _lifespanText(person),
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          if (!_editing && facts.isNotEmpty)
-                            _FactsCard(facts: facts),
-                          if (_editing)
-                            _EditFactsSection(
-                              key: _editKey,
-                              xref: widget.xref,
-                              facts: facts,
-                              savingNotifier: _savingNotifier,
-                              onSaved: _onEditSaved,
-                            ),
-                          for (final family in parentFamilies) ...[
-                            if (family['husband'] != null ||
-                                family['wife'] != null)
-                              _Section(
-                                title: 'Eltern',
-                                people: [
-                                  if (family['husband'] != null)
-                                    family['husband'] as Map<String, dynamic>,
-                                  if (family['wife'] != null)
-                                    family['wife'] as Map<String, dynamic>,
-                                ],
-                                depth: widget.depth,
-                              ),
-                          ],
-                          for (final family in spouseFamilies) ...[
-                            if (family['spouse'] != null)
-                              _Section(
-                                title:
-                                    (family['spouse']
-                                            as Map<String, dynamic>)['sex'] ==
-                                        'F'
-                                    ? 'Ehepartnerin'
-                                    : 'Ehepartner',
-                                people: [
-                                  family['spouse'] as Map<String, dynamic>,
-                                ],
-                                depth: widget.depth,
-                              ),
-                          ],
-                          if (spouseFamilies
-                              .expand(
-                                (f) => f['children'] as List<dynamic>? ?? [],
-                              )
-                              .isNotEmpty)
-                            _Section(
-                              title:
-                                  'Kinder (${spouseFamilies.fold<int>(0, (n, f) => n + (f['children'] as List<dynamic>? ?? []).length)})',
-                              people: spouseFamilies
-                                  .expand(
-                                    (f) =>
-                                        (f['children'] as List<dynamic>? ?? [])
-                                            .cast<Map<String, dynamic>>(),
-                                  )
-                                  .toList(),
-                              depth: widget.depth,
-                            ),
-                          const SizedBox(height: 24),
-                        ],
+          body: TabletBoundedBody(
+            child: Stack(
+              children: [
+                SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      _Header(
+                        name: name,
+                        editing: _editing,
+                        onEditToggle: canEdit ? _toggleEditing : null,
+                        onShare: _editing
+                            ? null
+                            : () =>
+                                  _openShareMenu(person: person, facts: facts),
+                        onAskForHelp: (_editing || !canEdit)
+                            ? null
+                            : () => _openAskForHelp(name),
                       ),
-                    ),
-                  ],
+                      Expanded(
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                28,
+                                20,
+                                20,
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      // Balances the tree-view button's width
+                                      // on the other side so the avatar stays
+                                      // centered, matching the layout before
+                                      // this button existed - only needed
+                                      // when the button actually shows. Plain
+                                      // Row instead of a negative-offset
+                                      // Positioned/Stack: simpler and can't
+                                      // run into clipping or hit-testing edge
+                                      // cases.
+                                      if (showTreeButton)
+                                        const SizedBox(width: 40),
+                                      Expanded(
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            if (showTreeButton) ...[
+                                              _TreeViewButton(
+                                                onTap: () =>
+                                                    Navigator.of(context).push(
+                                                      MaterialPageRoute(
+                                                        builder: (_) =>
+                                                            TreeViewScreen(
+                                                              xref: widget.xref,
+                                                            ),
+                                                      ),
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                            ],
+                                            PersonAvatar(
+                                              sex:
+                                                  person['sex'] as String? ??
+                                                  'U',
+                                              isDead:
+                                                  person['isDead'] as bool? ??
+                                                  false,
+                                              size: 84,
+                                              photoUrl: photoUrl,
+                                              photoHeaders: ref
+                                                  .read(webtreesClientProvider)
+                                                  .imageHeaders,
+                                              editable: _editing && canEdit,
+                                              onTap: _editing
+                                                  ? (canEdit
+                                                        ? _pickAndUploadPhoto
+                                                        : null)
+                                                  : (hasPhoto
+                                                        ? () => _openPhotoViewer(
+                                                            media.isNotEmpty
+                                                                ? (media.first['file']
+                                                                          as String? ??
+                                                                      photoUrl)
+                                                                : photoUrl,
+                                                          )
+                                                        : (canEdit
+                                                              ? _pickAndUploadPhoto
+                                                              : null)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (showTreeButton)
+                                        const SizedBox(width: 40),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    stripNameSlashes(name),
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  if (_lifespanText(l10n, person).isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        _lifespanText(l10n, person),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (!_editing && facts.isNotEmpty)
+                              _FactsCard(facts: facts),
+                            if (_editing)
+                              _EditFactsSection(
+                                key: _editKey,
+                                xref: widget.xref,
+                                facts: facts,
+                                savingNotifier: _savingNotifier,
+                                onSaved: _onEditSaved,
+                              ),
+                            for (final family in parentFamilies) ...[
+                              if (family['husband'] != null ||
+                                  family['wife'] != null)
+                                _Section(
+                                  title: l10n.parentsTitle,
+                                  people: [
+                                    if (family['husband'] != null)
+                                      family['husband'] as Map<String, dynamic>,
+                                    if (family['wife'] != null)
+                                      family['wife'] as Map<String, dynamic>,
+                                  ],
+                                  depth: widget.depth,
+                                ),
+                            ],
+                            for (final family in spouseFamilies) ...[
+                              if (family['spouse'] != null)
+                                _Section(
+                                  title:
+                                      (family['spouse']
+                                              as Map<String, dynamic>)['sex'] ==
+                                          'F'
+                                      ? l10n.spouseFemaleTitle
+                                      : l10n.spouseMaleTitle,
+                                  people: [
+                                    family['spouse'] as Map<String, dynamic>,
+                                  ],
+                                  depth: widget.depth,
+                                ),
+                            ],
+                            if (spouseFamilies
+                                .expand(
+                                  (f) => f['children'] as List<dynamic>? ?? [],
+                                )
+                                .isNotEmpty)
+                              _Section(
+                                title: l10n.childrenTitle(
+                                  spouseFamilies.fold<int>(
+                                    0,
+                                    (n, f) =>
+                                        n +
+                                        (f['children'] as List<dynamic>? ?? [])
+                                            .length,
+                                  ),
+                                ),
+                                people: spouseFamilies
+                                    .expand(
+                                      (f) =>
+                                          (f['children'] as List<dynamic>? ??
+                                                  [])
+                                              .cast<Map<String, dynamic>>(),
+                                    )
+                                    .toList(),
+                                depth: widget.depth,
+                              ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (fab != null)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
-                  child: fab,
-                ),
-            ],
+                if (fab != null)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                    child: fab,
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -780,7 +828,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   /// Short "* 1930 † 2001" once there's a death date; for someone still
   /// alive, just their current age — the birth date itself already has its
   /// own row in the facts card below, so repeating it here was redundant.
-  String _lifespanText(Map<String, dynamic> person) {
+  String _lifespanText(AppLocalizations l10n, Map<String, dynamic> person) {
     final death = person['death'] as Map<String, dynamic>?;
     if (death != null) {
       return person['lifespan'] as String? ?? '';
@@ -789,7 +837,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     final birth = person['birth'] as Map<String, dynamic>?;
     final birthDate = birth?['date'] as Map<String, dynamic>?;
     final age = _ageInYears(birthDate?['jd'] as num?);
-    return age == null ? (person['lifespan'] as String? ?? '') : '$age Jahre';
+    return age == null
+        ? (person['lifespan'] as String? ?? '')
+        : l10n.ageYears(age);
   }
 }
 
@@ -869,7 +919,7 @@ class _Header extends StatelessWidget {
                 Icons.volunteer_activism_outlined,
                 color: AppColors.textPrimary,
               ),
-              tooltip: 'Um Mithilfe bitten',
+              tooltip: AppLocalizations.of(context)!.askForHelpTooltip,
             ),
           if (onShare != null)
             IconButton(
@@ -878,7 +928,7 @@ class _Header extends StatelessWidget {
                 Icons.share_outlined,
                 color: AppColors.textPrimary,
               ),
-              tooltip: 'Teilen',
+              tooltip: AppLocalizations.of(context)!.share,
             ),
           if (onEditToggle != null)
             IconButton(
@@ -887,7 +937,9 @@ class _Header extends StatelessWidget {
                 editing ? Icons.close : Icons.edit_outlined,
                 color: AppColors.textPrimary,
               ),
-              tooltip: editing ? 'Bearbeiten abbrechen' : 'Bearbeiten',
+              tooltip: editing
+                  ? AppLocalizations.of(context)!.cancelEditing
+                  : AppLocalizations.of(context)!.edit,
             ),
         ],
       ),
@@ -962,8 +1014,10 @@ class _FactsCardState extends State<_FactsCard> {
                   children: [
                     Text(
                       _expanded
-                          ? 'Weniger anzeigen'
-                          : 'Mehr anzeigen (${secondary.length})',
+                          ? AppLocalizations.of(context)!.showLess
+                          : AppLocalizations.of(
+                              context,
+                            )!.showMore(secondary.length),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -1231,6 +1285,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
   Future<void> save() async {
     widget.savingNotifier.value = true;
     setState(() => _error = null);
+    final l10n = AppLocalizations.of(context)!;
 
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
@@ -1248,7 +1303,10 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
         );
         if (result['ok'] != true) {
           throw Exception(
-            '${field.label}: ${result['error'] ?? 'unbekannter Fehler'}',
+            l10n.fieldSaveError(
+              field.label,
+              (result['error'] as String?) ?? l10n.unknownError,
+            ),
           );
         }
       }
@@ -1258,7 +1316,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
     } on Exception catch (e) {
       widget.savingNotifier.value = false;
       if (!mounted) return;
-      setState(() => _error = 'Speichern fehlgeschlagen: $e');
+      setState(() => _error = l10n.saveFailedError('$e'));
     }
   }
 
@@ -1297,6 +1355,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
   );
 
   Widget _buildFieldEditor(_EditableFact field) {
+    final l10n = AppLocalizations.of(context)!;
     switch (field.tag) {
       case 'NAME':
         return Column(
@@ -1306,12 +1365,12 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
             const SizedBox(height: 6),
             TextField(
               controller: field.givenController,
-              decoration: const InputDecoration(labelText: 'Vorname'),
+              decoration: InputDecoration(labelText: l10n.givenName),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: field.surnameController,
-              decoration: const InputDecoration(labelText: 'Nachname'),
+              decoration: InputDecoration(labelText: l10n.surname),
             ),
           ],
         );
@@ -1335,7 +1394,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
             const SizedBox(height: 6),
             PlaceAutocompleteField(
               controller: field.placeController!,
-              labelText: 'Ort',
+              labelText: l10n.place,
             ),
           ],
         );
@@ -1350,7 +1409,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
             const SizedBox(height: 8),
             PlaceAutocompleteField(
               controller: field.placeController!,
-              labelText: 'Ort',
+              labelText: l10n.place,
             ),
           ],
         );
@@ -1362,7 +1421,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
             const SizedBox(height: 6),
             TextField(
               controller: field.valueController,
-              decoration: const InputDecoration(labelText: 'Wert'),
+              decoration: InputDecoration(labelText: l10n.value),
             ),
             if (field.dateController != null) ...[
               const SizedBox(height: 8),
@@ -1372,7 +1431,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
               const SizedBox(height: 8),
               PlaceAutocompleteField(
                 controller: field.placeController!,
-                labelText: 'Ort',
+                labelText: l10n.place,
               ),
             ],
           ],
@@ -1389,7 +1448,12 @@ class _SexSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const options = [('M', 'Männlich'), ('F', 'Weiblich'), ('U', 'Unbekannt')];
+    final l10n = AppLocalizations.of(context)!;
+    final options = [
+      ('M', l10n.sexLabelMale),
+      ('F', l10n.sexLabelFemale),
+      ('U', l10n.unknown),
+    ];
     return Wrap(
       spacing: 8,
       children: [

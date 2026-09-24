@@ -128,7 +128,7 @@ void main() {
 
       final error = await container.read(authControllerProvider.notifier).login('alice', 'wrong');
 
-      expect(error, 'Benutzername oder Passwort ist falsch.');
+      expect(error, AuthError.invalidCredentials);
       expect(container.read(authControllerProvider).loggedIn, isFalse);
       verify(() => client.info('Famtree')).called(1);
     });
@@ -146,7 +146,7 @@ void main() {
 
       final error = await container.read(authControllerProvider.notifier).login('alice', 's3cret');
 
-      expect(error, 'Anmeldung hat nicht funktioniert. Bitte erneut versuchen.');
+      expect(error, AuthError.loginDidNotWork);
       expect(container.read(authControllerProvider).loggedIn, isFalse);
     });
 
@@ -157,7 +157,7 @@ void main() {
 
       final error = await container.read(authControllerProvider.notifier).login('alice', 's3cret');
 
-      expect(error, 'Server nicht erreichbar. Bitte Internetverbindung prüfen.');
+      expect(error, AuthError.serverUnreachable);
     });
 
     test('a badCertificate DioException gets its own message', () async {
@@ -167,7 +167,7 @@ void main() {
 
       final error = await container.read(authControllerProvider.notifier).login('alice', 's3cret');
 
-      expect(error, 'Der Server konnte nicht sicher erreicht werden.');
+      expect(error, AuthError.insecureConnection);
     });
 
     test('any other Exception falls back to a generic failure message', () async {
@@ -175,7 +175,7 @@ void main() {
 
       final error = await container.read(authControllerProvider.notifier).login('alice', 's3cret');
 
-      expect(error, 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.');
+      expect(error, AuthError.loginFailedGeneric);
     });
   });
 

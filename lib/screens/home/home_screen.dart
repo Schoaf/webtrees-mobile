@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../repositories/quick_note_store.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/gedcom.dart';
 import '../../widgets/person_card.dart';
+import '../../widgets/tablet_bounded_body.dart';
 import '../account/account_screen.dart';
 import '../responses/responses_list_screen.dart';
 import '../search/person_detail_screen.dart';
@@ -89,25 +91,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  String _birthdaySubtitle(Map<String, dynamic> event) {
+  String _birthdaySubtitle(AppLocalizations l10n, Map<String, dynamic> event) {
     final years = event['years'] as int?;
     final inDays = event['inDays'] as int? ?? 0;
-    const weekdays = [
-      'Montag',
-      'Dienstag',
-      'Mittwoch',
-      'Donnerstag',
-      'Freitag',
-      'Samstag',
-      'Sonntag',
+    final weekdays = [
+      l10n.weekdayMonday,
+      l10n.weekdayTuesday,
+      l10n.weekdayWednesday,
+      l10n.weekdayThursday,
+      l10n.weekdayFriday,
+      l10n.weekdaySaturday,
+      l10n.weekdaySunday,
     ];
     final when = switch (inDays) {
-      0 => 'heute',
-      1 => 'morgen',
-      _ =>
-        'am ${weekdays[DateTime.now().add(Duration(days: inDays)).weekday - 1]}',
+      0 => l10n.today,
+      1 => l10n.tomorrow,
+      _ => l10n.onWeekdayName(
+        weekdays[DateTime.now().add(Duration(days: inDays)).weekday - 1],
+      ),
     };
-    return years == null ? when : 'wird $years · $when';
+    return years == null ? when : l10n.turningYears(years, when);
   }
 
   String _initials(String name) {
@@ -124,6 +127,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -135,138 +139,143 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             }
             if (snapshot.hasError) {
               return Center(
-                child: Text('Konnte nicht laden: ${snapshot.error}'),
+                child: Text(l10n.couldNotLoad('${snapshot.error}')),
               );
             }
 
             final data = snapshot.data!;
-            return Column(
-              children: [
-                _Header(
-                  title: data.treeTitle,
-                  initials: _initials(data.realName),
-                  photoUrl: data.linkedPhotoUrl,
-                  photoHeaders: ref.read(webtreesClientProvider).imageHeaders,
-                  onTap: () async {
-                    // Mein Konto can change the linked photo/name or the
-                    // Startperson shown below — without this, Home kept
-                    // showing whatever it loaded at app start until a
-                    // restart, since it's kept alive in the tab IndexedStack
-                    // and never reloads on its own.
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AccountScreen()),
-                    );
-                    if (mounted) setState(() => _future = _load());
-                  },
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                    children: [
-                      _SearchEntryButton(
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const SearchScreen(),
-                          ),
+            return TabletBoundedBody(
+              child: Column(
+                children: [
+                  _Header(
+                    title: data.treeTitle,
+                    initials: _initials(data.realName),
+                    photoUrl: data.linkedPhotoUrl,
+                    photoHeaders: ref.read(webtreesClientProvider).imageHeaders,
+                    onTap: () async {
+                      // Mein Konto can change the linked photo/name or the
+                      // Startperson shown below — without this, Home kept
+                      // showing whatever it loaded at app start until a
+                      // restart, since it's kept alive in the tab IndexedStack
+                      // and never reloads on its own.
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AccountScreen(),
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      if (data.startPerson != null) ...[
-                        const Text(
-                          'Startperson',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        PersonCard(
-                          person: data.startPerson!,
+                      );
+                      if (mounted) setState(() => _future = _load());
+                    },
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                      children: [
+                        _SearchEntryButton(
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => PersonDetailScreen(
-                                xref: data.startPerson!['xref'] as String,
-                              ),
+                              builder: (_) => const SearchScreen(),
                             ),
                           ),
                         ),
-                      ],
-                      if (data.unreadResponses > 0) ...[
-                        const SizedBox(height: 26),
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.mark_email_unread_outlined,
-                              size: 17,
-                              color: AppColors.textSecondary,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Antworten',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        _ResponsesCard(count: data.unreadResponses),
-                      ],
-                      if (data.birthdaysThisWeek.isNotEmpty) ...[
-                        const SizedBox(height: 26),
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.cake_outlined,
-                              size: 17,
-                              color: AppColors.textSecondary,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Geburtstage diese Woche',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        _BirthdayList(
-                          events: data.birthdaysThisWeek,
-                          subtitle: _birthdaySubtitle,
-                        ),
-                      ],
-                      const SizedBox(height: 18),
-                      const _UnsyncedNotes(),
-                      const SizedBox(height: 18),
-                      Column(
-                        children: [
+                        const SizedBox(height: 18),
+                        if (data.startPerson != null) ...[
                           Text(
-                            '${data.individualCount} Personen im Stammbaum',
+                            l10n.startPerson,
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textTertiary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
                             ),
                           ),
-                          TextButton.icon(
-                            onPressed: () => launchUrl(
-                              Uri.parse(ref.read(serverUrlProvider)),
-                              mode: LaunchMode.externalApplication,
+                          const SizedBox(height: 8),
+                          PersonCard(
+                            person: data.startPerson!,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PersonDetailScreen(
+                                  xref: data.startPerson!['xref'] as String,
+                                ),
+                              ),
                             ),
-                            icon: const Icon(Icons.open_in_new, size: 14),
-                            label: const Text('Zur Website (Vollversion)'),
                           ),
                         ],
-                      ),
-                    ],
+                        if (data.unreadResponses > 0) ...[
+                          const SizedBox(height: 26),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.mark_email_unread_outlined,
+                                size: 17,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                l10n.responsesTitle,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _ResponsesCard(count: data.unreadResponses),
+                        ],
+                        if (data.birthdaysThisWeek.isNotEmpty) ...[
+                          const SizedBox(height: 26),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.cake_outlined,
+                                size: 17,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                l10n.birthdaysThisWeek,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          _BirthdayList(
+                            events: data.birthdaysThisWeek,
+                            subtitle: (event) =>
+                                _birthdaySubtitle(l10n, event),
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+                        const _UnsyncedNotes(),
+                        const SizedBox(height: 18),
+                        Column(
+                          children: [
+                            Text(
+                              l10n.individualsInTree(data.individualCount),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => launchUrl(
+                                Uri.parse(ref.read(serverUrlProvider)),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                              icon: const Icon(Icons.open_in_new, size: 14),
+                              label: Text(l10n.openFullWebsite),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -367,17 +376,21 @@ class _SearchEntryButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(28),
-        child: const SizedBox(
+        child: SizedBox(
           height: 56,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Row(
               children: [
-                Icon(Icons.search, size: 20, color: AppColors.textSecondary),
-                SizedBox(width: 12),
+                const Icon(
+                  Icons.search,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 12),
                 Text(
-                  'Person suchen…',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.searchPersonHint,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: AppColors.textSecondary,
                   ),
@@ -487,6 +500,7 @@ class _ResponsesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -509,7 +523,7 @@ class _ResponsesCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Antworten erhalten',
+                        l10n.responsesReceivedTitle,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -518,9 +532,7 @@ class _ResponsesCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        count == 1
-                            ? 'Eine Anfrage wartet auf Prüfung'
-                            : '$count Anfragen warten auf Prüfung',
+                        l10n.requestsPendingReview(count),
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
@@ -603,7 +615,7 @@ class _UnsyncedNotes extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nicht synchronisiert (${notes.length})',
+              AppLocalizations.of(context)!.notSynced(notes.length),
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,

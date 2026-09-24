@@ -40,10 +40,10 @@ class BiometricAuthService {
   /// out entirely). Returns false on any failure - cancelled, not
   /// enrolled, lockout, ... - rather than throwing; the caller just keeps
   /// showing the lock screen either way.
-  Future<bool> authenticate() async {
+  Future<bool> authenticate({required String localizedReason}) async {
     try {
       return await _auth.authenticate(
-        localizedReason: 'Bitte entsperre die App',
+        localizedReason: localizedReason,
         options: const AuthenticationOptions(stickyAuth: true),
       );
     } on Exception {

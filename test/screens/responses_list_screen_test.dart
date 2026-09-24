@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
+import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/responses/response_detail_screen.dart';
 import 'package:webtrees_mobile/screens/responses/responses_list_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
@@ -23,7 +24,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: ResponsesListScreen()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: ResponsesListScreen(),
+        ),
       ),
     );
   }

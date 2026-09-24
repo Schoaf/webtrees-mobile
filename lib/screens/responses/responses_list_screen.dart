@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/tablet_bounded_body.dart';
 import 'response_detail_screen.dart';
 
 /// Native equivalent of webtrees-contribution-request's request-review-list.phtml — every
@@ -42,21 +44,20 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
   });
 
   Future<bool> _confirmDelete(BuildContext context, int id) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Anfrage verwerfen?'),
-        content: const Text(
-          'Die Anfrage und eine eventuell hinterlegte Foto-Vorschau werden endgültig gelöscht.',
-        ),
+        title: Text(l10n.discardRequestTitle),
+        content: Text(l10n.discardRequestMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Verwerfen'),
+            child: Text(l10n.discardButton),
           ),
         ],
       ),
@@ -78,136 +79,142 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            _Header(onBack: () => Navigator.of(context).pop()),
-            Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Konnte nicht laden: ${snapshot.error}'),
-                    );
-                  }
+        child: TabletBoundedBody(
+          child: Column(
+            children: [
+              _Header(onBack: () => Navigator.of(context).pop()),
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(l10n.couldNotLoad('${snapshot.error}')),
+                      );
+                    }
 
-                  final requests = _requests ??= List.of(snapshot.data!);
+                    final requests = _requests ??= List.of(snapshot.data!);
 
-                  if (requests.isEmpty) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text(
-                          'Keine Antworten vorhanden.',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: requests.length,
-                    itemBuilder: (context, index) {
-                      final item = requests[index];
-                      final responder = item['responder'] as String? ?? '';
-
-                      return Dismissible(
-                        key: ValueKey(item['id']),
-                        direction: DismissDirection.endToStart,
-                        confirmDismiss: (_) =>
-                            _confirmDelete(context, item['id'] as int),
-                        onDismissed: (_) =>
-                            setState(() => _requests!.removeAt(index)),
-                        background: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          alignment: Alignment.centerRight,
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade400,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.white,
-                          ),
-                        ),
+                    if (requests.isEmpty) {
+                      return Center(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Material(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            clipBehavior: Clip.antiAlias,
-                            elevation: 0,
-                            child: InkWell(
-                              onTap: () async {
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => ResponseDetailScreen(
-                                      id: item['id'] as int,
-                                    ),
-                                  ),
-                                );
-                                _reload();
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  boxShadow: AppColors.cardShadow,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            item['name'] as String? ?? '',
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w500,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                          ),
-                                          if (responder.isNotEmpty) ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Von $responder',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.textSecondary,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      color: AppColors.textTertiary,
-                                    ),
-                                  ],
-                                ),
-                              ),
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            l10n.noResponsesMessage,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ),
                       );
-                    },
-                  );
-                },
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: requests.length,
+                      itemBuilder: (context, index) {
+                        final item = requests[index];
+                        final responder = item['responder'] as String? ?? '';
+
+                        return Dismissible(
+                          key: ValueKey(item['id']),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (_) =>
+                              _confirmDelete(context, item['id'] as int),
+                          onDismissed: (_) =>
+                              setState(() => _requests!.removeAt(index)),
+                          background: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            alignment: Alignment.centerRight,
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade400,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.white,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Material(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              clipBehavior: Clip.antiAlias,
+                              elevation: 0,
+                              child: InkWell(
+                                onTap: () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ResponseDetailScreen(
+                                        id: item['id'] as int,
+                                      ),
+                                    ),
+                                  );
+                                  _reload();
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    boxShadow: AppColors.cardShadow,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item['name'] as String? ?? '',
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w500,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                            if (responder.isNotEmpty) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                l10n.fromResponder(responder),
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.chevron_right,
+                                        color: AppColors.textTertiary,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -233,10 +240,10 @@ class _Header extends StatelessWidget {
             onPressed: onBack,
             icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Antworten',
-              style: TextStyle(
+              AppLocalizations.of(context)!.responsesTitle,
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,

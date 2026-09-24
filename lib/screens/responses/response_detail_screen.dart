@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 
-const _fieldLabels = {
-  'GIVN': 'Vorname',
-  'SURN': 'Nachname',
-  'TITL': 'Titel',
-  'BIRT_DATE': 'Geburtsdatum',
-  'BIRT_PLAC': 'Geburtsort',
-  'DEAT_DATE': 'Sterbedatum',
-  'DEAT_PLAC': 'Sterbeort',
+/// webtrees field codes as sent by the server (stable, not display text);
+/// see [_fieldLabel] for the localized text shown for each.
+String _fieldLabel(AppLocalizations l10n, String key) => switch (key) {
+  'GIVN' => l10n.givenName,
+  'SURN' => l10n.surname,
+  'TITL' => l10n.titleFieldLabel,
+  'BIRT_DATE' => l10n.birthDate,
+  'BIRT_PLAC' => l10n.birthPlace,
+  'DEAT_DATE' => l10n.deathDate,
+  'DEAT_PLAC' => l10n.deathPlace,
+  _ => key,
 };
 
 /// Native equivalent of webtrees-contribution-request's request-review.phtml — one
@@ -47,6 +51,7 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
 
   Future<void> _apply() async {
     setState(() => _applying = true);
+    final l10n = AppLocalizations.of(context)!;
 
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
@@ -63,35 +68,34 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
         );
       } else {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Alle Antworten geprüft.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.allResponsesReviewed)));
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _applying = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Konnte nicht übernommen werden: $e')),
+        SnackBar(content: Text(l10n.couldNotApplyError('$e'))),
       );
     }
   }
 
   Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Anfrage verwerfen?'),
-        content: const Text(
-          'Die Anfrage und eine eventuell hinterlegte Foto-Vorschau werden endgültig gelöscht.',
-        ),
+        title: Text(l10n.discardRequestTitle),
+        content: Text(l10n.discardRequestMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Abbrechen'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Verwerfen'),
+            child: Text(l10n.discardButton),
           ),
         ],
       ),
@@ -109,19 +113,20 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
         Navigator.of(context).pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Konnte nicht verworfen werden.')),
+          SnackBar(content: Text(l10n.couldNotDiscardMessage)),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Konnte nicht verworfen werden: $e')),
+        SnackBar(content: Text(l10n.couldNotDiscardError('$e'))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -139,7 +144,7 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
                   }
                   if (snapshot.hasError) {
                     return Center(
-                      child: Text('Konnte nicht laden: ${snapshot.error}'),
+                      child: Text(l10n.couldNotLoad('${snapshot.error}')),
                     );
                   }
 
@@ -183,6 +188,7 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final name = data['name'] as String? ?? '';
     final responder = data['responder'] as String? ?? '';
     final appliedAlready = data['applied'] as bool? ?? false;
@@ -199,7 +205,7 @@ class _Body extends ConsumerWidget {
       return _InfoMessage(
         name: name,
         responder: responder,
-        text: 'Diese Antwort wurde bereits übernommen.',
+        text: l10n.responseAlreadyApplied,
       );
     }
 
@@ -207,7 +213,7 @@ class _Body extends ConsumerWidget {
       return _InfoMessage(
         name: name,
         responder: responder,
-        text: 'Es wurden keine Änderungen vorgeschlagen.',
+        text: l10n.noChangesProposed,
       );
     }
 
@@ -218,7 +224,7 @@ class _Body extends ConsumerWidget {
         const SizedBox(height: 16),
         if (photoUrl.isNotEmpty)
           _CompareCard(
-            title: 'Foto übernehmen',
+            title: l10n.acceptPhotoLabel,
             checked: accepted.contains('photo'),
             onChanged: (v) => onToggle('photo', v),
             child: ClipRRect(
@@ -232,14 +238,18 @@ class _Body extends ConsumerWidget {
           ),
         for (final entry in compare.entries)
           _CompareCard(
-            title: _fieldLabels[entry.key] ?? entry.key,
+            title: _fieldLabel(l10n, entry.key),
             checked: accepted.contains(entry.key),
             onChanged: (v) => onToggle(entry.key, v),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bisher: ${(entry.value['before'] as String?)?.isEmpty ?? true ? '(leer)' : entry.value['before']}',
+                  l10n.previousValueLabel(
+                    (entry.value['before'] as String?)?.isEmpty ?? true
+                        ? l10n.emptyValuePlaceholder
+                        : entry.value['before'] as String,
+                  ),
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textTertiary,
@@ -247,7 +257,7 @@ class _Body extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Neu: ${entry.value['after']}',
+                  l10n.newValueLabel('${entry.value['after']}'),
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -259,7 +269,7 @@ class _Body extends ConsumerWidget {
           ),
         if (note.isNotEmpty)
           _CompareCard(
-            title: 'Als Notiz übernehmen',
+            title: l10n.acceptAsNoteLabel,
             checked: accepted.contains('note'),
             onChanged: (v) => onToggle('note', v),
             child: Text(
@@ -282,7 +292,7 @@ class _Body extends ConsumerWidget {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Ausgewähltes übernehmen'),
+              : Text(l10n.applySelectedButton),
         ),
       ],
     );
@@ -394,12 +404,12 @@ class _ForLine extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Für: $name',
+          AppLocalizations.of(context)!.forPersonLabel(name),
           style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
         ),
         if (responder.isNotEmpty)
           Text(
-            'Von: $responder',
+            AppLocalizations.of(context)!.fromResponderLabel(responder),
             style: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
           ),
       ],
@@ -427,10 +437,10 @@ class _Header extends StatelessWidget {
             onPressed: onBack,
             icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           ),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Antwort prüfen',
-              style: TextStyle(
+              AppLocalizations.of(context)!.reviewResponseTitle,
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
@@ -443,7 +453,7 @@ class _Header extends StatelessWidget {
               Icons.delete_outline,
               color: AppColors.textPrimary,
             ),
-            tooltip: 'Anfrage verwerfen',
+            tooltip: AppLocalizations.of(context)!.discardRequestTooltip,
           ),
         ],
       ),

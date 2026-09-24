@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
+import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/repositories/quick_note_store.dart';
 import 'package:webtrees_mobile/screens/home/home_screen.dart';
 import 'package:webtrees_mobile/screens/responses/responses_list_screen.dart';
@@ -59,7 +60,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: HomeScreen()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: HomeScreen(),
+        ),
       ),
     );
   }

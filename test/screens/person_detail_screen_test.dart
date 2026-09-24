@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
+import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 
@@ -80,7 +81,12 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(home: PersonDetailScreen(xref: 'I1', depth: depth)),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: PersonDetailScreen(xref: 'I1', depth: depth),
+        ),
       ),
     );
     await tester.pump();

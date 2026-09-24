@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../repositories/quick_note_store.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -53,7 +54,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
     } on Exception catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Konnte Fakt-Typen nicht laden: $e';
+        _error = AppLocalizations.of(context)!.couldNotLoadFactTypesError('$e');
         _loadingTags = false;
       });
     }
@@ -63,6 +64,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
     final tag = _selectedTag;
     final value = _valueController.text.trim();
     if (tag == null) return;
+    final l10n = AppLocalizations.of(context)!;
 
     setState(() {
       _saving = true;
@@ -89,7 +91,9 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
         // silently fall back to a local note that would just hide the problem.
         setState(() {
           _saving = false;
-          _error = 'Abgelehnt: ${result['error'] ?? 'unbekannter Fehler'}';
+          _error = l10n.rejectedError(
+            (result['error'] as String?) ?? l10n.unknownError,
+          );
         });
       }
     } on DioException catch (_) {
@@ -111,7 +115,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Verbindung fehlgeschlagen: $e';
+        _error = l10n.connectionFailedError('$e');
       });
     }
   }
@@ -125,6 +129,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -152,7 +157,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                   ),
                 ),
                 Text(
-                  'Fakt hinzufügen',
+                  l10n.addFactLabel,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 Text(
@@ -187,9 +192,9 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _valueController,
-                  decoration: const InputDecoration(
-                    labelText: 'Wert',
-                    hintText: 'z. B. Bäckerin',
+                  decoration: InputDecoration(
+                    labelText: l10n.value,
+                    hintText: l10n.factValueHint,
                   ),
                   minLines: 1,
                   maxLines: 3,
@@ -198,7 +203,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                   const SizedBox(height: 12),
                   GedcomDateField(
                     controller: _dateController,
-                    labelText: 'Datum (optional)',
+                    labelText: l10n.dateOptionalLabel,
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -213,7 +218,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Speichern'),
+                      : Text(l10n.save),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 10),
