@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -96,6 +98,28 @@ int? _ageInYears(num? birthJd) {
   final days = _julianDayNumber(DateTime.now()) - birthJd.toInt();
   if (days < 0) return null;
   return (days / 365.2425).floor();
+}
+
+/// Whether to use the tablet landscape two-column layout (own info next to
+/// "die Verwandten") instead of the default single column. Reacts to the
+/// real viewport at runtime - actual orientation (width > height) plus a
+/// minimum size on both axes, not a fixed "is this a tablet" platform flag
+/// - so it naturally follows rotation, split-screen/multi-window resizes,
+/// and any device whose metrics happen to qualify, rather than only ever
+/// firing for a hardcoded device class.
+///
+/// Both thresholds matter: `shortestSide >= 600` (Flutter's own common
+/// tablet heuristic) alone would also fire for a large phone in landscape
+/// (e.g. a 6.9" phone's ~930-logical-pixel landscape width easily clears
+/// it), and `width >= 900` alone would also fire for `flutter_test`'s
+/// stock 800x600 surface at some derived sizes - together they keep this
+/// to genuinely tablet-shaped viewports, wide enough that two columns are
+/// each still comfortably usable.
+bool _useTwoColumnLayout(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  return size.width > size.height &&
+      size.width >= 900 &&
+      size.shortestSide >= 600;
 }
 
 /// Full "review everything we know" view for one person — priority-2 in the
@@ -601,6 +625,165 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             !_editing && ref.watch(authControllerProvider).isAdmin;
 
         final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
+        final isDead = person['isDead'] as bool? ?? false;
+        final useTwoColumn = _useTwoColumnLayout(context);
+        // Fixed-ish corner size for the screen-wide banderole, capped so it
+        // doesn't dominate a small phone screen.
+        final banderoleCorner = math.min(
+          160.0,
+          MediaQuery.sizeOf(context).shortestSide * 0.42,
+        );
+
+        // The person's own info - header (photo/name/lifespan) plus the
+        // facts card or edit form - kept separate from [relatives] so the
+        // landscape tablet layout below can lay the two groups out as
+        // separate columns; portrait keeps them in one column, in this
+        // same order.
+        final headerAndFacts = <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Balances the tree-view button's width
+                    // on the other side so the avatar stays
+                    // centered, matching the layout before
+                    // this button existed - only needed
+                    // when the button actually shows. Plain
+                    // Row instead of a negative-offset
+                    // Positioned/Stack: simpler and can't
+                    // run into clipping or hit-testing edge
+                    // cases.
+                    if (showTreeButton) const SizedBox(width: 40),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (showTreeButton) ...[
+                            _TreeViewButton(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TreeViewScreen(xref: widget.xref),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          PersonAvatar(
+                            sex: person['sex'] as String? ?? 'U',
+                            isDead: isDead,
+                            size: 84,
+                            photoUrl: photoUrl,
+                            photoHeaders: ref
+                                .read(webtreesClientProvider)
+                                .imageHeaders,
+                            editable: _editing && canEdit,
+                            // The whole screen carries its own corner
+                            // banderole below, spanning further than
+                            // this small header avatar.
+                            showBanderole: false,
+                            onTap: _editing
+                                ? (canEdit ? _pickAndUploadPhoto : null)
+                                : (hasPhoto
+                                      ? () => _openPhotoViewer(
+                                          media.isNotEmpty
+                                              ? (media.first['file']
+                                                        as String? ??
+                                                    photoUrl)
+                                              : photoUrl,
+                                        )
+                                      : (canEdit
+                                            ? _pickAndUploadPhoto
+                                            : null)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (showTreeButton) const SizedBox(width: 40),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  stripNameSlashes(name),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (_lifespanText(l10n, person).isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      _lifespanText(l10n, person),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (!_editing && facts.isNotEmpty) _FactsCard(facts: facts),
+          if (_editing)
+            _EditFactsSection(
+              key: _editKey,
+              xref: widget.xref,
+              facts: facts,
+              savingNotifier: _savingNotifier,
+              onSaved: _onEditSaved,
+            ),
+        ];
+
+        // "Die Verwandten" - parents, spouse(s) and children.
+        final relatives = <Widget>[
+          for (final family in parentFamilies) ...[
+            if (family['husband'] != null || family['wife'] != null)
+              _Section(
+                title: l10n.parentsTitle,
+                people: [
+                  if (family['husband'] != null)
+                    family['husband'] as Map<String, dynamic>,
+                  if (family['wife'] != null)
+                    family['wife'] as Map<String, dynamic>,
+                ],
+                depth: widget.depth,
+              ),
+          ],
+          for (final family in spouseFamilies) ...[
+            if (family['spouse'] != null)
+              _Section(
+                title:
+                    (family['spouse'] as Map<String, dynamic>)['sex'] == 'F'
+                    ? l10n.spouseFemaleTitle
+                    : l10n.spouseMaleTitle,
+                people: [family['spouse'] as Map<String, dynamic>],
+                depth: widget.depth,
+              ),
+          ],
+          if (spouseFamilies
+              .expand((f) => f['children'] as List<dynamic>? ?? [])
+              .isNotEmpty)
+            _Section(
+              title: l10n.childrenTitle(
+                spouseFamilies.fold<int>(
+                  0,
+                  (n, f) =>
+                      n + (f['children'] as List<dynamic>? ?? []).length,
+                ),
+              ),
+              people: spouseFamilies
+                  .expand(
+                    (f) => (f['children'] as List<dynamic>? ?? [])
+                        .cast<Map<String, dynamic>>(),
+                  )
+                  .toList(),
+              depth: widget.depth,
+            ),
+        ];
 
         return Scaffold(
           // Not wrapped in TabletBoundedBody directly: Scaffold lays out
@@ -657,6 +840,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                 )
               : null,
           body: TabletBoundedBody(
+            // Portrait (any device) and phone landscape stay at the
+            // original comfortable reading width; the two-column tablet
+            // landscape layout needs real width for both columns to be
+            // useful, so it gets a wider cap instead.
+            maxWidth: useTwoColumn ? 1100 : 480,
             child: Stack(
               children: [
                 SafeArea(
@@ -676,174 +864,58 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                             : () => _openAskForHelp(name),
                       ),
                       Expanded(
-                        child: ListView(
-                          padding: EdgeInsets.zero,
+                        child: Stack(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                20,
-                                28,
-                                20,
-                                20,
-                              ),
-                              child: Column(
+                            if (useTwoColumn)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      // Balances the tree-view button's width
-                                      // on the other side so the avatar stays
-                                      // centered, matching the layout before
-                                      // this button existed - only needed
-                                      // when the button actually shows. Plain
-                                      // Row instead of a negative-offset
-                                      // Positioned/Stack: simpler and can't
-                                      // run into clipping or hit-testing edge
-                                      // cases.
-                                      if (showTreeButton)
-                                        const SizedBox(width: 40),
-                                      Expanded(
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            if (showTreeButton) ...[
-                                              _TreeViewButton(
-                                                onTap: () =>
-                                                    Navigator.of(context).push(
-                                                      MaterialPageRoute(
-                                                        builder: (_) =>
-                                                            TreeViewScreen(
-                                                              xref: widget.xref,
-                                                            ),
-                                                      ),
-                                                    ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                            ],
-                                            PersonAvatar(
-                                              sex:
-                                                  person['sex'] as String? ??
-                                                  'U',
-                                              isDead:
-                                                  person['isDead'] as bool? ??
-                                                  false,
-                                              size: 84,
-                                              photoUrl: photoUrl,
-                                              photoHeaders: ref
-                                                  .read(webtreesClientProvider)
-                                                  .imageHeaders,
-                                              editable: _editing && canEdit,
-                                              onTap: _editing
-                                                  ? (canEdit
-                                                        ? _pickAndUploadPhoto
-                                                        : null)
-                                                  : (hasPhoto
-                                                        ? () => _openPhotoViewer(
-                                                            media.isNotEmpty
-                                                                ? (media.first['file']
-                                                                          as String? ??
-                                                                      photoUrl)
-                                                                : photoUrl,
-                                                          )
-                                                        : (canEdit
-                                                              ? _pickAndUploadPhoto
-                                                              : null)),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (showTreeButton)
-                                        const SizedBox(width: 40),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    stripNameSlashes(name),
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      color: AppColors.textPrimary,
+                                  Expanded(
+                                    child: ListView(
+                                      padding: EdgeInsets.zero,
+                                      children: headerAndFacts,
                                     ),
                                   ),
-                                  if (_lifespanText(l10n, person).isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text(
-                                        _lifespanText(l10n, person),
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
+                                  const VerticalDivider(
+                                    width: 1,
+                                    color: AppColors.divider,
+                                  ),
+                                  Expanded(
+                                    child: ListView(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      children: [
+                                        ...relatives,
+                                        const SizedBox(height: 24),
+                                      ],
                                     ),
+                                  ),
+                                ],
+                              )
+                            else
+                              ListView(
+                                padding: EdgeInsets.zero,
+                                children: [
+                                  ...headerAndFacts,
+                                  ...relatives,
+                                  const SizedBox(height: 24),
                                 ],
                               ),
-                            ),
-                            if (!_editing && facts.isNotEmpty)
-                              _FactsCard(facts: facts),
-                            if (_editing)
-                              _EditFactsSection(
-                                key: _editKey,
-                                xref: widget.xref,
-                                facts: facts,
-                                savingNotifier: _savingNotifier,
-                                onSaved: _onEditSaved,
+                            // Spans the corner of the whole screen (well,
+                            // this body area below the header bar) rather
+                            // than just the small header avatar, so a
+                            // deceased person's status reads clearly at a
+                            // glance - including in the two-column tablet
+                            // layout above.
+                            if (isDead)
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                child: SizedBox(
+                                  width: banderoleCorner,
+                                  height: banderoleCorner,
+                                  child: const DeathBanderole(),
+                                ),
                               ),
-                            for (final family in parentFamilies) ...[
-                              if (family['husband'] != null ||
-                                  family['wife'] != null)
-                                _Section(
-                                  title: l10n.parentsTitle,
-                                  people: [
-                                    if (family['husband'] != null)
-                                      family['husband'] as Map<String, dynamic>,
-                                    if (family['wife'] != null)
-                                      family['wife'] as Map<String, dynamic>,
-                                  ],
-                                  depth: widget.depth,
-                                ),
-                            ],
-                            for (final family in spouseFamilies) ...[
-                              if (family['spouse'] != null)
-                                _Section(
-                                  title:
-                                      (family['spouse']
-                                              as Map<String, dynamic>)['sex'] ==
-                                          'F'
-                                      ? l10n.spouseFemaleTitle
-                                      : l10n.spouseMaleTitle,
-                                  people: [
-                                    family['spouse'] as Map<String, dynamic>,
-                                  ],
-                                  depth: widget.depth,
-                                ),
-                            ],
-                            if (spouseFamilies
-                                .expand(
-                                  (f) => f['children'] as List<dynamic>? ?? [],
-                                )
-                                .isNotEmpty)
-                              _Section(
-                                title: l10n.childrenTitle(
-                                  spouseFamilies.fold<int>(
-                                    0,
-                                    (n, f) =>
-                                        n +
-                                        (f['children'] as List<dynamic>? ?? [])
-                                            .length,
-                                  ),
-                                ),
-                                people: spouseFamilies
-                                    .expand(
-                                      (f) =>
-                                          (f['children'] as List<dynamic>? ??
-                                                  [])
-                                              .cast<Map<String, dynamic>>(),
-                                    )
-                                    .toList(),
-                                depth: widget.depth,
-                              ),
-                            const SizedBox(height: 24),
                           ],
                         ),
                       ),

@@ -56,21 +56,52 @@ class MockQuickNoteStore extends Mock implements QuickNoteStore {}
 /// devicePixelRatio used to get there (physicalSize == logicalSize *
 /// devicePixelRatio, so the render is pixel-exact, not a resize).
 class _Target {
-  const _Target(this.platformDir, this.physicalSize, this.devicePixelRatio);
+  const _Target(
+    this.platformDir,
+    this.physicalSize,
+    this.devicePixelRatio, {
+    this.safeAreaFraction = _kNotchSafeAreaFraction,
+  });
 
   final String platformDir;
   final Size physicalSize;
   final double devicePixelRatio;
+
+  /// Blank top inset reserved for stage 2's frame decoration, as a
+  /// fraction of [physicalSize.width] - see [_kNotchSafeAreaFraction].
+  /// Phones default to that constant (room for a notch/Dynamic-Island
+  /// cutout); tablet targets override this to a much smaller value since
+  /// stage 2 draws them with a small camera-dot instead of a notch.
+  final double safeAreaFraction;
 }
 
-// iOS: 6.9" iPhone display (iPhone 16/17/18 Pro Max class) - the single
-// required iOS screenshot size as of the 2026 App Store Connect
-// requirements (Apple dropped the older per-device-size requirements in
-// 2024). Verified against
-// developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/
-// on 2026-09-24: portrait 1320x2868, which is exactly 440x956 logical
-// points at a 3.0 devicePixelRatio (matches the real device's ratio).
-const _iosTarget = _Target('ios', Size(1320, 2868), 3.0);
+// iOS: 6.5" iPhone display (iPhone 12/13/14 Pro Max class) - verified
+// directly against Andreas's own App Store Connect upload screen on
+// 2026-09-24 (supersedes an earlier, wrongly-researched 6.9"/1320x2868
+// assumption): that slot accepts 1242x2688, 2688x1242, 1284x2778 or
+// 2778x1284. Portrait 1284x2778 is the higher-resolution option of the
+// two portrait choices, and is exactly 428x926 logical points at a 3.0
+// devicePixelRatio (matches the real device's ratio).
+const _iosTarget = _Target('ios', Size(1284, 2778), 3.0);
+
+// iOS: 13" iPad display (iPad Pro 12.9"/13" class) - also verified against
+// App Store Connect's own upload screen: that slot accepts 2064x2752,
+// 2752x2064, 2048x2732 or 2732x2048. Landscape 2732x2048 (the
+// higher-resolution landscape option) is used rather than portrait so
+// this actually exercises PersonDetailScreen's tablet two-column layout,
+// the same way the Android tablet targets below do - a portrait iPad
+// render would just be a bigger single-column phone layout and wouldn't
+// show off the redesign at all. At a 2.0 devicePixelRatio (matches a
+// real iPad's ratio) that's 1366x1024 logical points, comfortably past
+// `_useTwoColumnLayout`'s thresholds. No notch/Dynamic-Island cutout on
+// this device class - see safeAreaFraction below, same treatment as the
+// Android tablet targets.
+const _ipadTarget = _Target(
+  'ios-ipad13',
+  Size(2732, 2048),
+  2.0,
+  safeAreaFraction: 0.025,
+);
 
 // Android: Google Play phone screenshots accept a flexible aspect ratio,
 // but 1080x2400 is a clean, common, safely-in-range resolution (24-bit,
@@ -83,27 +114,57 @@ const _iosTarget = _Target('ios', Size(1320, 2868), 3.0);
 const _androidTarget = _Target('android', Size(1080, 2400), 2.0);
 
 // Play Console's "7-inch tablet" / "10-inch tablet" screenshot slots -
-// separate pixel ranges (320-3840 / 1080-7680) from the phone slot. Sizes
-// below are clean, safely-in-range resolutions at a 2.0 devicePixelRatio,
-// not tied to any specific real device.
-const _tablet7Target = _Target('android-tablet7', Size(1200, 1920), 2.0);
-const _tablet10Target = _Target('android-tablet10', Size(1600, 2560), 2.0);
+// separate pixel ranges (320-3840 / 1080-7680) from the phone slot.
+// Landscape, not portrait (Google Play explicitly supports landscape
+// tablet screenshots - see
+// support.google.com/googleplay/android-developer/answer/9866151,
+// checked 2026-09-24) - these are simply the previous portrait targets'
+// own dimensions rotated 90 degrees (same device class, same
+// devicePixelRatio), so the logical viewport a real 7"/10" tablet would
+// actually present in landscape is what gets exercised here, not an
+// arbitrary new aspect ratio. That also happens to comfortably clear
+// PersonDetailScreen's own two-column-layout viewport thresholds
+// (`_useTwoColumnLayout` in person_detail_screen.dart: width >= 900 and
+// shortestSide >= 600 at the logical size these produce, 960x600 and
+// 1280x800), which is the whole point of rendering these in landscape -
+// a portrait-shaped or narrower render would silently fall back to the
+// single-column phone layout and defeat the purpose.
+const _tablet7Target = _Target(
+  'android-tablet7',
+  Size(1920, 1200),
+  2.0,
+  safeAreaFraction: 0.025,
+);
+const _tablet10Target = _Target(
+  'android-tablet10',
+  Size(2560, 1600),
+  2.0,
+  safeAreaFraction: 0.025,
+);
 
-const _targets = [_iosTarget, _androidTarget, _tablet7Target, _tablet10Target];
+const _targets = [
+  _iosTarget,
+  _ipadTarget,
+  _androidTarget,
+  _tablet7Target,
+  _tablet10Target,
+];
 
-/// Blank top inset reserved on every render, as a fraction of the target's
-/// physical width - matches (with headroom) the notch's own footprint in
-/// `tool/compose_store_screenshots.py` (SAFE_AREA_FRAC there), so the
-/// notch always lands on guaranteed-blank pixels instead of overlapping
-/// whatever a given screen happens to draw at the very top. Every one of
-/// the four screens here renders its body inside a `SafeArea` (checked:
-/// HomeScreen, SearchScreen, PersonDetailScreen, TreeViewScreen all do),
-/// so setting `tester.view.padding.top` reliably pushes their content down
-/// by this amount, the same way a real notched phone would - this isn't
-/// screen-specific, so it can't silently stop working for a screen whose
-/// top content happens to sit lower (that's what broke the first version
-/// of this: the notch overlapped TreeViewScreen's centered "Stammbaum"
-/// title even though it happened to clear HomeScreen's left-aligned one).
+/// Default (phone) blank top inset reserved on every render, as a fraction
+/// of the target's physical width - matches (with headroom) the notch's
+/// own footprint in `tool/compose_store_screenshots.py` (SAFE_AREA_FRAC
+/// there), so the notch always lands on guaranteed-blank pixels instead of
+/// overlapping whatever a given screen happens to draw at the very top.
+/// Every one of the four screens here renders its body inside a
+/// `SafeArea` (checked: HomeScreen, SearchScreen, PersonDetailScreen,
+/// TreeViewScreen all do), so setting `tester.view.padding.top` reliably
+/// pushes their content down by this amount, the same way a real notched
+/// phone would - this isn't screen-specific, so it can't silently stop
+/// working for a screen whose top content happens to sit lower (that's
+/// what broke the first version of this: the notch overlapped
+/// TreeViewScreen's centered "Stammbaum" title even though it happened to
+/// clear HomeScreen's left-aligned one). The tablet targets override this
+/// via `_Target.safeAreaFraction` - see there.
 const _kNotchSafeAreaFraction = 0.09;
 
 Directory get _rawDir => Directory('screenshots/raw');
@@ -249,9 +310,9 @@ Future<void> _renderAndSave(
 }) async {
   tester.view.physicalSize = target.physicalSize;
   tester.view.devicePixelRatio = target.devicePixelRatio;
-  // Reserve blank space at the very top for stage 2's notch - see
-  // _kNotchSafeAreaFraction.
-  tester.view.padding = FakeViewPadding(top: target.physicalSize.width * _kNotchSafeAreaFraction);
+  // Reserve blank space at the very top for stage 2's notch/camera-dot -
+  // see _Target.safeAreaFraction.
+  tester.view.padding = FakeViewPadding(top: target.physicalSize.width * target.safeAreaFraction);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPadding);

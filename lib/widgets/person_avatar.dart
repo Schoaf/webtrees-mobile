@@ -17,12 +17,19 @@ class PersonAvatar extends StatelessWidget {
     this.photoHeaders,
     this.onTap,
     this.editable = false,
+    this.showBanderole = true,
   });
 
   /// webtrees sex code: "M", "F", "U" (unknown) or "X".
   final String sex;
   final bool isDead;
   final double size;
+
+  /// Whether a deceased person gets the small diagonal ribbon drawn across
+  /// this avatar's own circle. Set to false when the caller draws a bigger
+  /// [DeathBanderole] of its own spanning a larger area (a whole list row,
+  /// a whole screen's corner) instead - otherwise the two would double up.
+  final bool showBanderole;
 
   /// The thumbnail to show instead of the silhouette, if any.
   final String? photoUrl;
@@ -73,7 +80,7 @@ class PersonAvatar extends StatelessWidget {
                           ),
                         )
                       : _Silhouette(background: background, foreground: foreground),
-                  if (isDead) _Banderole(size: size),
+                  if (isDead && showBanderole) _Banderole(size: size),
                 ],
               ),
             ),
@@ -123,6 +130,78 @@ class _Banderole extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A diagonal "deceased" ribbon sized to span whatever area it's placed
+/// in - a full [PersonCard] row, or a screen's whole corner - rather than
+/// [PersonAvatar]'s own small circular bounds (that's [_Banderole], kept
+/// separate since it's clipped to the avatar's own `ClipOval` instead).
+///
+/// Place this as a child of a `Stack` sized to the area it should span
+/// (e.g. `Positioned.fill` inside that `Stack`, or a fixed-size `SizedBox`
+/// pinned to a screen corner) - it paints across exactly that area's
+/// bounds via [CustomPaint], so it needs no explicit width/height of its
+/// own and stays correct if that area's size changes (row width, screen
+/// size on rotation, ...).
+class DeathBanderole extends StatelessWidget {
+  const DeathBanderole({
+    super.key,
+    this.thicknessFactor = 0.16,
+    this.color = AppColors.textPrimary,
+  });
+
+  /// Ribbon thickness as a fraction of the shorter side of the area it
+  /// spans - keeps the ribbon looking proportionate whether it's drawn
+  /// across a compact list row or a whole tablet screen's corner.
+  final double thicknessFactor;
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    // The painter deliberately draws outside its own [0, size] box (the
+    // rotated ribbon's corners fall outside it - see the painter below), so
+    // this needs its own explicit clip: nothing upstream (a Stack's default
+    // clipBehavior included) clips a CustomPaint's actual paint calls to its
+    // layout size, only to a Stack's own bounds, and only when Stack's
+    // overflow check - based on child *layout* geometry, which this widget's
+    // small, fully-in-bounds SizedBox never trips - decides there's
+    // something to clip. Without this, the ribbon silently bled into
+    // whatever sat above/beside its box (e.g. PersonDetailScreen's header
+    // bar, above the corner ribbon's own area).
+    return ClipRect(
+      child: CustomPaint(painter: _DeathBanderolePainter(color: color, thicknessFactor: thicknessFactor)),
+    );
+  }
+}
+
+class _DeathBanderolePainter extends CustomPainter {
+  const _DeathBanderolePainter({required this.color, required this.thicknessFactor});
+
+  final Color color;
+  final double thicknessFactor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final thickness = size.shortestSide * thicknessFactor;
+
+    canvas.save();
+    // Pivot near the top-left corner, then rotate -45deg so the ribbon
+    // crosses that corner diagonally, matching the original avatar
+    // banderole's orientation.
+    canvas.translate(0, size.height * 0.14);
+    canvas.rotate(-math.pi / 4);
+    // Wide enough that the rotated rectangle still fully covers the
+    // corner after rotation, whatever the aspect ratio of `size` is.
+    final span = size.width + size.height;
+    canvas.drawRect(Rect.fromLTWH(-size.height * 0.3, 0, span, thickness), paint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _DeathBanderolePainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.thicknessFactor != thicknessFactor;
 }
 
 class _Silhouette extends StatelessWidget {
