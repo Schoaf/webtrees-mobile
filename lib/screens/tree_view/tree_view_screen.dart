@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +14,8 @@ import '../search/person_detail_screen.dart';
 const _kCardWidth = 90.0;
 const _kActiveZoom = 1.22;
 const _kChildrenVisibleWithoutExpand = 6;
+const _kMinScale = 0.5;
+const _kMaxScale = 2.5;
 
 /// The interactive family-tree view: pan-able cards for the current
 /// person's parents, full siblings, partner(s) and children. Tapping a
@@ -33,6 +37,15 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   final _transformController = TransformationController();
   final _activeCardKey = GlobalKey();
   final _viewportKey = GlobalKey();
+  // The InteractiveViewer's direct child - measuring the family group
+  // relative to this (not the viewport) gives its position in the child's
+  // own untransformed coordinate space, independent of whatever pan/zoom is
+  // currently applied - see _maybeCenterOnActivePerson.
+  final _contentKey = GlobalKey();
+  // Wraps parents + connector + the siblings frame (not the children frame
+  // below, which stays reachable by panning down rather than being forced
+  // into the initial fit).
+  final _familyGroupKey = GlobalKey();
   String? _centeredForXref;
 
   @override
@@ -41,21 +54,41 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     super.dispose();
   }
 
+  /// Fits and positions the view on the family group (parents + siblings
+  /// frame) whenever the active person changes: horizontally centered,
+  /// zoomed so the whole group is visible, with the parents row sitting
+  /// near the top rather than the active card just being pushed to the
+  /// canvas's dead center - that wasted space above the parents row and
+  /// often cut off siblings on a narrow phone screen.
   void _maybeCenterOnActivePerson(String activeXref) {
     if (_centeredForXref == activeXref) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final cardBox = _activeCardKey.currentContext?.findRenderObject() as RenderBox?;
+      final groupBox = _familyGroupKey.currentContext?.findRenderObject() as RenderBox?;
+      final contentBox = _contentKey.currentContext?.findRenderObject() as RenderBox?;
       final viewportBox = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
-      if (cardBox == null || viewportBox == null) return;
+      if (groupBox == null || contentBox == null || viewportBox == null) return;
 
-      final cardCenter = cardBox.localToGlobal(cardBox.size.center(Offset.zero), ancestor: viewportBox);
-      final viewportCenter = viewportBox.size.center(Offset.zero);
-      final current = _transformController.value;
-      final delta = viewportCenter - cardCenter;
+      final groupTopLeft = groupBox.localToGlobal(Offset.zero, ancestor: contentBox);
+      final groupSize = groupBox.size;
+      final viewportSize = viewportBox.size;
 
-      _transformController.value = current.clone()..translateByDouble(delta.dx, delta.dy, 0, 1);
+      const horizontalPadding = 24.0;
+      const topPadding = 24.0;
+      const bottomPadding = 24.0;
+
+      final scaleByWidth = (viewportSize.width - 2 * horizontalPadding) / groupSize.width;
+      final scaleByHeight = (viewportSize.height - topPadding - bottomPadding) / groupSize.height;
+      final scale = math.min(scaleByWidth, scaleByHeight).clamp(_kMinScale, _kMaxScale);
+
+      final groupCenterX = groupTopLeft.dx + groupSize.width / 2;
+      final groupTopY = groupTopLeft.dy;
+
+      _transformController.value = Matrix4.identity()
+        ..translateByDouble(viewportSize.width / 2, topPadding, 0, 1)
+        ..scaleByDouble(scale, scale, scale, 1)
+        ..translateByDouble(-groupCenterX, -groupTopY, 0, 1);
       _centeredForXref = activeXref;
     });
   }
@@ -113,16 +146,18 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                       InteractiveViewer(
                         transformationController: _transformController,
                         constrained: false,
-                        minScale: 0.5,
-                        maxScale: 2.5,
+                        minScale: _kMinScale,
+                        maxScale: _kMaxScale,
                         boundaryMargin: const EdgeInsets.all(400),
                         child: Padding(
+                          key: _contentKey,
                           padding: const EdgeInsets.symmetric(vertical: 24),
                           child: _TreeContent(
                             neighborhood: neighborhood,
                             selectedPartnerXref: treeState.selectedPartnerXref,
                             childrenExpanded: treeState.childrenExpanded,
                             activeCardKey: _activeCardKey,
+                            familyGroupKey: _familyGroupKey,
                             onSelectPerson: controller.selectPerson,
                             onSelectPartner: controller.selectPartner,
                             onToggleChildren: controller.toggleChildrenExpanded,
@@ -213,6 +248,7 @@ class _TreeContent extends ConsumerWidget {
     required this.selectedPartnerXref,
     required this.childrenExpanded,
     required this.activeCardKey,
+    required this.familyGroupKey,
     required this.onSelectPerson,
     required this.onSelectPartner,
     required this.onToggleChildren,
@@ -223,6 +259,9 @@ class _TreeContent extends ConsumerWidget {
   final String? selectedPartnerXref;
   final bool childrenExpanded;
   final GlobalKey activeCardKey;
+  /// Wraps parents + siblings frame - see _TreeViewScreenState's own doc
+  /// comment on the field this is passed from.
+  final GlobalKey familyGroupKey;
   final void Function(String xref) onSelectPerson;
   final void Function(String xref) onSelectPartner;
   final VoidCallback onToggleChildren;
@@ -239,23 +278,29 @@ class _TreeContent extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (neighborhood.father != null || neighborhood.mother != null) ...[
-          _ParentsRow(
-            neighborhood: neighborhood,
-            photoHeaders: photoHeaders,
-            onSelectPerson: onSelectPerson,
-          ),
-          const SizedBox(height: 10),
-          Container(width: 2, height: 24, color: const Color(0xFFD1D5DB)),
-        ],
-        _SiblingsFrame(
-          neighborhood: neighborhood,
-          partner: partner,
-          photoHeaders: photoHeaders,
-          activeCardKey: activeCardKey,
-          onSelectPerson: onSelectPerson,
-          onSelectPartner: onSelectPartner,
-          onOpenProfile: onOpenProfile,
+        Column(
+          key: familyGroupKey,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (neighborhood.father != null || neighborhood.mother != null) ...[
+              _ParentsRow(
+                neighborhood: neighborhood,
+                photoHeaders: photoHeaders,
+                onSelectPerson: onSelectPerson,
+              ),
+              const SizedBox(height: 10),
+              Container(width: 2, height: 24, color: const Color(0xFFD1D5DB)),
+            ],
+            _SiblingsFrame(
+              neighborhood: neighborhood,
+              partner: partner,
+              photoHeaders: photoHeaders,
+              activeCardKey: activeCardKey,
+              onSelectPerson: onSelectPerson,
+              onSelectPartner: onSelectPartner,
+              onOpenProfile: onOpenProfile,
+            ),
+          ],
         ),
         if (partner != null && partner.children.isNotEmpty) ...[
           const SizedBox(height: 10),
@@ -527,18 +572,6 @@ class _SiblingsFrame extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned(
-            top: -8,
-            left: 16,
-            child: Container(
-              color: const Color(0xFFF4F5F7),
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                AppLocalizations.of(context)!.siblingsLabel.toUpperCase(),
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
-              ),
-            ),
-          ),
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,6 +588,23 @@ class _SiblingsFrame extends StatelessWidget {
                 children: [for (final s in right) Padding(padding: const EdgeInsets.only(bottom: 10), child: siblingCard(s))],
               ),
             ],
+          ),
+          // Painted last (on top of the cards above) - a Stack paints in
+          // child order, and this label floating above the frame's own top
+          // border can overlap the first row of cards depending on their
+          // height (e.g. a card showing an extra detail line), which
+          // otherwise hid the label text behind them.
+          Positioned(
+            top: -8,
+            left: 16,
+            child: Container(
+              color: const Color(0xFFF4F5F7),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                AppLocalizations.of(context)!.siblingsLabel.toUpperCase(),
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+              ),
+            ),
           ),
         ],
       ),
@@ -655,28 +705,6 @@ class _ChildrenFrame extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned(
-            top: -8,
-            left: 16,
-            right: 16,
-            child: Container(
-              color: const Color(0xFFF4F5F7),
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              // A long partner name (compound surnames are common) must not
-              // overflow past the frame's own border uncontrolled.
-              child: Text(
-                (partner.partner == null
-                        ? l10n.childrenUnknownParentLabel
-                        : l10n.childrenWithPartnerLabel(
-                            partner.partner!.firstName,
-                          ))
-                    .toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
-              ),
-            ),
-          ),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -712,6 +740,32 @@ class _ChildrenFrame extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+          // Painted last (on top of the cards above) - same fix as the
+          // siblings frame: this label floats above the frame's own top
+          // border and can otherwise end up hidden behind the first row of
+          // cards.
+          Positioned(
+            top: -8,
+            left: 16,
+            right: 16,
+            child: Container(
+              color: const Color(0xFFF4F5F7),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              // A long partner name (compound surnames are common) must not
+              // overflow past the frame's own border uncontrolled.
+              child: Text(
+                (partner.partner == null
+                        ? l10n.childrenUnknownParentLabel
+                        : l10n.childrenWithPartnerLabel(
+                            partner.partner!.firstName,
+                          ))
+                    .toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+              ),
+            ),
           ),
         ],
       ),
