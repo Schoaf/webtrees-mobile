@@ -140,7 +140,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         obscureText: !_passwordVisible,
                         onSubmitted: (_) => _submit(),
                       ),
-                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: () => launchUrl(
+                            siteUrl(passwordRequestUrl(ref), mobile: true),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                          child: Text(l10n.forgotPasswordLink),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       if (_error != null) ...[
                         Text(
                           _error!.message(l10n),
@@ -166,38 +176,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               : Text(l10n.loginButton),
                         ),
                       ),
-                      const SizedBox(height: 56),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () => launchUrl(
+                          siteUrl(registerUrl(ref), mobile: true),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        child: Text(
+                          l10n.registerLink,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
                       Wrap(
                         alignment: WrapAlignment.center,
                         spacing: 12,
                         children: [
-                          TextButton(
+                          TextButton.icon(
                             onPressed: () => launchUrl(
                               Uri.parse(ref.read(serverUrlProvider)),
                               mode: LaunchMode.externalApplication,
                             ),
-                            child: Text(l10n.viewFamilyTreeButton),
+                            icon: const Icon(Icons.open_in_new, size: 16),
+                            label: Text(l10n.openFullWebsite),
                           ),
-                          TextButton(
+                          TextButton.icon(
                             onPressed: () => launchUrl(
                               Uri.parse(privacyPolicyUrl(ref)),
                               mode: LaunchMode.externalApplication,
                             ),
-                            child: Text(l10n.privacyPolicy),
-                          ),
-                          TextButton(
-                            onPressed: () => launchUrl(
-                              siteUrl(passwordRequestUrl(ref), mobile: true),
-                              mode: LaunchMode.externalApplication,
+                            icon: const Icon(
+                              Icons.privacy_tip_outlined,
+                              size: 16,
                             ),
-                            child: Text(l10n.forgotPasswordLink),
-                          ),
-                          TextButton(
-                            onPressed: () => launchUrl(
-                              siteUrl(registerUrl(ref), mobile: true),
-                              mode: LaunchMode.externalApplication,
-                            ),
-                            child: Text(l10n.registerLink),
+                            label: Text(l10n.privacyPolicy),
                           ),
                         ],
                       ),
