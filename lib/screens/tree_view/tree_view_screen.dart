@@ -17,6 +17,19 @@ const _kChildrenVisibleWithoutExpand = 6;
 const _kMinScale = 0.5;
 const _kMaxScale = 2.5;
 
+// Shared padding for the "GESCHWISTER"/"KINDER MIT X" frames (siblings and
+// children groups): more breathing room to the cards left/right, less
+// above/below - the frame border already reads as a boundary on its own,
+// so a tight top/bottom didn't need as much air as the sides did.
+const _kFrameHorizontalPadding = 10.0;
+const _kFrameTopPadding = 12.0;
+const _kFrameBottomPadding = 5.0;
+// The floating label's vertical center sits ~8px above the border (so it
+// straddles the 1.5px border line like a fieldset legend) - its Positioned
+// top is relative to the padded Stack, which itself starts _kFrameTopPadding
+// below the border, so this subtracts that back out.
+const _kFrameLabelTopOffset = -8.0 - _kFrameTopPadding;
+
 /// The interactive family-tree view: pan-able cards for the current
 /// person's parents, full siblings, partner(s) and children. Tapping a
 /// card re-centers the whole view on that person; the only other action is
@@ -562,14 +575,16 @@ class _SiblingsFrame extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 6),
       // The frame label straddles the border like a fieldset legend (hence
-      // painting its background over the border line) - its Positioned top
-      // is relative to this padded box, not the outer border, so it needs
-      // to counteract that top padding to land back on the border: -32
-      // relative to the padded box == -8 relative to the border itself
-      // (24 padding - 32), landing the label's vertical center right on
-      // the 1.5px border line for its ~16px text height. Top padding here
-      // is what stops the row of cards below from starting underneath it.
-      padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
+      // painting its background over the border line) - see
+      // _kFrameLabelTopOffset for why its Positioned top is what it is.
+      // Top padding here is also what stops the row of cards below from
+      // starting underneath the label.
+      padding: const EdgeInsets.fromLTRB(
+        _kFrameHorizontalPadding,
+        _kFrameTopPadding,
+        _kFrameHorizontalPadding,
+        _kFrameBottomPadding,
+      ),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
         borderRadius: BorderRadius.circular(16),
@@ -600,11 +615,15 @@ class _SiblingsFrame extends StatelessWidget {
           // height (e.g. a card showing an extra detail line), which
           // otherwise hid the label text behind them.
           Positioned(
-            top: -32,
+            top: _kFrameLabelTopOffset,
             left: 16,
             child: Container(
               color: const Color(0xFFF4F5F7),
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+              // letterSpacing adds trailing space after the LAST glyph too,
+              // not just between glyphs - a plain symmetric(horizontal: 6)
+              // therefore looked visibly wider on the right than the left.
+              // Shorting the right side by that same 0.5 cancels it out.
+              padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
               child: Text(
                 AppLocalizations.of(context)!.siblingsLabel.toUpperCase(),
                 style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
@@ -702,7 +721,12 @@ class _ChildrenFrame extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 378),
       margin: const EdgeInsets.symmetric(horizontal: 6),
       // Same label-straddles-the-border treatment as the siblings frame.
-      padding: const EdgeInsets.fromLTRB(4, 24, 4, 10),
+      padding: const EdgeInsets.fromLTRB(
+        _kFrameHorizontalPadding,
+        _kFrameTopPadding,
+        _kFrameHorizontalPadding,
+        _kFrameBottomPadding,
+      ),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
         borderRadius: BorderRadius.circular(16),
@@ -751,24 +775,39 @@ class _ChildrenFrame extends StatelessWidget {
           // border and can otherwise end up hidden behind the first row of
           // cards.
           Positioned(
-            top: -32,
+            top: _kFrameLabelTopOffset,
             left: 16,
             right: 16,
-            child: Container(
-              color: const Color(0xFFF4F5F7),
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              // A long partner name (compound surnames are common) must not
-              // overflow past the frame's own border uncontrolled.
-              child: Text(
-                (partner.partner == null
-                        ? l10n.childrenUnknownParentLabel
-                        : l10n.childrenWithPartnerLabel(
-                            partner.partner!.firstName,
-                          ))
-                    .toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+            // Positioned with both left AND right set gives its child a
+            // TIGHT width (frame width - 32), which stretched the label's
+            // background across nearly the whole frame - the text itself
+            // stayed left-aligned inside it, so the background beyond the
+            // text (still the same F4F5F7 as the page) read as a huge gap
+            // before the border resumed. Align lets the Container shrink-
+            // wrap to its actual (possibly ellipsized) text width while the
+            // Positioned's left/right still cap how wide that can get, for
+            // a long partner name.
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                color: const Color(0xFFF4F5F7),
+                // letterSpacing adds trailing space after the LAST glyph
+                // too, not just between glyphs - a plain
+                // symmetric(horizontal: 6) therefore looked visibly wider
+                // on the right than the left. Shorting the right side by
+                // that same 0.5 cancels it out.
+                padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
+                child: Text(
+                  (partner.partner == null
+                          ? l10n.childrenUnknownParentLabel
+                          : l10n.childrenWithPartnerLabel(
+                              partner.partner!.firstName,
+                            ))
+                      .toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+                ),
               ),
             ),
           ),

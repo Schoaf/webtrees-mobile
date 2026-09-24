@@ -233,13 +233,18 @@ class _CornerBadge extends StatelessWidget {
   final bool right;
   final Widget child;
 
+  // Pushed further past the card's own edge than a plain "sits right at the
+  // corner" -3 would - reads as tucked into the corner rather than resting
+  // just inside the card.
+  static const _edgeOffset = -6.0;
+
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: top ? -3 : null,
-      bottom: top ? null : -3,
-      left: right ? null : -3,
-      right: right ? -3 : null,
+      top: top ? _edgeOffset : null,
+      bottom: top ? null : _edgeOffset,
+      left: right ? null : _edgeOffset,
+      right: right ? _edgeOffset : null,
       child: _CornerCircle(child: child),
     );
   }
