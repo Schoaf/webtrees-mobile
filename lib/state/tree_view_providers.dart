@@ -15,7 +15,6 @@ class TreeViewState {
     required this.loading,
     required this.error,
     required this.selectedPartnerXref,
-    required this.childrenExpanded,
   });
 
   final List<String> history;
@@ -24,7 +23,6 @@ class TreeViewState {
   final bool loading;
   final String? error;
   final String? selectedPartnerXref;
-  final bool childrenExpanded;
 
   String get activeXref => history[pos];
   bool get canUndo => pos > 0;
@@ -54,7 +52,6 @@ class TreeViewController extends Notifier<TreeViewState> {
       loading: true,
       error: null,
       selectedPartnerXref: null,
-      childrenExpanded: false,
     );
   }
 
@@ -70,7 +67,6 @@ class TreeViewController extends Notifier<TreeViewState> {
       loading: true,
       error: null,
       selectedPartnerXref: state.selectedPartnerXref,
-      childrenExpanded: state.childrenExpanded,
     );
 
     final client = ref.read(webtreesClientProvider);
@@ -90,7 +86,6 @@ class TreeViewController extends Notifier<TreeViewState> {
           // one) supplies its own localized fallback text when this is null.
           error: json['error'] as String?,
           selectedPartnerXref: state.selectedPartnerXref,
-          childrenExpanded: state.childrenExpanded,
         );
         return;
       }
@@ -103,7 +98,6 @@ class TreeViewController extends Notifier<TreeViewState> {
         loading: false,
         error: null,
         selectedPartnerXref: state.selectedPartnerXref,
-        childrenExpanded: state.childrenExpanded,
       );
     } catch (e) {
       // Not `on Exception`: a malformed/unexpected field in TreeNeighborhood
@@ -120,7 +114,6 @@ class TreeViewController extends Notifier<TreeViewState> {
         // wraps this with its own localized "Couldn't load: ..." prefix.
         error: '$e',
         selectedPartnerXref: state.selectedPartnerXref,
-        childrenExpanded: state.childrenExpanded,
       );
     }
   }
@@ -139,7 +132,6 @@ class TreeViewController extends Notifier<TreeViewState> {
       loading: state.loading,
       error: state.error,
       selectedPartnerXref: null,
-      childrenExpanded: false,
     );
     await _load(xref);
   }
@@ -153,7 +145,6 @@ class TreeViewController extends Notifier<TreeViewState> {
       loading: state.loading,
       error: state.error,
       selectedPartnerXref: null,
-      childrenExpanded: false,
     );
   }
 
@@ -166,7 +157,6 @@ class TreeViewController extends Notifier<TreeViewState> {
       loading: state.loading,
       error: state.error,
       selectedPartnerXref: null,
-      childrenExpanded: false,
     );
   }
 
@@ -178,19 +168,6 @@ class TreeViewController extends Notifier<TreeViewState> {
       loading: state.loading,
       error: state.error,
       selectedPartnerXref: xref,
-      childrenExpanded: false,
-    );
-  }
-
-  void toggleChildrenExpanded() {
-    state = TreeViewState(
-      history: state.history,
-      pos: state.pos,
-      cache: state.cache,
-      loading: state.loading,
-      error: state.error,
-      selectedPartnerXref: state.selectedPartnerXref,
-      childrenExpanded: !state.childrenExpanded,
     );
   }
 }

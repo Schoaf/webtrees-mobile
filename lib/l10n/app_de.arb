@@ -327,8 +327,8 @@
       "name": {"type": "String"}
     }
   },
-  "showAllCount": "Alle {count} anzeigen",
-  "@showAllCount": {
+  "moreChildrenWithOtherPartnerLabel": "+{count} weitere Kinder",
+  "@moreChildrenWithOtherPartnerLabel": {
     "placeholders": {
       "count": {"type": "int"}
     }

@@ -13,7 +13,6 @@ import '../search/person_detail_screen.dart';
 
 const _kCardWidth = 90.0;
 const _kActiveZoom = 1.22;
-const _kChildrenVisibleWithoutExpand = 6;
 const _kMinScale = 0.5;
 const _kMaxScale = 2.5;
 
@@ -168,12 +167,10 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           child: _TreeContent(
                             neighborhood: neighborhood,
                             selectedPartnerXref: treeState.selectedPartnerXref,
-                            childrenExpanded: treeState.childrenExpanded,
                             activeCardKey: _activeCardKey,
                             familyGroupKey: _familyGroupKey,
                             onSelectPerson: controller.selectPerson,
                             onSelectPartner: controller.selectPartner,
-                            onToggleChildren: controller.toggleChildrenExpanded,
                             onOpenProfile: (xref) => Navigator.of(context).push(
                               MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)),
                             ),
@@ -259,25 +256,21 @@ class _TreeContent extends ConsumerWidget {
   const _TreeContent({
     required this.neighborhood,
     required this.selectedPartnerXref,
-    required this.childrenExpanded,
     required this.activeCardKey,
     required this.familyGroupKey,
     required this.onSelectPerson,
     required this.onSelectPartner,
-    required this.onToggleChildren,
     required this.onOpenProfile,
   });
 
   final TreeNeighborhood neighborhood;
   final String? selectedPartnerXref;
-  final bool childrenExpanded;
   final GlobalKey activeCardKey;
   /// Wraps parents + siblings frame - see _TreeViewScreenState's own doc
   /// comment on the field this is passed from.
   final GlobalKey familyGroupKey;
   final void Function(String xref) onSelectPerson;
   final void Function(String xref) onSelectPartner;
-  final VoidCallback onToggleChildren;
   final void Function(String xref) onOpenProfile;
 
   @override
@@ -322,9 +315,13 @@ class _TreeContent extends ConsumerWidget {
           _ChildrenFrame(
             partner: partner,
             photoHeaders: photoHeaders,
-            expanded: childrenExpanded,
+            // Children with any OTHER partner - "Kinder mit X" only shows
+            // this one family, so without this there was no hint at all
+            // that the active person has children elsewhere too.
+            extraChildrenCount: neighborhood.partners
+                .where((p) => p.familyXref != partner.familyXref)
+                .fold(0, (n, p) => n + p.children.length),
             onSelectPerson: onSelectPerson,
-            onToggleExpand: onToggleChildren,
           ),
         ],
       ],
@@ -699,23 +696,23 @@ class _ChildrenFrame extends StatelessWidget {
   const _ChildrenFrame({
     required this.partner,
     required this.photoHeaders,
-    required this.expanded,
+    required this.extraChildrenCount,
     required this.onSelectPerson,
-    required this.onToggleExpand,
   });
 
   final TreePartnerFamily partner;
   final Map<String, String> photoHeaders;
-  final bool expanded;
+
+  /// Children the active person has with any OTHER partner - shown as a
+  /// "+N weitere Kinder" hint on the frame's right edge, since this frame
+  /// only ever lists the one currently-selected partner's children.
+  final int extraChildrenCount;
   final void Function(String xref) onSelectPerson;
-  final VoidCallback onToggleExpand;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final children = partner.children;
-    final shown = expanded ? children : children.take(_kChildrenVisibleWithoutExpand).toList();
-    final remaining = children.length - shown.length;
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 378),
@@ -734,39 +731,25 @@ class _ChildrenFrame extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
+          // No "show more" cutoff - every child is shown, wrapping onto as
+          // many rows as needed. There's plenty of room below to grow into,
+          // unlike a fixed-height card row.
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
             children: [
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (final child in shown)
-                    TreeNodeCard(
-                      firstName: child.firstName,
-                      sex: child.sex,
-                      isDead: child.isDead,
-                      birthYear: child.birthYear,
-                      thumb: child.thumb,
-                      photoHeaders: photoHeaders,
-                      showChildrenIcon: (child.childrenCount ?? 0) > 0,
-                      childrenCount: child.childrenCount ?? 0,
-                      onTap: () => onSelectPerson(child.xref),
-                    ),
-                ],
-              ),
-              if (remaining > 0 || expanded)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: TextButton(
-                    onPressed: onToggleExpand,
-                    child: Text(
-                      expanded
-                          ? l10n.showLess
-                          : l10n.showAllCount(children.length),
-                    ),
-                  ),
+              for (final child in children)
+                TreeNodeCard(
+                  firstName: child.firstName,
+                  sex: child.sex,
+                  isDead: child.isDead,
+                  birthYear: child.birthYear,
+                  thumb: child.thumb,
+                  photoHeaders: photoHeaders,
+                  showChildrenIcon: (child.childrenCount ?? 0) > 0,
+                  childrenCount: child.childrenCount ?? 0,
+                  onTap: () => onSelectPerson(child.xref),
                 ),
             ],
           ),
@@ -811,6 +794,23 @@ class _ChildrenFrame extends StatelessWidget {
               ),
             ),
           ),
+          // Same border-straddling treatment, mirrored to the right edge -
+          // a hint that the active person has children with (an)other
+          // partner(s) too, not shown in this frame (which only ever lists
+          // the one currently-selected partner's children).
+          if (extraChildrenCount > 0)
+            Positioned(
+              top: _kFrameLabelTopOffset,
+              right: 16,
+              child: Container(
+                color: const Color(0xFFF4F5F7),
+                padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
+                child: Text(
+                  l10n.moreChildrenWithOtherPartnerLabel(extraChildrenCount),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                ),
+              ),
+            ),
         ],
       ),
     );

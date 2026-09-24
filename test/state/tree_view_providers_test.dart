@@ -104,18 +104,13 @@ void main() {
     expect(notifier.state.canRedo, isFalse);
   });
 
-  test('selectPartner and toggleChildrenExpanded update independently', () async {
+  test('selectPartner updates selectedPartnerXref', () async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
 
     final notifier = controllerFor('I1');
     await Future<void>.delayed(Duration.zero);
 
     notifier.selectPartner('I9');
-    expect(notifier.state.selectedPartnerXref, 'I9');
-    expect(notifier.state.childrenExpanded, isFalse);
-
-    notifier.toggleChildrenExpanded();
-    expect(notifier.state.childrenExpanded, isTrue);
     expect(notifier.state.selectedPartnerXref, 'I9');
   });
 

@@ -179,7 +179,7 @@
   "siblingsLabel": "Siblings",
   "childrenUnknownParentLabel": "Children, unknown parent",
   "childrenWithPartnerLabel": "Children with {name}",
-  "showAllCount": "Show all {count}",
+  "moreChildrenWithOtherPartnerLabel": "+{count} more children",
 
   "couldNotLoadFactTypesError": "Couldn't load fact types: {error}",
   "factValueHint": "e.g. Baker",
