@@ -159,6 +159,8 @@
   "passwordLabel": "Passwort",
   "loginButton": "Anmelden",
   "viewFamilyTreeButton": "Stammbaum ansehen",
+  "forgotPasswordLink": "Passwort vergessen",
+  "registerLink": "Registrieren",
 
   "noResponsesMessage": "Keine Antworten vorhanden.",
   "fromResponder": "Von {name}",

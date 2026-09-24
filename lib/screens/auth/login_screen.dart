@@ -185,6 +185,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             child: Text(l10n.privacyPolicy),
                           ),
+                          TextButton(
+                            onPressed: () => launchUrl(
+                              siteUrl(passwordRequestUrl(ref), mobile: true),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            child: Text(l10n.forgotPasswordLink),
+                          ),
+                          TextButton(
+                            onPressed: () => launchUrl(
+                              siteUrl(registerUrl(ref), mobile: true),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            child: Text(l10n.registerLink),
+                          ),
                         ],
                       ),
                       if (_appVersion != null) ...[
