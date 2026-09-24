@@ -126,6 +126,23 @@ void main() {
     expect(button.onPressed, isNotNull);
   });
 
+  testWidgets('the username and password fields are present and hold exactly what was typed into them', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsNWidgets(2));
+    final usernameField = find.byType(TextField).at(0);
+    final passwordField = find.byType(TextField).at(1);
+
+    await tester.enterText(usernameField, 'bob');
+    await tester.enterText(passwordField, 'hunter2');
+
+    expect(tester.widget<TextField>(usernameField).controller!.text, 'bob');
+    expect(tester.widget<TextField>(passwordField).controller!.text, 'hunter2');
+  });
+
   testWidgets('the username is trimmed before being sent to login()', (tester) async {
     // info() is called 3 times end to end: once by LoginScreen's own
     // initState (tree title), then twice inside AuthController.login()

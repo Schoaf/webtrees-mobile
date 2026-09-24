@@ -227,7 +227,15 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     final l10n = AppLocalizations.of(context)!;
     switch (result) {
       case AddFactResult.posted:
-        setState(() => _future = _load());
+        // Braced, not `setState(() => _future = _load())`: an assignment
+        // expression's value is the assigned value, so an arrow-bodied
+        // closure there returns the Future _load() produces, which trips
+        // Flutter's "setState() callback argument returned a Future" debug
+        // assertion (harmless in release, where asserts are stripped, but
+        // it throws in tests and shows a debug-mode error overlay).
+        setState(() {
+          _future = _load();
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.factSavedPendingApproval)),
         );
@@ -305,7 +313,15 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       );
       if (!mounted) return;
       if (result['ok'] == true) {
-        setState(() => _future = _load());
+        // Braced, not `setState(() => _future = _load())`: an assignment
+        // expression's value is the assigned value, so an arrow-bodied
+        // closure there returns the Future _load() produces, which trips
+        // Flutter's "setState() callback argument returned a Future" debug
+        // assertion (harmless in release, where asserts are stripped, but
+        // it throws in tests and shows a debug-mode error overlay).
+        setState(() {
+          _future = _load();
+        });
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.photoUploaded)));
@@ -587,27 +603,53 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
 
         return Scaffold(
+          // Not wrapped in TabletBoundedBody directly: Scaffold lays out
+          // bottomNavigationBar with a height constraint that's bounded but
+          // loose (0..full Scaffold height - see _ScaffoldLayout.performLayout,
+          // which measures this slot BEFORE it knows how much height body
+          // needs). Align/Center, when given a *bounded* max height, always
+          // expands to fill it (Flutter only shrink-wraps when the incoming
+          // constraint is unbounded - see RenderPositionedBox.performLayout).
+          // TabletBoundedBody's Align therefore silently claimed the WHOLE
+          // screen height for the bottom bar, leaving Scaffold's body 0px of
+          // height - the body's Column then overflowed (a RenderFlex forced
+          // into 0 height), and everything inside the now-zero-height
+          // ListView viewport stopped being "onstage" (Flutter's sliver
+          // viewport only counts children within its laid-out extent as
+          // onstage), so widget finders like find.text/find.byType found
+          // nothing even though the widgets were still in the tree.
+          // We still need to center+cap the button's WIDTH (it must fill up
+          // to 480px - AppTheme's FilledButtonThemeData sets
+          // minimumSize: Size.fromHeight(56), i.e. an infinite minimum
+          // width, so a Row-based centering trick would blow up), so this
+          // keeps Center but adds heightFactor: 1 to force it to shrink-wrap
+          // its HEIGHT to the button's natural size instead of filling the
+          // bounded-but-loose height Scaffold hands it.
           bottomNavigationBar: _editing
-              ? TabletBoundedBody(
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                      child: ValueListenableBuilder<bool>(
-                        valueListenable: _savingNotifier,
-                        builder: (context, saving, _) => FilledButton(
-                          onPressed: saving
-                              ? null
-                              : () => _editKey.currentState?.save(),
-                          child: saving
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(AppLocalizations.of(context)!.save),
+              ? SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                    child: Center(
+                      heightFactor: 1,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: _savingNotifier,
+                          builder: (context, saving, _) => FilledButton(
+                            onPressed: saving
+                                ? null
+                                : () => _editKey.currentState?.save(),
+                            child: saving
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(AppLocalizations.of(context)!.save),
+                          ),
                         ),
                       ),
                     ),

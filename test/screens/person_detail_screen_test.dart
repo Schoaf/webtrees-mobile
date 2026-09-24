@@ -205,4 +205,152 @@ void main() {
 
     expect(find.textContaining('Konnte nicht laden:'), findsOneWidget);
   });
+
+  testWidgets('entering edit mode shows the fact fields and does not overflow the layout', (tester) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+
+    await pumpScreen(tester);
+
+    await tester.tap(find.byTooltip('Bearbeiten'));
+    await tester.pumpAndSettle();
+
+    // Regression test: the bottomNavigationBar's width-capping Center, when
+    // given Scaffold's bounded-but-loose height constraint for that slot,
+    // expanded to fill the WHOLE Scaffold height (Align/Center only
+    // shrink-wraps when its constraint is unbounded - see
+    // RenderPositionedBox.performLayout) instead of just the save button's
+    // own height. That starved Scaffold's body of all height, so its outer
+    // Column (_Header + the facts/edit list) overflowed - and everything
+    // inside the now-zero-height ListView viewport stopped being "onstage"
+    // (Flutter's sliver viewport only counts children within its laid-out
+    // extent as onstage), so finders like find.text/find.byType found
+    // nothing even though debugDumpApp() showed the widgets were still in
+    // the tree. takeException() alone doesn't catch this (it's a pure
+    // layout miscalculation, nothing throws) - the field assertions below
+    // are what actually prove the form is usable, not just "no error".
+    expect(tester.takeException(), isNull);
+
+    // BIRT sorts first (see kFactDisplayOrder), so its editor is near the
+    // top of the form and doesn't need scrolling into view.
+    expect(find.text('Geburt'), findsOneWidget);
+    expect(find.byType(TextField), findsWidgets);
+  });
+
+  testWidgets(
+    'every edit-mode field type (date picker, place autocomplete, sex segment, plain value fields) can be '
+    'filled/selected and the new values reach postFact on save',
+    (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+      when(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'BIRT', value: null, date: '20 MAY 1980', place: 'Berlin'),
+      ).thenAnswer((_) async => {'ok': true});
+      when(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'SEX', value: 'M', date: null, place: null),
+      ).thenAnswer((_) async => {'ok': true});
+      when(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'TITL', value: 'Prof.', date: null, place: null),
+      ).thenAnswer((_) async => {'ok': true});
+      when(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'REFN', value: 'REF-999', date: null, place: null),
+      ).thenAnswer((_) async => {'ok': true});
+
+      // The edit form is a ListView taller than the default 800x600 test
+      // surface - a real device scrolls it, but repeatedly scrolling to
+      // reach each field in turn here fights with scroll-physics settling
+      // (overscroll bounce-back can silently scroll a just-revealed field
+      // back offscreen between one interaction and the next). This test is
+      // about field presence/fillability, not scroll behavior, so give the
+      // surface enough height that every field is simultaneously reachable.
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpScreen(tester);
+
+      await tester.tap(find.byTooltip('Bearbeiten'));
+      await tester.pumpAndSettle();
+
+      // BIRT's date: always picker-driven (GedcomDateField never accepts
+      // free-text keyboard entry) - open it via its current formatted
+      // display and pick a different day to prove a real value takes.
+      expect(find.text('3. Mai 1980'), findsOneWidget);
+      await tester.tap(find.text('3. Mai 1980'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+      await tester.tap(find.text('20'));
+      await tester.tap(find.text('Übernehmen'));
+      await tester.pumpAndSettle();
+      expect(find.text('20. Mai 1980'), findsOneWidget);
+
+      // BIRT's place (PlaceAutocompleteField) is the first plain TextField
+      // in the edit form, followed by TITL's and REFN's value fields.
+      await tester.enterText(find.byType(TextField).at(0), 'Berlin');
+      await tester.enterText(find.byType(TextField).at(1), 'Prof.');
+      await tester.enterText(find.byType(TextField).at(2), 'REF-999');
+
+      // SEX's segmented picker.
+      await tester.tap(find.text('Männlich'));
+      await tester.pump();
+
+      await tester.tap(find.text('Speichern'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'BIRT', value: null, date: '20 MAY 1980', place: 'Berlin'),
+      ).called(1);
+      verify(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'SEX', value: 'M', date: null, place: null),
+      ).called(1);
+      verify(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'TITL', value: 'Prof.', date: null, place: null),
+      ).called(1);
+      verify(
+        () => client.postFact('Famtree', 'I1', factId: null, tag: 'REFN', value: 'REF-999', date: null, place: null),
+      ).called(1);
+      expect(find.text('Änderungen gespeichert — wartet ggf. auf Freigabe.'), findsOneWidget);
+    },
+  );
+
+  group('AddFactSheet (Fakt hinzufügen)', () {
+    testWidgets('the tag picker, value field, and (once a tag is chosen) date field can all be filled and are sent on save', (
+      tester,
+    ) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+      when(() => client.tags('Famtree', type: 'INDI')).thenAnswer(
+        (_) async => {
+          'data': [
+            {'tag': 'OCCU', 'label': 'Beruf'},
+            {'tag': 'RELI', 'label': 'Religion'},
+          ],
+        },
+      );
+      when(
+        () => client.postFact('Famtree', 'I1', tag: 'OCCU', value: 'Bäcker', date: any(named: 'date')),
+      ).thenAnswer((_) async => {'ok': true});
+
+      await pumpScreen(tester);
+
+      await tester.tap(find.text('Fakt hinzufügen'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Beruf'));
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), 'Bäcker');
+
+      expect(find.text('Datum wählen'), findsOneWidget);
+      await tester.tap(find.text('Datum wählen'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+      await tester.tap(find.text('1'));
+      await tester.tap(find.text('Übernehmen'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Speichern'));
+      await tester.pumpAndSettle();
+
+      verify(() => client.postFact('Famtree', 'I1', tag: 'OCCU', value: 'Bäcker', date: any(named: 'date'))).called(1);
+    });
+  });
 }
