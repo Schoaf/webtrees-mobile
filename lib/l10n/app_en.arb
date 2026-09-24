@@ -156,6 +156,7 @@
   "copyLinkTitle": "Copy link",
   "copyLinkSubtitle": "Copy the link to the clipboard to send it yourself",
   "shareViaAppSubtitle": "Share via another app, e.g. WhatsApp or Messages",
+  "askForHelpShareText": "Hi, do you know more about {name}? I'm collecting information for our family tree. Take a look here: {url}",
   "sendByEmailSubtitle": "Send an email with the link directly from the app",
   "requestFailedError": "Request failed: {error}",
   "couldNotLoadEmailTemplateError": "Couldn't load email template: {error}",

@@ -460,7 +460,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       case _AskForHelpChoice.copyLink:
         copyToClipboard(url);
       case _AskForHelpChoice.shareLink:
-        await SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));
+        await SharePlus.instance.share(
+          ShareParams(text: l10n.askForHelpShareText(name, url)),
+        );
       case _AskForHelpChoice.email:
         await _openEmailComposer(tree: tree, token: token);
     }

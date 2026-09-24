@@ -262,6 +262,13 @@
   "copyLinkTitle": "Link kopieren",
   "copyLinkSubtitle": "Link in die Zwischenablage kopieren, um ihn selbst zu verschicken",
   "shareViaAppSubtitle": "Über eine andere App teilen, z. B. WhatsApp oder Nachrichten",
+  "askForHelpShareText": "Hallo, weißt du mehr über {name}? Ich sammle gerade Infos für unseren Stammbaum. Schau mal bitte hier: {url}",
+  "@askForHelpShareText": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "url": {"type": "String"}
+    }
+  },
   "sendByEmailSubtitle": "Direkt aus der App eine E-Mail mit dem Link verschicken",
   "requestFailedError": "Anfrage fehlgeschlagen: {error}",
   "@requestFailedError": {
