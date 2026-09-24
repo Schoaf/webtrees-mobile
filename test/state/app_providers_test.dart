@@ -98,15 +98,15 @@ void main() {
     });
   });
 
-  group('mobileSiteUrl', () {
-    test('adds index.php and mobile=1 to a plain server URL', () {
-      expect(mobileSiteUrl('https://example.org/').toString(), 'https://example.org/index.php?mobile=1');
-      expect(mobileSiteUrl('https://example.org').toString(), 'https://example.org/index.php?mobile=1');
-      expect(mobileSiteUrl('https://example.org/webtrees/').toString(), 'https://example.org/webtrees/index.php?mobile=1');
+  group('siteUrl', () {
+    test('adds index.php and the mobile flag to a plain server URL', () {
+      expect(siteUrl('https://example.org/', mobile: true).toString(), 'https://example.org/index.php?mobile=1');
+      expect(siteUrl('https://example.org', mobile: false).toString(), 'https://example.org/index.php?mobile=0');
+      expect(siteUrl('https://example.org/webtrees/', mobile: false).toString(), 'https://example.org/webtrees/index.php?mobile=0');
     });
 
     test('keeps an existing route parameter', () {
-      final uri = mobileSiteUrl('https://example.org/index.php?route=%2Fmodule%2Fprivacy-policy%2FPage%2Ftree');
+      final uri = siteUrl('https://example.org/index.php?route=%2Fmodule%2Fprivacy-policy%2FPage%2Ftree', mobile: true);
 
       expect(uri.path, '/index.php');
       expect(uri.queryParameters, {'route': '/module/privacy-policy/Page/tree', 'mobile': '1'});
