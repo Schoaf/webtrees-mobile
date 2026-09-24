@@ -579,6 +579,12 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final canEdit = data['canEdit'] as bool? ?? false;
         final photoUrl = person['thumb'] as String?;
         final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+        // Stammbaum-Ansicht is a manager-only feature (webtrees has no
+        // separate site-admin flag in this API, "manager" is the closest
+        // stand-in) - purely a UI gate, nothing server-side enforces it
+        // further.
+        final showTreeButton =
+            !_editing && ref.watch(authControllerProvider).isManager;
 
         final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
 
@@ -648,17 +654,20 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                                       // Balances the tree-view button's width
                                       // on the other side so the avatar stays
                                       // centered, matching the layout before
-                                      // this button existed. Plain Row instead
-                                      // of a negative-offset Positioned/Stack:
-                                      // simpler and can't run into clipping or
-                                      // hit-testing edge cases.
-                                      const SizedBox(width: 40),
+                                      // this button existed - only needed
+                                      // when the button actually shows. Plain
+                                      // Row instead of a negative-offset
+                                      // Positioned/Stack: simpler and can't
+                                      // run into clipping or hit-testing edge
+                                      // cases.
+                                      if (showTreeButton)
+                                        const SizedBox(width: 40),
                                       Expanded(
                                         child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
-                                            if (!_editing) ...[
+                                            if (showTreeButton) ...[
                                               _TreeViewButton(
                                                 onTap: () =>
                                                     Navigator.of(context).push(
@@ -704,7 +713,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(width: 40),
+                                      if (showTreeButton)
+                                        const SizedBox(width: 40),
                                     ],
                                   ),
                                   const SizedBox(height: 10),
