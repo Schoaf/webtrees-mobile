@@ -662,10 +662,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final canEdit = data['canEdit'] as bool? ?? false;
         final photoUrl = person['thumb'] as String?;
         final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
-        // Stammbaum-Ansicht is an Administrator-only feature - purely a UI
-        // gate, nothing server-side enforces it further.
-        final showTreeButton =
-            !_editing && ref.watch(authControllerProvider).isAdmin;
+        // Was Administrator-only while still rough around the edges;
+        // reopened to everyone now that it's had a full polish pass.
+        final showTreeButton = !_editing;
 
         final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
         final isDead = person['isDead'] as bool? ?? false;

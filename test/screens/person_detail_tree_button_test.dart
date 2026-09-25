@@ -10,17 +10,9 @@ import 'package:webtrees_mobile/state/app_providers.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
-/// The tree-view button only shows for Administrators (see
-/// AuthState.isAdmin) - fake the signed-in state instead of going
-/// through a real login flow just to set that flag.
-class _FakeAdminAuthController extends AuthController {
-  @override
-  AuthState build() => const AuthState(loggedIn: true, isAdmin: true);
-}
-
 void main() {
   testWidgets(
-    'tapping the tree-view button actually navigates to TreeViewScreen',
+    'tapping the tree-view button actually navigates to TreeViewScreen (no admin required)',
     (tester) async {
       final client = MockWebtreesClient();
       when(() => client.imageHeaders).thenReturn(<String, String>{});
@@ -38,12 +30,12 @@ void main() {
         },
       );
 
-      final container = ProviderContainer(
-        overrides: [
-          webtreesClientProvider.overrideWithValue(client),
-          authControllerProvider.overrideWith(_FakeAdminAuthController.new),
-        ],
-      );
+      // No authControllerProvider override - defaults to the logged-out,
+      // non-admin AuthState(). The tree-view button used to require
+      // isAdmin (while it was still rough around the edges); reopened to
+      // everyone once it had a full polish pass, so this deliberately
+      // proves it no longer depends on admin status at all.
+      final container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
       addTearDown(container.dispose);
 
       await tester.pumpWidget(
@@ -75,48 +67,4 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the tree-view button is hidden for a non-admin',
-    (tester) async {
-      final client = MockWebtreesClient();
-      when(() => client.imageHeaders).thenReturn(<String, String>{});
-      when(() => client.individual('Famtree', 'I1')).thenAnswer(
-        (_) async => {
-          'person': {'xref': 'I1', 'name': 'Anna Muster', 'sortName': 'Muster,Anna', 'sex': 'F', 'isDead': false},
-          'relationship': '',
-          'canEdit': false,
-          'facts': <dynamic>[],
-          'parentFamilies': <dynamic>[],
-          'spouseFamilies': <dynamic>[],
-          'siblings': <dynamic>[],
-          'extraChildrenByParent': {'father': 0, 'mother': 0},
-          'media': <dynamic>[],
-        },
-      );
-
-      // No authControllerProvider override - defaults to the logged-out,
-      // non-admin AuthState().
-      final container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
-      addTearDown(container.dispose);
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('de'),
-            home: PersonDetailScreen(xref: 'I1'),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-
-      final treeButton = find.byWidgetPredicate(
-        (w) => w is InkWell && w.onTap != null && w.customBorder is CircleBorder,
-      );
-      expect(treeButton, findsNothing);
-    },
-  );
 }
