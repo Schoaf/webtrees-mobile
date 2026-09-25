@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
 import '../../state/tree_view_providers.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/tree_icons.dart';
 import '../../widgets/tree_node_card.dart';
 import '../search/person_detail_screen.dart';
@@ -322,6 +323,15 @@ class _TreeContent extends ConsumerWidget {
             extraChildrenCount: neighborhood.partners
                 .where((p) => p.familyXref != partner.familyXref)
                 .fold(0, (n, p) => n + p.children.length),
+            // Tapping the "+N weitere Kinder" hint cycles to the next
+            // partner in the list, same as the chips above the active
+            // card do - a quicker way to flip through partners' children
+            // than scrolling back up to tap a chip.
+            onTapExtraChildren: () {
+              final i = neighborhood.partners.indexWhere((p) => p.familyXref == partner.familyXref);
+              final next = neighborhood.partners[(i + 1) % neighborhood.partners.length];
+              onSelectPartner(next.familyXref);
+            },
             onSelectPerson: onSelectPerson,
           ),
         ],
@@ -698,6 +708,7 @@ class _ChildrenFrame extends StatelessWidget {
     required this.partner,
     required this.photoHeaders,
     required this.extraChildrenCount,
+    required this.onTapExtraChildren,
     required this.onSelectPerson,
   });
 
@@ -708,10 +719,16 @@ class _ChildrenFrame extends StatelessWidget {
   /// "+N weitere Kinder" hint on the frame's right edge, since this frame
   /// only ever lists the one currently-selected partner's children.
   final int extraChildrenCount;
+
+  /// Tapping the extra-children hint jumps straight to the next partner.
+  final VoidCallback onTapExtraChildren;
   final void Function(String xref) onSelectPerson;
 
   static const _mainLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5);
-  static const _extraLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280));
+  // Primary-blue, not the muted grey the (non-interactive) main label
+  // uses - this one is a button, so it reads as tappable like the rest of
+  // the app's link-style text (e.g. "Mehr anzeigen").
+  static const _extraLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.primary);
   // Both labels' own horizontal padding (6 + 5.5, see where they're used
   // below) plus each one's left:16/right:16 anchor inset.
   static const _labelChromeWidth = 6 + 5.5 + 16;
@@ -830,15 +847,20 @@ class _ChildrenFrame extends StatelessWidget {
           // Same border-straddling treatment, mirrored to the right edge -
           // a hint that the active person has children with (an)other
           // partner(s) too, not shown in this frame (which only ever lists
-          // the one currently-selected partner's children).
+          // the one currently-selected partner's children). Tappable: jumps
+          // straight to the next partner, same as scrolling up to tap a
+          // chip would, so their children are just as quick to reach.
           if (extraLabelText != null)
             Positioned(
               top: _kFrameLabelTopOffset,
               right: 16,
-              child: Container(
-                color: const Color(0xFFF4F5F7),
-                padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
-                child: Text(extraLabelText, style: _extraLabelStyle),
+              child: GestureDetector(
+                onTap: onTapExtraChildren,
+                child: Container(
+                  color: const Color(0xFFF4F5F7),
+                  padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
+                  child: Text(extraLabelText, style: _extraLabelStyle),
+                ),
               ),
             ),
         ],

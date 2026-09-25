@@ -32,6 +32,17 @@ void main() {
   });
 
   Future<void> pumpScreen(WidgetTester tester) async {
+    // TreeViewScreen's own centering logic fits the family group to the
+    // viewport, but the children frame below it can still land past the
+    // default 800x600 test surface - a taller surface keeps everything
+    // reachable by find/tap without needing to pan the InteractiveViewer
+    // (which isn't a Scrollable, so ensureVisible/scrollUntilVisible don't
+    // apply to it).
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -86,6 +97,61 @@ void main() {
     // "+1 weitere Kinder" hint rather than silently vanishing.
     expect(find.textContaining('+1'), findsOneWidget);
     expect(find.text('Noah'), findsNothing);
+  });
+
+  testWidgets('tapping the extra-children hint switches to the next partner\'s children', (tester) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer(
+      (_) async => {
+        'person': {'xref': 'I1', 'name': 'Elisabeth Muster', 'sortName': 'Muster,Elisabeth', 'sex': 'F', 'isDead': false},
+        'canEdit': false,
+        'facts': <dynamic>[],
+        'parentFamilies': <dynamic>[],
+        'spouseFamilies': [
+          {
+            'xref': 'F1',
+            'maritalStatus': 'married',
+            'marriage': {
+              'date': {'year': 2011},
+            },
+            'spouse': {'xref': 'I4', 'name': 'Thomas Wagner', 'sortName': 'Wagner,Thomas', 'sex': 'M', 'isDead': false},
+            'children': [childJson('I5', 'Mia', 2013)],
+          },
+          {
+            'xref': 'F2',
+            'maritalStatus': 'ended',
+            'marriage': {
+              'date': {'year': 2005},
+            },
+            'spouse': {'xref': 'I9', 'name': 'Klaus Berger', 'sortName': 'Berger,Klaus', 'sex': 'M', 'isDead': false},
+            'children': [childJson('I8', 'Noah', 2006)],
+          },
+        ],
+        'siblings': <dynamic>[],
+        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'media': <dynamic>[],
+      },
+    );
+
+    await pumpScreen(tester);
+
+    expect(find.text('Mia'), findsOneWidget);
+    expect(find.text('Noah'), findsNothing);
+
+    // Invokes the callback directly rather than tester.tap(): the badge
+    // sits inside InteractiveViewer's transformed/panned content, where a
+    // coordinate-based tap is liable to land on whatever the transform
+    // happens to put at that screen position instead of the widget itself.
+    final gesture = tester.widget<GestureDetector>(
+      find.ancestor(of: find.textContaining('+1'), matching: find.byType(GestureDetector)).first,
+    );
+    gesture.onTap!();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Noah'), findsOneWidget);
+    expect(find.text('Mia'), findsNothing);
+    // Now showing Klaus's family instead - Thomas's one child surfaces as
+    // the hint.
+    expect(find.textContaining('+1'), findsOneWidget);
   });
 
   testWidgets('hides the extra-children hint when there is only one partner family', (tester) async {
