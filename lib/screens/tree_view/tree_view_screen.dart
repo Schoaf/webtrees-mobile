@@ -393,7 +393,7 @@ class _ParentsRow extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: _kBadgeBackground,
                       borderRadius: BorderRadius.circular(999),
                       border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
@@ -454,6 +454,10 @@ class _ParentsRow extends StatelessWidget {
 // tree_node_card.dart, which mirrors this size for the info button.
 const _kRelationshipBubbleSize = 33.0;
 const _kRelationshipIconSize = 19.5;
+// Matches _kBadgeBackground in tree_node_card.dart - a touch off pure
+// white, distinctly lighter than the page's own canvas background
+// (0xFFF4F5F7).
+const _kBadgeBackground = Color(0xFFF8F9FA);
 
 class _RelationshipBubble extends StatelessWidget {
   const _RelationshipBubble({required this.status});
@@ -466,7 +470,7 @@ class _RelationshipBubble extends StatelessWidget {
       width: _kRelationshipBubbleSize,
       height: _kRelationshipBubbleSize,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _kBadgeBackground,
         shape: BoxShape.circle,
         border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: const [BoxShadow(color: Color(0x38111827), blurRadius: 6, offset: Offset(0, 2))],
@@ -759,13 +763,17 @@ class _ChildrenFrame extends StatelessWidget {
   // Same muted grey as the (non-interactive) main label - a chip's own
   // border/pill shape is what signals it's tappable here, not blue text.
   static const _chipTextStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280));
-  static const _chipPadding = EdgeInsets.symmetric(horizontal: 8, vertical: 3);
+  static const _chipPadding = EdgeInsets.symmetric(horizontal: 6, vertical: 2);
   static const _chipBorderWidth = 1.0;
+  // A shade darker than the page's own canvas background (0xFFF4F5F7),
+  // not white - it needs to read as its own distinct chip against a frame
+  // that already sits on that canvas colour.
+  static const _kChipBackground = Color(0xFFEAEBEE);
   // Main label's own horizontal padding (6 + 5.5, see where it's used
   // below) plus its left:6 anchor inset.
   static const _mainLabelChrome = 6 + 5.5 + 6;
   // Chip's padding + border (both sides) plus its right:6 anchor inset.
-  static const _chipChrome = 8 + 8 + _chipBorderWidth * 2 + 6;
+  static const _chipChrome = 6 + 6 + _chipBorderWidth * 2 + 6;
 
   double _textWidth(String text, TextStyle style) {
     final painter = TextPainter(text: TextSpan(text: text, style: style), textDirection: TextDirection.ltr, maxLines: 1)..layout();
@@ -899,17 +907,26 @@ class _ChildrenFrame extends StatelessWidget {
             Positioned(
               top: _kFrameLabelTopOffset - 3,
               right: 6,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onTapExtraChildren,
-                child: Container(
-                  padding: _chipPadding,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0xFFE5E7EB), width: _chipBorderWidth),
+              // Material+InkWell instead of a bare GestureDetector - the
+              // more standard/robust Flutter tap idiom (with its own
+              // hit-test handling via the ink-response layer), in case a
+              // plain GestureDetector here was somehow losing the gesture
+              // arena to InteractiveViewer's own pan/zoom recognizers.
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: onTapExtraChildren,
+                  child: Container(
+                    padding: _chipPadding,
+                    decoration: BoxDecoration(
+                      color: _kChipBackground,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0xFFE5E7EB), width: _chipBorderWidth),
+                    ),
+                    child: Text(extraLabelText, style: _chipTextStyle),
                   ),
-                  child: Text(extraLabelText, style: _chipTextStyle),
                 ),
               ),
             ),

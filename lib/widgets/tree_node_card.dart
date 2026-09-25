@@ -18,6 +18,11 @@ const _kCardPadding = EdgeInsets.fromLTRB(6, 10, 6, 16);
 // affordances that can appear on/around a card.
 const _kRelationshipBadgeSize = 33.0;
 
+// A touch off pure white, but distinctly lighter than the page's own
+// canvas background (0xFFF4F5F7) - matches _RelationshipBubble's
+// background in tree_view_screen.dart.
+const _kBadgeBackground = Color(0xFFF8F9FA);
+
 /// One card in the family-tree view (`PersonCardV4d` in the design). Purely
 /// presentational — which badges to show is a per-role decision made by
 /// whoever builds the tree layout (see `treeCardSuppression` doc in
@@ -294,7 +299,7 @@ class _CornerCircle extends StatelessWidget {
       constraints: BoxConstraints(minWidth: size, minHeight: size),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _kBadgeBackground,
         // A true circle (BoxShape.circle) inscribes its decoration using
         // the smaller of width/height as the diameter - fine for a lone
         // icon, but a badge with "icon+N" content is wider than tall, so

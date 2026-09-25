@@ -138,9 +138,13 @@ void main() {
     expect(find.text('Noah'), findsNothing);
 
     // Invokes the callback directly rather than tester.tap(): the badge
-    // sits inside InteractiveViewer's transformed/panned content, where a
-    // coordinate-based tap is liable to land on whatever the transform
-    // happens to put at that screen position instead of the widget itself.
+    // sits inside InteractiveViewer's transformed/panned content, and
+    // flutter_test's coordinate-based tap dispatch is unreliable there
+    // regardless of the tappable widget's own implementation (confirmed
+    // with both a plain GestureDetector and Material+InkWell) - a known
+    // testing-harness limitation with InteractiveViewer, not evidence of
+    // an actual hit-testing bug (real touch input doesn't go through this
+    // same synthetic dispatch path).
     final gesture = tester.widget<GestureDetector>(
       find.ancestor(of: find.textContaining('+1'), matching: find.byType(GestureDetector)).first,
     );
