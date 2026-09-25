@@ -152,7 +152,9 @@ class TreeNodeCard extends StatelessWidget {
                 // Not a true circle (icon+count pill, wider than tall) - a
                 // mathematically-equal edgeGap on every side still read as
                 // sitting a shade closer to the right edge than the top
-                // one. 1px more inset horizontally lines the two up.
+                // one. 1px more inset both vertically and horizontally
+                // lines the two up.
+                edgeGap: 1,
                 horizontalEdgeGap: 1,
                 child: _CountBadgeContent(
                   icon: RelationshipIcon(status: MaritalStatus.married, size: 11, color: const Color(0xFF4B5563)),

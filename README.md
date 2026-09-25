@@ -9,7 +9,7 @@ Startperson und Suche auf einen Blick (eine neue Person legt man über den "Neu"
 
 Oben rechts: Initialen oder Foto der mit dem Konto verknüpften Person — antippbar, öffnet **"Mein Konto"**.
 
-![Start](docs/screenshots/home.png)
+<a href="docs/screenshots/home.png"><img src="docs/screenshots/home.png" width="50" alt="Start"></a>
 
 ### Suche
 Personensuche mit Live-Ergebnissen. Jede Zeile zeigt:
@@ -18,7 +18,7 @@ Personensuche mit Live-Ergebnissen. Jede Zeile zeigt:
 - eine diagonale Banderole über der linken oberen Ecke für verstorbene Personen (ersetzt das frühere Grabstein-Symbol — einheitliches Design mit der Stammbaum-Ansicht)
 - darunter: bei lebenden Personen das **volle Geburtsdatum** (kein Bindestrich); erst bei verstorbenen Personen "Jahr–Jahr". Gilt überall, wo diese Zeile erscheint (Suche, Eltern/Ehepartner/Kinder, Mein Konto).
 
-![Suche](docs/screenshots/search.png)
+<a href="docs/screenshots/search.png"><img src="docs/screenshots/search.png" width="50" alt="Suche"></a>
 
 ### Person — Ansicht
 Alle bekannten Fakten zu einer Person, dazu Eltern/Ehepartner/Kinder als verlinkte Karten. Reihenfolge und Sichtbarkeit der Felder:
@@ -36,7 +36,7 @@ Oben links neben "Bearbeiten": ein **Teilen**-Button. "Daten teilen" öffnet den
 
 Ab der dritten verschachtelten Person (z. B. Eltern → Groß­eltern → Urgroß­eltern) erscheint unten links ein schwebender Home-Button, damit man nicht mehrfach "Zurück" tippen muss. Schwebende Buttons (Home, Fakt hinzufügen) erscheinen sofort, ohne Einflug-Animation.
 
-![Person](docs/screenshots/person_detail.png)
+<a href="docs/screenshots/person_detail.png"><img src="docs/screenshots/person_detail.png" width="50" alt="Person"></a>
 
 ### Stammbaum-Ansicht
 Runder Baum-Button links neben dem Foto auf der Personen-Detailseite öffnet eine eigene, frei verschiebbare (pan, keine Scrollbars) Ansicht: Eltern, Vollgeschwister, alle Partner samt deren Kinder rund um eine "aktuelle Person". Reine Anzeige — einzige Aktion ist das Antippen einer Karte, wodurch diese Person zur neuen aktuellen Person wird und sich die Ansicht komplett neu um sie aufbaut (kein Aufklappen einzelner Karten). Der i-Button unten rechts auf der aktuellen Person springt in die normale (bearbeitbare) Detailseite.
@@ -47,7 +47,7 @@ Karten zeigen Vorname, Geburtsjahr, Foto/Silhouette (Banderole bei Verstorbenen)
 
 **Bekannte Lücke:** die Vorname-Zeile eines Partners unter Geschwister-Karten (Design zeigt sie, falls ein Geschwisterkind selbst einen Partner hat) bleibt derzeit leer — die dafür nötigen Daten liefert der Server für Geschwister-Einträge noch nicht.
 
-*(Screenshot folgt noch — die Vorschau während der Entwicklung lief gegen Testdaten, kein echter Gerätescreenshot.)*
+<a href="docs/screenshots/tree_view.png"><img src="docs/screenshots/tree_view.png" width="50" alt="Stammbaum-Ansicht"></a>
 
 ### Person — Bearbeiten
 Der Stift-Button oben rechts schaltet die Ansicht auf bearbeitbar um (Stift wird zu X zum Abbrechen). Alle vorhandenen Fakten sind editierbar, auch die sonst unter "Mehr anzeigen" versteckten. Ein Ort-Feld (z. B. Wohnsitz) bietet Autovervollständigung aus den vorhandenen Orten des Stammbaums. Unten ein fixierter **Speichern**-Button.
@@ -58,7 +58,7 @@ Der schwebende **Fakt hinzufügen**-Button (unten rechts) bleibt für neue Fakte
 
 Änderungen von Rollen ohne Auto-Freigabe landen wie gewohnt in der webtrees-Moderationswarteschlange.
 
-![Person bearbeiten](docs/screenshots/person_edit.png)
+<a href="docs/screenshots/person_edit.png"><img src="docs/screenshots/person_edit.png" width="50" alt="Person bearbeiten"></a>
 
 ### Neue Person / Fakt hinzufügen
 Formular mit Vorname/Nachname, Geschlecht, Geburtsdatum/-ort (mit Orts-Autovervollständigung), Verknüpfung zu einer bestehenden Person sowie beliebig vielen "weiteren Angaben" (Beruf, Konfession, Wohnort, Notiz, …) — auch Wohnort nutzt die Orts-Autovervollständigung.
@@ -73,7 +73,7 @@ Der Stift oben rechts schaltet auf Bearbeiten um: **Name** wird zum Textfeld, di
 
 Unten ein **Abmelden**-Button — meldet sofort ab und springt direkt zum Anmelden-Bildschirm (nicht erst bei der nächsten Navigation). Ist Biometrie am Gerät verfügbar, direkt darunter ein Schalter **"Mit Biometrie sperren"** (siehe "Biometrie-Sperre" unten). Darunter ein Link **"Zur Website"** zur vollen Webseite.
 
-![Mein Konto](docs/screenshots/account.png)
+<a href="docs/screenshots/account.png"><img src="docs/screenshots/account.png" width="50" alt="Mein Konto"></a>
 
 ### Anmelden
 Eigener, zur App passender Anmelde-Bildschirm (vorher ein unformatierter Standard-Screen mit englischem Text — das sah aus wie ein Platzhalter, war aber schon immer der echte, gegen Produktion laufende Bildschirm). Fehlermeldungen sind jetzt verständlich statt einer rohen Exception: falsches Passwort, Server nicht erreichbar (Verbindungsproblem) und ein allgemeiner Fallback werden unterschieden.

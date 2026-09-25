@@ -319,11 +319,8 @@ class _TreeContent extends ConsumerWidget {
             ),
           ],
         ),
-        if (partner != null && partner.children.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Container(width: 2, height: 18, color: const Color(0xFFD1D5DB)),
-          const SizedBox(height: 10),
-          _ChildrenFrame(
+        if (partner != null && partner.children.isNotEmpty)
+          _ChildrenFrameSection(
             partner: partner,
             photoHeaders: photoHeaders,
             // Children with any OTHER partner - "Kinder mit X" only shows
@@ -343,7 +340,6 @@ class _TreeContent extends ConsumerWidget {
             },
             onSelectPerson: onSelectPerson,
           ),
-        ],
       ],
     );
   }
@@ -741,8 +737,20 @@ class _PartnerChips extends StatelessWidget {
   }
 }
 
-class _ChildrenFrame extends StatelessWidget {
-  const _ChildrenFrame({
+/// Wraps the connector line above the children frame AND the frame itself
+/// in one Stack, so the "+N weitere Kinder" chip - Positioned on top of
+/// that combined Stack, straddling the frame's own top border like the
+/// other frame labels - always lands inside a real, hit-testable
+/// RenderBox. Nesting the chip inside the frame's OWN inner Stack (as
+/// _ChildrenFrame used to) meant any position on the border line landed
+/// partly above that inner Stack's box (which starts exactly at the
+/// border) - a Column only ever dispatches a tap to whichever child's own
+/// allocated box contains that point, so taps in that sliver went to the
+/// connector-line gap above instead, an inert sibling. Here that gap is
+/// part of the SAME box as the frame, so every point on the chip - above
+/// the border or below it - is inside this widget's own hit-testable area.
+class _ChildrenFrameSection extends StatelessWidget {
+  const _ChildrenFrameSection({
     required this.partner,
     required this.photoHeaders,
     required this.extraChildrenCount,
@@ -752,14 +760,83 @@ class _ChildrenFrame extends StatelessWidget {
 
   final TreePartnerFamily partner;
   final Map<String, String> photoHeaders;
-
-  /// Children the active person has with any OTHER partner - shown as a
-  /// "+N weitere Kinder" hint on the frame's right edge, since this frame
-  /// only ever lists the one currently-selected partner's children.
   final int extraChildrenCount;
-
-  /// Tapping the extra-children hint jumps straight to the next partner.
   final VoidCallback onTapExtraChildren;
+  final void Function(String xref) onSelectPerson;
+
+  static const _connectorTopGap = 10.0;
+  static const _connectorHeight = 18.0;
+  static const _connectorBottomGap = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final extraLabelText = extraChildrenCount > 0 ? l10n.moreChildrenWithOtherPartnerLabel(extraChildrenCount) : null;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: _connectorTopGap),
+            Container(width: 2, height: _connectorHeight, color: const Color(0xFFD1D5DB)),
+            const SizedBox(height: _connectorBottomGap),
+            _ChildrenFrame(partner: partner, photoHeaders: photoHeaders, extraLabelText: extraLabelText, onSelectPerson: onSelectPerson),
+          ],
+        ),
+        if (extraLabelText != null)
+          Positioned(
+            // _kFrameLabelTopOffset positions the plain-text frame labels
+            // straddling the border, relative to a frame's OWN padded
+            // content (whose origin sits _kFrameTopPadding below the
+            // border) - so landing the chip on that same line, relative to
+            // THIS Stack instead, needs the connector's full height ABOVE
+            // the border (_connectorTopGap+_connectorHeight+
+            // _connectorBottomGap) plus that same _kFrameTopPadding back
+            // (forgetting it here once put the chip a full 12px too high -
+            // not on the line at all). The extra -3 matches the exact
+            // pre-hit-test-bug position, the last one visually approved.
+            top: _connectorTopGap + _connectorHeight + _connectorBottomGap + _kFrameTopPadding + _kFrameLabelTopOffset - 3,
+            // _ChildrenFrame's own chip anchor (right: 6, relative to its
+            // padded content) plus its horizontal padding (10) and outer
+            // margin (6), to land at the same spot relative to the frame's
+            // real right edge now that this Positioned is one level up.
+            right: 6 + _kFrameHorizontalPadding + 6,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(999),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: onTapExtraChildren,
+                child: Container(
+                  padding: _ChildrenFrame._chipPadding,
+                  decoration: BoxDecoration(
+                    color: _ChildrenFrame._kChipBackground,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE5E7EB), width: _ChildrenFrame._chipBorderWidth),
+                  ),
+                  child: Text(extraLabelText, style: _ChildrenFrame._chipTextStyle),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ChildrenFrame extends StatelessWidget {
+  const _ChildrenFrame({required this.partner, required this.photoHeaders, required this.extraLabelText, required this.onSelectPerson});
+
+  final TreePartnerFamily partner;
+  final Map<String, String> photoHeaders;
+
+  /// Precomputed by _ChildrenFrameSection (which also positions the chip
+  /// itself, now rendered one level up - see its doc comment) - only used
+  /// here to reserve enough width via [minWidth] so the two labels never
+  /// overlap.
+  final String? extraLabelText;
   final void Function(String xref) onSelectPerson;
 
   static const _mainLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5);
@@ -791,7 +868,6 @@ class _ChildrenFrame extends StatelessWidget {
             ? l10n.childrenUnknownParentLabel
             : l10n.childrenWithPartnerLabel(partner.partner!.firstName))
         .toUpperCase();
-    final extraLabelText = extraChildrenCount > 0 ? l10n.moreChildrenWithOtherPartnerLabel(extraChildrenCount) : null;
 
     return Container(
       constraints: BoxConstraints(
@@ -811,7 +887,7 @@ class _ChildrenFrame extends StatelessWidget {
                 378,
                 _textWidth(mainLabelText, _mainLabelStyle) +
                     _mainLabelChrome +
-                    _textWidth(extraLabelText, _chipTextStyle) +
+                    _textWidth(extraLabelText!, _chipTextStyle) +
                     _chipChrome +
                     12, // breathing room between the two labels
               ),
@@ -898,50 +974,6 @@ class _ChildrenFrame extends StatelessWidget {
               ),
             ),
           ),
-          // A hint that the active person has children with (an)other
-          // partner(s) too, not shown in this frame (which only ever lists
-          // the one currently-selected partner's children). Styled as a
-          // proper chip (border, pill shape, bigger tap target) rather
-          // than plain border-straddling text - both for a clearer tappable
-          // affordance and a more reliable hit area than a bare text glyph
-          // floating right at the frame's own corner. Cycles through every
-          // partner, wrapping back to the first after the last.
-          if (extraLabelText != null)
-            Positioned(
-              // The REAL bug behind "the chip does nothing, not even a
-              // ripple": _kFrameLabelTopOffset floats content above this
-              // frame's own outer edge (Stack-relative -_kFrameTopPadding)
-              // - fine for the plain-text labels, which are never tapped,
-              // but a Column only ever dispatches a hit-test to whichever
-              // child's own ALLOCATED layout box actually contains that
-              // point. Above this frame's own box, that's the connector-
-              // line gap above it, not this frame - so a tap there was
-              // being handed to an inert sibling and never reached this
-              // widget at all, no matter how the tappable widget itself
-              // was implemented (confirmed with both a plain
-              // GestureDetector and Material+InkWell). Staying within the
-              // frame's own outer bounds (with a couple px of margin) is
-              // what actually fixes it, not the tappable-widget choice.
-              top: -_kFrameTopPadding + 2,
-              right: 6,
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(999),
-                  onTap: onTapExtraChildren,
-                  child: Container(
-                    padding: _chipPadding,
-                    decoration: BoxDecoration(
-                      color: _kChipBackground,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFE5E7EB), width: _chipBorderWidth),
-                    ),
-                    child: Text(extraLabelText, style: _chipTextStyle),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
