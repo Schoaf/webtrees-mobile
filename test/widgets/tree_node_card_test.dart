@@ -93,7 +93,7 @@ void main() {
     expect(cardTapped, isFalse);
   });
 
-  testWidgets('corner badges sit flush with the card\'s real edges, equally on every side', (tester) async {
+  testWidgets('corner badges sit a true, consistent distance from the card\'s real edges', (tester) async {
     await tester.pumpWidget(
       _wrap(
         const TreeNodeCard(
@@ -116,8 +116,9 @@ void main() {
     // produced wildly different real-world gaps per side (0px on the left,
     // 10px floating above the bottom) even though the numbers looked
     // symmetric. True distance from the card's real edge is
-    // padding-on-that-side + the Positioned offset - should come out to
-    // exactly 0 (flush) on every side now.
+    // padding-on-that-side + the Positioned offset - the ancestors/
+    // descendants badges sit 1px inside the true edge, the partner badge
+    // stays flush (0) - see _CornerBadge.edgeGap's call sites.
     const cardPadding = EdgeInsets.fromLTRB(6, 10, 6, 16);
     final positioneds = tester
         .widgetList<Positioned>(find.descendant(of: find.byType(TreeNodeCard), matching: find.byType(Positioned)))
@@ -127,12 +128,15 @@ void main() {
     final topRight = positioneds.firstWhere((p) => p.top != null && p.right != null && p.left == null && p.bottom == null);
     final bottomLeft = positioneds.firstWhere((p) => p.bottom != null && p.left != null && p.right == null && p.top == null);
 
-    expect(cardPadding.top + topLeft.top!, closeTo(0, 0.01));
-    expect(cardPadding.left + topLeft.left!, closeTo(0, 0.01));
+    // Ancestors (top-left).
+    expect(cardPadding.top + topLeft.top!, closeTo(1, 0.01));
+    expect(cardPadding.left + topLeft.left!, closeTo(1, 0.01));
+    // Partner (top-right).
     expect(cardPadding.top + topRight.top!, closeTo(0, 0.01));
     expect(cardPadding.right + topRight.right!, closeTo(0, 0.01));
-    expect(cardPadding.bottom + bottomLeft.bottom!, closeTo(0, 0.01));
-    expect(cardPadding.left + bottomLeft.left!, closeTo(0, 0.01));
+    // Descendants (bottom-left).
+    expect(cardPadding.bottom + bottomLeft.bottom!, closeTo(1, 0.01));
+    expect(cardPadding.left + bottomLeft.left!, closeTo(1, 0.01));
   });
 
   testWidgets('UnknownPersonCard shows the placeholder text and has no tap handler', (tester) async {

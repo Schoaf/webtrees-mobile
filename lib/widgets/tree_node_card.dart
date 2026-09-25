@@ -13,6 +13,11 @@ import 'tree_icons.dart';
 // the two in sync.
 const _kCardPadding = EdgeInsets.fromLTRB(6, 10, 6, 16);
 
+// Matches _RelationshipBubble's size in tree_view_screen.dart (1.5x the
+// original 22px) - shared visual size for the two "circle button"
+// affordances that can appear on/around a card.
+const _kRelationshipBadgeSize = 33.0;
+
 /// One card in the family-tree view (`PersonCardV4d` in the design). Purely
 /// presentational — which badges to show is a per-role decision made by
 /// whoever builds the tree layout (see `treeCardSuppression` doc in
@@ -129,6 +134,10 @@ class TreeNodeCard extends StatelessWidget {
               _CornerBadge(
                 top: true,
                 right: ancestorsIconOnRight,
+                // Ancestors/descendants sit a touch inside the true edge
+                // (unlike the partner badge, which stays flush) - see
+                // _CornerBadge.edgeGap.
+                edgeGap: 1,
                 child: TreeBranchIcon(pointingUp: true, size: 11, color: const Color(0xFF4B5563)),
               ),
             if (showPartnerIcon)
@@ -144,18 +153,25 @@ class TreeNodeCard extends StatelessWidget {
               _CornerBadge(
                 top: false,
                 right: false,
+                edgeGap: 1,
                 child: _CountBadgeContent(
                   icon: TreeBranchIcon(pointingUp: false, size: 10, color: const Color(0xFF4B5563)),
                   count: childrenCount,
                 ),
               ),
             if (showInfoButton)
-              Positioned(
-                bottom: -3,
-                right: -3,
+              _CornerBadge(
+                top: false,
+                right: true,
+                edgeGap: 1,
+                // Sized to match the relationship bubble between partner
+                // cards (_RelationshipBubble in tree_view_screen.dart) for
+                // visual parity between the two "circle button" affordances
+                // on a card.
+                size: _kRelationshipBadgeSize,
                 child: GestureDetector(
                   onTap: onInfoTap,
-                  child: const _CornerCircle(child: Icon(Icons.info_outline, size: 12, color: Color(0xFF4B5563))),
+                  child: const Icon(Icons.info_outline, size: 20, color: Color(0xFF4B5563)),
                 ),
               ),
           ],
@@ -231,46 +247,51 @@ class _DetailBlock extends StatelessWidget {
 }
 
 class _CornerBadge extends StatelessWidget {
-  const _CornerBadge({required this.top, required this.right, required this.child});
+  const _CornerBadge({required this.top, required this.right, required this.child, this.edgeGap = 0, this.size = 18});
 
   final bool top;
   final bool right;
   final Widget child;
 
-  // How far the badge sits from the CARD's own true edge (negative = past
-  // it, outside the card) - the same on every side, so it reads as tucked
-  // evenly into the corner rather than drifting toward whichever side
-  // happens to have less padding. -2 (poking 2px past the true edge) read
-  // as floating well outside the card once it was actually made uniform -
-  // flush with the edge looks tucked into the corner without the badge
+  // How far the badge sits from the CARD's own true edge (0 = flush with
+  // it, positive = inside the card) - the same on every side, so it reads
+  // as tucked evenly into the corner rather than drifting toward whichever
+  // side happens to have less padding. Poking past the true edge read as
+  // floating well outside the card once it was actually made uniform;
+  // flush/slightly inside looks tucked into the corner without the badge
   // visually detaching from the card.
-  static const _trueEdgeGap = 0.0;
+  final double edgeGap;
+
+  /// The badge circle's min width/height - see _kRelationshipBadgeSize for
+  /// the larger variant used on the info button.
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     // This Positioned lives inside the padded Stack, not against the
     // card's true edges directly - subtracting the card's own padding
-    // back out is what makes _trueEdgeGap actually uniform on screen
-    // despite the card's padding being asymmetric (see _kCardPadding).
+    // back out is what makes edgeGap actually uniform on screen despite
+    // the card's padding being asymmetric (see _kCardPadding).
     return Positioned(
-      top: top ? _trueEdgeGap - _kCardPadding.top : null,
-      bottom: top ? null : _trueEdgeGap - _kCardPadding.bottom,
-      left: right ? null : _trueEdgeGap - _kCardPadding.left,
-      right: right ? _trueEdgeGap - _kCardPadding.right : null,
-      child: _CornerCircle(child: child),
+      top: top ? edgeGap - _kCardPadding.top : null,
+      bottom: top ? null : edgeGap - _kCardPadding.bottom,
+      left: right ? null : edgeGap - _kCardPadding.left,
+      right: right ? edgeGap - _kCardPadding.right : null,
+      child: _CornerCircle(size: size, child: child),
     );
   }
 }
 
 class _CornerCircle extends StatelessWidget {
-  const _CornerCircle({required this.child});
+  const _CornerCircle({required this.child, this.size = 18});
 
   final Widget child;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      constraints: BoxConstraints(minWidth: size, minHeight: size),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: Colors.white,

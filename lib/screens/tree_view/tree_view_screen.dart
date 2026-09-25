@@ -7,7 +7,6 @@ import '../../l10n/app_localizations.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
 import '../../state/tree_view_providers.dart';
-import '../../theme/app_theme.dart';
 import '../../widgets/tree_icons.dart';
 import '../../widgets/tree_node_card.dart';
 import '../search/person_detail_screen.dart';
@@ -16,6 +15,16 @@ const _kCardWidth = 90.0;
 const _kActiveZoom = 1.22;
 const _kMinScale = 0.5;
 const _kMaxScale = 2.5;
+// A partner card is drawn at least this tall so it never reads as one of
+// the (shorter) sibling cards - the active person's own card matches it,
+// so the pair reads as a consistent height even when the active card's
+// content is short.
+const _kPartnerCardMinHeight = 185.0;
+// Roughly one _PartnerChips row's own height (its top spacing + padding +
+// content) - subtracted twice from the partner card's min height when the
+// switcher chips are showing below it, so partner-card-plus-chips doesn't
+// end up taller overall than a lone partner card on its own.
+const _kPartnerChipHeight = 22.0;
 
 // Shared padding for the "GESCHWISTER"/"KINDER MIT X" frames (siblings and
 // children groups): more breathing room to the cards left/right than
@@ -420,9 +429,15 @@ class _ParentsRow extends StatelessWidget {
                 parentCard(mother, isFather: false),
               ],
             ),
-            Positioned(
-              top: 22,
-              child: _RelationshipBubble(status: MaritalStatus.married),
+            // Vertically centered on the cards beside it (Stack already
+            // sizes itself to the Row before laying out Positioned
+            // children, so filling+centering lands on the actual card
+            // height rather than a number tuned for one specific height) -
+            // horizontally lands in the gap between the two same-width
+            // cards, same as the Stack's topCenter alignment achieved for a
+            // plain Positioned(top:...) with no left/right of its own.
+            Positioned.fill(
+              child: Align(child: _RelationshipBubble(status: MaritalStatus.married)),
             ),
           ],
         ),
@@ -435,6 +450,11 @@ class _ParentsRow extends StatelessWidget {
   }
 }
 
+// 1.5x the original 22px/13px - see _kRelationshipBadgeSize in
+// tree_node_card.dart, which mirrors this size for the info button.
+const _kRelationshipBubbleSize = 33.0;
+const _kRelationshipIconSize = 19.5;
+
 class _RelationshipBubble extends StatelessWidget {
   const _RelationshipBubble({required this.status});
 
@@ -443,8 +463,8 @@ class _RelationshipBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 22,
-      height: 22,
+      width: _kRelationshipBubbleSize,
+      height: _kRelationshipBubbleSize,
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
@@ -452,7 +472,7 @@ class _RelationshipBubble extends StatelessWidget {
         boxShadow: const [BoxShadow(color: Color(0x38111827), blurRadius: 6, offset: Offset(0, 2))],
       ),
       alignment: Alignment.center,
-      child: RelationshipIcon(status: status, size: 13, color: const Color(0xFF4B5563)),
+      child: RelationshipIcon(status: status, size: _kRelationshipIconSize, color: const Color(0xFF4B5563)),
     );
   }
 }
@@ -512,6 +532,10 @@ class _SiblingsFrame extends StatelessWidget {
         photoHeaders: photoHeaders,
         selected: true,
         width: _kCardWidth * _kActiveZoom,
+        // At least as tall as the partner card next to it, so a short
+        // active-person card (few facts, no detail overflow) doesn't
+        // visually dangle shorter than a taller partner card beside it.
+        minHeight: _kPartnerCardMinHeight,
         showInfoButton: true,
         detail: neighborhood.personDetail,
         onInfoTap: () => onOpenProfile(neighborhood.person.xref),
@@ -525,7 +549,12 @@ class _SiblingsFrame extends StatelessWidget {
       final p = partner!;
       const gap = 10.0;
       const activeWidth = _kCardWidth * _kActiveZoom;
-      const bubbleSize = 22.0;
+      final showChips = neighborhood.partners.length > 1;
+      // The partner card gets shorter by two chips' worth of height when
+      // the switcher chips are showing below it, so partner-card-plus-
+      // chips doesn't end up taller overall than a lone partner card would
+      // be on its own.
+      final partnerMinHeight = showChips ? _kPartnerCardMinHeight - 2 * _kPartnerChipHeight : _kPartnerCardMinHeight;
       centerGroup = Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
@@ -537,11 +566,13 @@ class _SiblingsFrame extends StatelessWidget {
               activeCard,
               const SizedBox(width: gap),
               Padding(
-                padding: const EdgeInsets.only(top: 10),
+                // Nudged further down than the active card beside it -
+                // was 10.
+                padding: const EdgeInsets.only(top: 18),
                 child: Column(
                   children: [
                     p.partner == null
-                        ? const UnknownPersonCard(minHeight: 185)
+                        ? UnknownPersonCard(minHeight: partnerMinHeight)
                         : TreeNodeCard(
                             firstName: p.partner!.firstName,
                             sex: p.partner!.sex,
@@ -551,10 +582,10 @@ class _SiblingsFrame extends StatelessWidget {
                             photoHeaders: photoHeaders,
                             showAncestorsIcon: p.partner!.hasParents ?? false,
                             ancestorsIconOnRight: true,
-                            minHeight: 185,
+                            minHeight: partnerMinHeight,
                             onTap: () => onSelectPerson(p.partner!.xref),
                           ),
-                    if (neighborhood.partners.length > 1) ...[
+                    if (showChips) ...[
                       const SizedBox(height: 5),
                       _PartnerChips(
                         partners: neighborhood.partners,
@@ -573,7 +604,7 @@ class _SiblingsFrame extends StatelessWidget {
           // another card's content is not.
           Positioned(
             top: 36,
-            left: activeWidth + gap / 2 - bubbleSize / 2,
+            left: activeWidth + gap / 2 - _kRelationshipBubbleSize / 2,
             child: _RelationshipBubble(status: p.maritalStatus),
           ),
         ],
@@ -725,13 +756,16 @@ class _ChildrenFrame extends StatelessWidget {
   final void Function(String xref) onSelectPerson;
 
   static const _mainLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5);
-  // Primary-blue, not the muted grey the (non-interactive) main label
-  // uses - this one is a button, so it reads as tappable like the rest of
-  // the app's link-style text (e.g. "Mehr anzeigen").
-  static const _extraLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.primary);
-  // Both labels' own horizontal padding (6 + 5.5, see where they're used
-  // below) plus each one's left:16/right:16 anchor inset.
-  static const _labelChromeWidth = 6 + 5.5 + 16;
+  // Same muted grey as the (non-interactive) main label - a chip's own
+  // border/pill shape is what signals it's tappable here, not blue text.
+  static const _chipTextStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280));
+  static const _chipPadding = EdgeInsets.symmetric(horizontal: 8, vertical: 3);
+  static const _chipBorderWidth = 1.0;
+  // Main label's own horizontal padding (6 + 5.5, see where it's used
+  // below) plus its left:6 anchor inset.
+  static const _mainLabelChrome = 6 + 5.5 + 6;
+  // Chip's padding + border (both sides) plus its right:6 anchor inset.
+  static const _chipChrome = 8 + 8 + _chipBorderWidth * 2 + 6;
 
   double _textWidth(String text, TextStyle style) {
     final painter = TextPainter(text: TextSpan(text: text, style: style), textDirection: TextDirection.ltr, maxLines: 1)..layout();
@@ -765,8 +799,9 @@ class _ChildrenFrame extends StatelessWidget {
             : math.min(
                 378,
                 _textWidth(mainLabelText, _mainLabelStyle) +
-                    _textWidth(extraLabelText, _extraLabelStyle) +
-                    _labelChromeWidth * 2 +
+                    _mainLabelChrome +
+                    _textWidth(extraLabelText, _chipTextStyle) +
+                    _chipChrome +
                     12, // breathing room between the two labels
               ),
         maxWidth: 378,
@@ -785,6 +820,14 @@ class _ChildrenFrame extends StatelessWidget {
       ),
       child: Stack(
         clipBehavior: Clip.none,
+        // Stack's default alignment only matters for non-Positioned
+        // children (the Wrap below) - without it, the Wrap sits at the
+        // Stack's top-LEFT rather than centered, which was invisible while
+        // the frame always shrink-wrapped to the Wrap's own width, but
+        // became obvious once the minWidth fix above could make the frame
+        // wider than its cards: they clumped to the left instead of
+        // centering in the extra space.
+        alignment: Alignment.topCenter,
         children: [
           // No "show more" cutoff - every child is shown, wrapping onto as
           // many rows as needed. There's plenty of room below to grow into,
@@ -814,17 +857,17 @@ class _ChildrenFrame extends StatelessWidget {
           // cards.
           Positioned(
             top: _kFrameLabelTopOffset,
-            left: 16,
+            left: 6,
             right: 16,
             // Positioned with both left AND right set gives its child a
-            // TIGHT width (frame width - 32), which stretched the label's
-            // background across nearly the whole frame - the text itself
-            // stayed left-aligned inside it, so the background beyond the
-            // text (still the same F4F5F7 as the page) read as a huge gap
-            // before the border resumed. Align lets the Container shrink-
-            // wrap to its actual (possibly ellipsized) text width while the
-            // Positioned's left/right still cap how wide that can get, for
-            // a long partner name.
+            // TIGHT width, which stretched the label's background across
+            // nearly the whole frame - the text itself stayed left-aligned
+            // inside it, so the background beyond the text (still the same
+            // F4F5F7 as the page) read as a huge gap before the border
+            // resumed. Align lets the Container shrink-wrap to its actual
+            // (possibly ellipsized) text width while the Positioned's
+            // left/right still cap how wide that can get, for a long
+            // partner name.
             child: Align(
               alignment: Alignment.centerLeft,
               child: Container(
@@ -844,22 +887,29 @@ class _ChildrenFrame extends StatelessWidget {
               ),
             ),
           ),
-          // Same border-straddling treatment, mirrored to the right edge -
-          // a hint that the active person has children with (an)other
+          // A hint that the active person has children with (an)other
           // partner(s) too, not shown in this frame (which only ever lists
-          // the one currently-selected partner's children). Tappable: jumps
-          // straight to the next partner, same as scrolling up to tap a
-          // chip would, so their children are just as quick to reach.
+          // the one currently-selected partner's children). Styled as a
+          // proper chip (border, pill shape, bigger tap target) rather
+          // than plain border-straddling text - both for a clearer tappable
+          // affordance and a more reliable hit area than a bare text glyph
+          // floating right at the frame's own corner. Cycles through every
+          // partner, wrapping back to the first after the last.
           if (extraLabelText != null)
             Positioned(
-              top: _kFrameLabelTopOffset,
-              right: 16,
+              top: _kFrameLabelTopOffset - 3,
+              right: 6,
               child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: onTapExtraChildren,
                 child: Container(
-                  color: const Color(0xFFF4F5F7),
-                  padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
-                  child: Text(extraLabelText, style: _extraLabelStyle),
+                  padding: _chipPadding,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE5E7EB), width: _chipBorderWidth),
+                  ),
+                  child: Text(extraLabelText, style: _chipTextStyle),
                 ),
               ),
             ),
