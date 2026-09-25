@@ -659,7 +659,10 @@ class _SiblingsFrame extends StatelessWidget {
           // otherwise hid the label text behind them.
           Positioned(
             top: _kFrameLabelTopOffset,
-            left: 16,
+            // Matches "KINDER MIT X"'s left:6 in _ChildrenFrame - both
+            // frame labels sit at the same distance from their frame's
+            // edge now.
+            left: 6,
             child: Container(
               color: const Color(0xFFF4F5F7),
               // letterSpacing adds trailing space after the LAST glyph too,
@@ -905,13 +908,22 @@ class _ChildrenFrame extends StatelessWidget {
           // partner, wrapping back to the first after the last.
           if (extraLabelText != null)
             Positioned(
-              top: _kFrameLabelTopOffset - 3,
+              // The REAL bug behind "the chip does nothing, not even a
+              // ripple": _kFrameLabelTopOffset floats content above this
+              // frame's own outer edge (Stack-relative -_kFrameTopPadding)
+              // - fine for the plain-text labels, which are never tapped,
+              // but a Column only ever dispatches a hit-test to whichever
+              // child's own ALLOCATED layout box actually contains that
+              // point. Above this frame's own box, that's the connector-
+              // line gap above it, not this frame - so a tap there was
+              // being handed to an inert sibling and never reached this
+              // widget at all, no matter how the tappable widget itself
+              // was implemented (confirmed with both a plain
+              // GestureDetector and Material+InkWell). Staying within the
+              // frame's own outer bounds (with a couple px of margin) is
+              // what actually fixes it, not the tappable-widget choice.
+              top: -_kFrameTopPadding + 2,
               right: 6,
-              // Material+InkWell instead of a bare GestureDetector - the
-              // more standard/robust Flutter tap idiom (with its own
-              // hit-test handling via the ink-response layer), in case a
-              // plain GestureDetector here was somehow losing the gesture
-              // arena to InteractiveViewer's own pan/zoom recognizers.
               child: Material(
                 color: Colors.transparent,
                 borderRadius: BorderRadius.circular(999),

@@ -90,13 +90,19 @@ class TreePersonDetail {
   const TreePersonDetail({required this.birthDateText, required this.birthPlace, required this.occupation});
 
   factory TreePersonDetail.fromIndividualJson(Map<String, dynamic> json) {
-    final birth = json['birth'] as Map<String, dynamic>?;
+    // The Individual response has no top-level "birth" field of its own -
+    // that only exists on a nested personSummary() (e.g. json['person'],
+    // or a parent/spouse/child entry), which is what TreeNode.fromJson
+    // reads for its own birthYear. The full BIRT fact (with its display
+    // text and place) lives in the flat facts[] list here instead, same
+    // as everywhere else in the app that reads a fact off this endpoint.
     final facts = (json['facts'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    final birtFact = facts.where((f) => f['tag'] == 'BIRT').firstOrNull;
     final occuFact = facts.where((f) => f['tag'] == 'OCCU').firstOrNull;
 
     return TreePersonDetail(
-      birthDateText: (birth?['date'] as Map<String, dynamic>?)?['text'] as String? ?? '',
-      birthPlace: (birth?['place'] as Map<String, dynamic>?)?['short'] as String? ?? '',
+      birthDateText: (birtFact?['date'] as Map<String, dynamic>?)?['text'] as String? ?? '',
+      birthPlace: (birtFact?['place'] as Map<String, dynamic>?)?['short'] as String? ?? '',
       occupation: occuFact?['value'] as String? ?? '',
     );
   }

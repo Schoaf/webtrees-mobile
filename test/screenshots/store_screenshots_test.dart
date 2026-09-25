@@ -579,14 +579,26 @@ void main() {
     testWidgets('TreeViewScreen, filled out', (tester) async {
       final individualJson = {
         'ok': true,
-        'person': {'xref': 'I1', 'name': 'Elisabeth Bergmann', 'sortName': 'Bergmann,Elisabeth'},
+        'person': {
+          'xref': 'I1',
+          'name': 'Elisabeth Bergmann',
+          'sortName': 'Bergmann,Elisabeth',
+          'birth': {
+            'date': {'year': 1985},
+          },
+        },
+        // The Individual response has no top-level "birth" field of its
+        // own (see TreePersonDetail.fromIndividualJson) - the full BIRT
+        // fact, with display text/place, lives here instead, same as the
+        // real API.
         'facts': [
+          {
+            'tag': 'BIRT',
+            'date': {'text': '14. März 1985'},
+            'place': {'short': 'Graz'},
+          },
           {'tag': 'OCCU', 'value': 'Kinderärztin'},
         ],
-        'birth': {
-          'date': {'text': '14. März 1985', 'year': 1985},
-          'place': {'short': 'Graz'},
-        },
         'parentFamilies': [
           {
             'husband': {

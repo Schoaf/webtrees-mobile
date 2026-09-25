@@ -131,9 +131,11 @@ void main() {
     // Ancestors (top-left).
     expect(cardPadding.top + topLeft.top!, closeTo(1, 0.01));
     expect(cardPadding.left + topLeft.left!, closeTo(1, 0.01));
-    // Partner (top-right).
+    // Partner (top-right) - not a true circle (icon+count pill), so its
+    // horizontal edgeGap is tuned 1px apart from its own vertical one (see
+    // TreeNodeCard's showPartnerIcon call site).
     expect(cardPadding.top + topRight.top!, closeTo(0, 0.01));
-    expect(cardPadding.right + topRight.right!, closeTo(0, 0.01));
+    expect(cardPadding.right + topRight.right!, closeTo(1, 0.01));
     // Descendants (bottom-left).
     expect(cardPadding.bottom + bottomLeft.bottom!, closeTo(1, 0.01));
     expect(cardPadding.left + bottomLeft.left!, closeTo(1, 0.01));

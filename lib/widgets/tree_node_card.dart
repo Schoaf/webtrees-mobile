@@ -149,6 +149,11 @@ class TreeNodeCard extends StatelessWidget {
               _CornerBadge(
                 top: true,
                 right: true,
+                // Not a true circle (icon+count pill, wider than tall) - a
+                // mathematically-equal edgeGap on every side still read as
+                // sitting a shade closer to the right edge than the top
+                // one. 1px more inset horizontally lines the two up.
+                horizontalEdgeGap: 1,
                 child: _CountBadgeContent(
                   icon: RelationshipIcon(status: MaritalStatus.married, size: 11, color: const Color(0xFF4B5563)),
                   count: (partnerExtraCount ?? 0) > 0 ? partnerExtraCount : null,
@@ -252,7 +257,14 @@ class _DetailBlock extends StatelessWidget {
 }
 
 class _CornerBadge extends StatelessWidget {
-  const _CornerBadge({required this.top, required this.right, required this.child, this.edgeGap = 0, this.size = 18});
+  const _CornerBadge({
+    required this.top,
+    required this.right,
+    required this.child,
+    this.edgeGap = 0,
+    double? horizontalEdgeGap,
+    this.size = 18,
+  }) : horizontalEdgeGap = horizontalEdgeGap ?? edgeGap;
 
   final bool top;
   final bool right;
@@ -264,8 +276,13 @@ class _CornerBadge extends StatelessWidget {
   // side happens to have less padding. Poking past the true edge read as
   // floating well outside the card once it was actually made uniform;
   // flush/slightly inside looks tucked into the corner without the badge
-  // visually detaching from the card.
+  // visually detaching from the card. Applies to the vertical (top/bottom)
+  // edge; horizontalEdgeGap (defaults to this) applies to left/right - the
+  // "icon+count" pill badges aren't a true circle, so their visual left/
+  // right inset didn't quite read the same as their top/bottom one even
+  // with a mathematically-equal offset, and needed its own tuning.
   final double edgeGap;
+  final double horizontalEdgeGap;
 
   /// The badge circle's min width/height - see _kRelationshipBadgeSize for
   /// the larger variant used on the info button.
@@ -280,8 +297,8 @@ class _CornerBadge extends StatelessWidget {
     return Positioned(
       top: top ? edgeGap - _kCardPadding.top : null,
       bottom: top ? null : edgeGap - _kCardPadding.bottom,
-      left: right ? null : edgeGap - _kCardPadding.left,
-      right: right ? edgeGap - _kCardPadding.right : null,
+      left: right ? null : horizontalEdgeGap - _kCardPadding.left,
+      right: right ? horizontalEdgeGap - _kCardPadding.right : null,
       child: _CornerCircle(size: size, child: child),
     );
   }
