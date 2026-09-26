@@ -67,7 +67,11 @@ void main() {
         'spouseFamilies': [
           {
             'xref': 'F1',
-            'maritalStatus': 'married',
+            'facts': [
+              {'tag': 'MARR'},
+            ],
+            'husband': {'xref': 'I4', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {
               'date': {'year': 2011},
             },
@@ -76,7 +80,13 @@ void main() {
           },
           {
             'xref': 'F2',
-            'maritalStatus': 'ended',
+            // ended: a DIV fact but no MARR - an informal partnership that
+            // ended without ever having been a formal marriage.
+            'facts': [
+              {'tag': 'DIV'},
+            ],
+            'husband': {'xref': 'I9', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {
               'date': {'year': 2005},
             },
@@ -84,8 +94,7 @@ void main() {
             'children': [childJson('I8', 'Noah', 2006)],
           },
         ],
-        'siblings': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
         'media': <dynamic>[],
       },
     );
@@ -109,7 +118,11 @@ void main() {
         'spouseFamilies': [
           {
             'xref': 'F1',
-            'maritalStatus': 'married',
+            'facts': [
+              {'tag': 'MARR'},
+            ],
+            'husband': {'xref': 'I4', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {
               'date': {'year': 2011},
             },
@@ -118,7 +131,11 @@ void main() {
           },
           {
             'xref': 'F2',
-            'maritalStatus': 'ended',
+            'facts': [
+              {'tag': 'DIV'},
+            ],
+            'husband': {'xref': 'I9', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {
               'date': {'year': 2005},
             },
@@ -126,8 +143,7 @@ void main() {
             'children': [childJson('I8', 'Noah', 2006)],
           },
         ],
-        'siblings': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
         'media': <dynamic>[],
       },
     );
@@ -157,7 +173,11 @@ void main() {
         'spouseFamilies': [
           {
             'xref': 'F1',
-            'maritalStatus': 'married',
+            'facts': [
+              {'tag': 'MARR'},
+            ],
+            'husband': {'xref': 'I4', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {
               'date': {'year': 2011},
             },
@@ -165,8 +185,7 @@ void main() {
             'children': [childJson('I5', 'Mia', 2013)],
           },
         ],
-        'siblings': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
         'media': <dynamic>[],
       },
     );
@@ -186,7 +205,11 @@ void main() {
         'spouseFamilies': [
           {
             'xref': 'F1',
-            'maritalStatus': 'married',
+            'facts': [
+              {'tag': 'MARR'},
+            ],
+            'husband': {'xref': 'I4', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {
               'date': {'year': 2011},
             },
@@ -196,8 +219,7 @@ void main() {
             ],
           },
         ],
-        'siblings': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
         'media': <dynamic>[],
       },
     );
