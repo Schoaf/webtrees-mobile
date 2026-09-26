@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/gedcom_date.dart';
+import '../../widgets/copyable_error_text.dart';
 import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
 
@@ -393,24 +394,15 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
-                      Text(
-                        _error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
+                      CopyableErrorText(message: _error!),
                     ],
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border(top: BorderSide(color: AppColors.divider)),
-                ),
-                child: Column(
-                  children: [
+                    // Part of the scrollable list, not a bar pinned above
+                    // the keyboard - a floating footer here left almost no
+                    // room for the form once the keyboard opened (it never
+                    // resizes away), and every field is only reachable by
+                    // scrolling anyway, so the save buttons scrolling along
+                    // with the rest costs nothing.
+                    const SizedBox(height: 20),
                     FilledButton(
                       onPressed: (_saving || relationMissing)
                           ? null

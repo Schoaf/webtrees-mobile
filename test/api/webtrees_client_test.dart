@@ -18,15 +18,17 @@ class _CannedResponse {
 /// A fake [HttpClientAdapter] that never touches the network: it records
 /// every [RequestOptions] Dio builds (so tests can assert on the exact
 /// URL/query/body a [WebtreesClient] method sends) and hands back
-/// pre-queued canned responses in order. Because this plugs in at the
+/// pre-queued canned responses (or a canned connection error, to exercise
+/// the stale-connection retry) in order. Because this plugs in at the
 /// adapter level (not by mocking [Dio] itself), the real Dio request
-/// pipeline still runs - including [WebtreesClient]'s cookie/CSRF
+/// pipeline still runs - including [WebtreesClient]'s cookie/CSRF/retry
 /// interceptor - so that logic gets exercised too, not bypassed.
 class _RecordingAdapter implements HttpClientAdapter {
   final List<RequestOptions> requests = [];
-  final List<_CannedResponse> _queue = [];
+  final List<Object> _queue = []; // _CannedResponse or a DioExceptionType to throw
 
   void enqueue(_CannedResponse response) => _queue.add(response);
+  void enqueueError(DioExceptionType type, {String message = ''}) => _queue.add((type, message));
 
   @override
   Future<ResponseBody> fetch(
@@ -39,6 +41,10 @@ class _RecordingAdapter implements HttpClientAdapter {
       throw StateError('No canned response queued for ${options.method} ${options.uri}');
     }
     final canned = _queue.removeAt(0);
+    if (canned case (DioExceptionType type, String message)) {
+      throw DioException(requestOptions: options, type: type, error: message.isEmpty ? null : message);
+    }
+    canned as _CannedResponse;
     return ResponseBody.fromString(canned.body, canned.statusCode, headers: canned.headers);
   }
 
@@ -54,6 +60,19 @@ void main() {
     client = WebtreesClient(baseUrl: 'https://tree.example.com/');
     adapter = _RecordingAdapter();
     client.debugDio.httpClientAdapter = adapter;
+  });
+
+  group('request timeouts', () {
+    // Regression coverage for a real bug report: with no timeout configured
+    // at all, a request the server accepts but never actually answers (a
+    // stuck worker, a proxy holding the connection open, ...) hung forever
+    // - no exception, no way out, just an infinite loading spinner. Every
+    // WebtreesClient request must have a finite bound.
+    test('connect/send/receive all have a finite bound', () {
+      expect(client.debugDio.options.connectTimeout, isNotNull);
+      expect(client.debugDio.options.sendTimeout, isNotNull);
+      expect(client.debugDio.options.receiveTimeout, isNotNull);
+    });
   });
 
   group('session state (no network)', () {
@@ -253,6 +272,53 @@ void main() {
         () => client.individual('Famtree', 'I5'),
         throwsA(isA<DioException>()),
       );
+    });
+  });
+
+  group('stale-connection retry (GET only)', () {
+    test('a connectionError is retried once, transparently, on a GET', () async {
+      adapter.enqueueError(DioExceptionType.connectionError);
+      adapter.enqueue(_CannedResponse(200, '{"ok":true,"person":{"xref":"I5"}}'));
+
+      final result = await client.individual('Famtree', 'I5');
+
+      expect(result['person'], {'xref': 'I5'});
+      expect(adapter.requests, hasLength(2), reason: 'the failed attempt plus the retry');
+    });
+
+    test('"Connection closed before full header was received" (type unknown) is retried too', () async {
+      adapter.enqueueError(DioExceptionType.unknown, message: 'Connection closed before full header was received');
+      adapter.enqueue(_CannedResponse(200, '{"ok":true,"person":{"xref":"I5"}}'));
+
+      final result = await client.individual('Famtree', 'I5');
+
+      expect(result['person'], {'xref': 'I5'});
+      expect(adapter.requests, hasLength(2));
+    });
+
+    test('if the retry also fails, the original error surfaces (not a third attempt)', () async {
+      adapter.enqueueError(DioExceptionType.connectionError);
+      adapter.enqueueError(DioExceptionType.connectionError);
+
+      await expectLater(() => client.individual('Famtree', 'I5'), throwsA(isA<DioException>()));
+      expect(adapter.requests, hasLength(2), reason: 'no infinite/third retry');
+    });
+
+    test('a POST is never retried, even on a connectionError - only GET is safe to repeat', () async {
+      adapter.enqueueError(DioExceptionType.connectionError);
+
+      await expectLater(
+        () => client.postFact('Famtree', 'I1', tag: 'BIRT'),
+        throwsA(isA<DioException>()),
+      );
+      expect(adapter.requests, hasLength(1));
+    });
+
+    test('an unrelated error type (e.g. a 500) is not retried', () async {
+      adapter.enqueue(_CannedResponse(500, 'Internal Server Error', headers: {'content-type': ['text/plain']}));
+
+      await expectLater(() => client.individual('Famtree', 'I5'), throwsA(isA<DioException>()));
+      expect(adapter.requests, hasLength(1));
     });
   });
 

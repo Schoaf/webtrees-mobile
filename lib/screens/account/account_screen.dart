@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
+import '../../widgets/copyable_error_text.dart';
 import '../../widgets/person_card.dart';
 import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
@@ -291,12 +292,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                       ),
                       if (_saveError != null) ...[
                         const SizedBox(height: 8),
-                        Text(
-                          _saveError!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
+                        CopyableErrorText(message: _saveError!),
                       ],
                       const SizedBox(height: 24),
                       Text(

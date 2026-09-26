@@ -14,7 +14,9 @@ import '../../utils/gedcom.dart';
 import '../../utils/server_error.dart';
 import '../../widgets/add_fact_sheet.dart';
 import '../../widgets/ask_for_help_email_screen.dart';
+import '../../widgets/copyable_error_text.dart';
 import '../../widgets/gedcom_date_field.dart';
+import '../../widgets/load_error_view.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
@@ -628,10 +630,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         }
         if (snapshot.hasError) {
           return Scaffold(
+            appBar: AppBar(),
             body: SafeArea(
-              child: Center(
-                child: Text(l10n.couldNotLoad('${snapshot.error}')),
-              ),
+              child: LoadErrorView(message: l10n.couldNotLoad('${snapshot.error}')),
             ),
           );
         }
@@ -639,10 +640,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final data = snapshot.data!;
         if (data['ok'] == false) {
           return Scaffold(
+            appBar: AppBar(),
             body: SafeArea(
-              child: Center(
-                child: Text(l10n.noAccessError('${data['error']}')),
-              ),
+              child: LoadErrorView(message: l10n.noAccessError('${data['error']}')),
             ),
           );
         }
@@ -1531,10 +1531,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
           ],
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            CopyableErrorText(message: _error!),
           ],
         ],
       ),

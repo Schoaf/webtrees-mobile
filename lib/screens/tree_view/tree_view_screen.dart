@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
 import '../../state/tree_view_providers.dart';
+import '../../widgets/load_error_view.dart';
 import '../../widgets/tree_icons.dart';
 import '../../widgets/tree_node_card.dart';
 import '../search/person_detail_screen.dart';
@@ -146,11 +147,9 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (neighborhood == null && treeState.error != null) {
-                    return Center(
-                      child: Text(
-                        l10n.couldNotLoad(
-                          treeState.error ?? l10n.genericErrorFallback,
-                        ),
+                    return LoadErrorView(
+                      message: l10n.couldNotLoad(
+                        treeState.error ?? l10n.genericErrorFallback,
                       ),
                     );
                   }

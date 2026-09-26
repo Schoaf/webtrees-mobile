@@ -1,5 +1,10 @@
 import 'package:dio/dio.dart';
 
+/// [RequestOptions.extra] key marking a request as already having gone
+/// through one stale-connection retry - see the `onError` interceptor
+/// below.
+const _kRetriedKey = 'webtreesClient.retriedStaleConnection';
+
 /// Talks to a webtrees instance's `api4webtrees` module.
 ///
 /// webtrees uses session-cookie auth (`GET Info` for a CSRF token, `POST
@@ -23,6 +28,16 @@ class WebtreesClient {
           // the status code, never the redirect target, so don't follow it.
           followRedirects: false,
           validateStatus: (status) => status != null && status < 500,
+          // Without these, a request the server accepts but never actually
+          // answers (a stuck PHP-FPM worker, a proxy silently holding the
+          // connection open, ...) hangs forever - no exception, no timeout,
+          // just an infinite loading spinner with no way out. A generous
+          // but finite bound turns that into a real, catchable, user-
+          // visible error instead. Generous because postMedia() uploads a
+          // photo over what might be a slow mobile connection.
+          connectTimeout: const Duration(seconds: 10),
+          sendTimeout: const Duration(seconds: 25),
+          receiveTimeout: const Duration(seconds: 25),
         ),
       ) {
     _dio.interceptors.add(
@@ -40,15 +55,44 @@ class WebtreesClient {
           _captureCookie(response);
           handler.next(response);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
           if (error.response != null) {
             _captureCookie(error.response!);
+          }
+          // "Connection closed before full header was received": the OS's
+          // HTTP stack reused a pooled keep-alive socket that the server (or
+          // an intermediate proxy on shared hosting, whose own keep-alive
+          // timeout is often much shorter than the client's) had already
+          // silently closed - fails immediately, not after a real timeout,
+          // and isn't reproducible on demand, matching exactly what this
+          // looks like from the outside. Retrying once on a fresh
+          // connection is the standard fix; only ever for GET, since that's
+          // always safe to repeat.
+          //
+          // _dio.fetch() below re-enters this very interceptor, so without
+          // the _kRetriedKey flag a retry that fails the same way would
+          // retry itself again (and again) instead of stopping at one.
+          final alreadyRetried = error.requestOptions.extra[_kRetriedKey] == true;
+          if (!alreadyRetried && error.requestOptions.method == 'GET' && _isStaleConnectionError(error)) {
+            try {
+              final retryOptions = error.requestOptions..extra[_kRetriedKey] = true;
+              handler.resolve(await _dio.fetch(retryOptions));
+              return;
+            } on DioException {
+              // Retry failed too - fall through and surface the original
+              // error below, not the retry's (closer to what actually went
+              // wrong first).
+            }
           }
           handler.next(error);
         },
       ),
     );
   }
+
+  static bool _isStaleConnectionError(DioException error) =>
+      error.type == DioExceptionType.connectionError ||
+      (error.type == DioExceptionType.unknown && error.error.toString().contains('Connection closed'));
 
   final String _baseUrl;
   final Dio _dio;

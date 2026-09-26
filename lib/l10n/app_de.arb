@@ -27,6 +27,7 @@
     }
   },
   "genericErrorFallback": "Fehler",
+  "copyErrorDetailsButton": "Fehlerdetails kopieren",
   "givenName": "Vorname",
   "surname": "Nachname",
   "birthDate": "Geburtsdatum",

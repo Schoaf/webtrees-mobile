@@ -22,6 +22,7 @@
   "unknownError": "unknown error",
   "couldNotLoad": "Couldn't load: {error}",
   "genericErrorFallback": "Error",
+  "copyErrorDetailsButton": "Copy error details",
   "givenName": "First name",
   "surname": "Last name",
   "birthDate": "Date of birth",
