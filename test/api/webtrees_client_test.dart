@@ -219,6 +219,30 @@ void main() {
     });
   });
 
+  group('pair()', () {
+    test('posts the code as JSON to the Pair route, with no tree segment', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true,"tree":"Famtree","user":"alice"}'));
+
+      final result = await client.pair('a' * 48);
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/Pair');
+      expect(request.contentType, startsWith('application/json'));
+      expect(request.data, {'code': 'a' * 48});
+      expect(result, {'ok': true, 'tree': 'Famtree', 'user': 'alice'});
+    });
+
+    test('an invalid/expired code returns {ok: false, error} rather than throwing', () async {
+      adapter.enqueue(_CannedResponse(403, '{"ok":false,"error":"pair-expired","status":403}'));
+
+      final result = await client.pair('deadbeef');
+
+      expect(result['ok'], isFalse);
+      expect(result['error'], 'pair-expired');
+    });
+  });
+
   group('individuals()', () {
     test('omits the q parameter when no search query is given, defaults page to 1', () async {
       adapter.enqueue(_CannedResponse(200, '{"individuals":[]}'));

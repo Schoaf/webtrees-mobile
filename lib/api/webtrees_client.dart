@@ -146,14 +146,18 @@ class WebtreesClient {
   /// folder to match rather than keep the old name for compatibility).
   Uri _moduleUri(
     String action,
-    String tree, [
+    String? tree, [
     Map<String, dynamic>? query,
     String moduleSlug = '_api4webtrees_',
   ]) {
+    // Some actions (Pair, reached before any tree is even known) have no
+    // tree segment at all in their route - not an empty one. Mirrors the
+    // PHP side's own actionUrl($action, tree: null).
+    final route = tree == null ? '/module/$moduleSlug/$action' : '/module/$moduleSlug/$action/$tree';
     return Uri.parse(_baseUrl).replace(
       path: '${Uri.parse(_baseUrl).path}index.php',
       queryParameters: {
-        'route': '/module/$moduleSlug/$action/$tree',
+        'route': route,
         ...?query,
       },
     );
@@ -214,6 +218,30 @@ class WebtreesClient {
     // Success is a 302 redirect back to the site; failure re-renders the
     // login form (200) with a flash message, or 400 on a bad/missing CSRF.
     return response.statusCode == 302;
+  }
+
+  /// Redeems a one-time "Verbinden" pairing code (see connect_deep_link.dart)
+  /// — logs this device in as whichever user the website's "App" page
+  /// issued the code to, without a password ever being typed here. Same
+  /// precondition as [login]: call [info] on this client first so a CSRF
+  /// token exists (the route has no tree segment - the account isn't tied
+  /// to one yet at this point, `Info` still needs *some* tree name in its
+  /// own URL, any valid one works since its response covers every tree the
+  /// account can see regardless of which one was asked for).
+  ///
+  /// An invalid/expired/already-used code responds 400/403 with
+  /// `{ok: false, error: '...'}` (same convention as every other endpoint's
+  /// error path in this client - not a thrown [DioException], since this
+  /// client's `validateStatus` treats anything under 500 as a normal
+  /// response). On success: `{ok: true, tree, user}` - the tree the code
+  /// was issued from and the now-logged-in username.
+  Future<Map<String, dynamic>> pair(String code) async {
+    final response = await _dio.postUri(
+      _moduleUri('Pair', null),
+      data: {'code': code},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> individuals(
