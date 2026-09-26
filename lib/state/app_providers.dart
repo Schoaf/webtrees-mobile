@@ -26,20 +26,70 @@ String get devServerUrl =>
     Platform.isAndroid ? 'http://10.0.2.2:8080/' : 'http://localhost:8080/';
 const devTreeName = 'devtree';
 
-/// The webtrees site to talk to. Settings screen lets the user change this;
-/// defaults to production for now.
+/// Secure-storage keys for the currently active server/tree - written
+/// whenever a "Verbinden" link pairs the app to a (possibly different)
+/// server, or "Stammbaum wechseln" picks a different tree on the same
+/// server. Read once at startup, in [loadActiveConnection], before
+/// [ServerUrlNotifier]/[TreeNameNotifier] are ever built - Riverpod
+/// `Notifier.build()` can't be async, so the persisted value (if any) is
+/// resolved ahead of time and injected via `overrideWith` in `main()`
+/// rather than loaded lazily from inside the notifier.
+const _kServerUrlStorageKey = 'active_server_url';
+const _kTreeNameStorageKey = 'active_tree_name';
+
+/// The server+tree this device is currently paired to (production if
+/// never paired via a "Verbinden" link) - read in `main()` before
+/// `runApp`, see [_kServerUrlStorageKey].
+Future<({String serverUrl, String treeName})> loadActiveConnection() async {
+  try {
+    final serverUrl = await _secureStorage.read(key: _kServerUrlStorageKey).timeout(const Duration(seconds: 3));
+    final treeName = await _secureStorage.read(key: _kTreeNameStorageKey).timeout(const Duration(seconds: 3));
+    return (serverUrl: serverUrl ?? productionServerUrl, treeName: treeName ?? productionTreeName);
+  } on Exception {
+    return (serverUrl: productionServerUrl, treeName: productionTreeName); // secure storage unavailable
+  }
+}
+
+/// The webtrees site to talk to - defaults to production, but a
+/// "Verbinden" link can repoint this device at any other webtrees
+/// instance running api4webtrees (see connect_deep_link.dart). Persisted
+/// via [set] so the choice survives a relaunch; [loadActiveConnection]
+/// supplies the initial value via `overrideWith` before this notifier is
+/// ever built, so existing installations that never used a connect link
+/// see no change in behavior.
 class ServerUrlNotifier extends Notifier<String> {
+  ServerUrlNotifier({this.initial = productionServerUrl});
+
+  final String initial;
+
   @override
-  String build() => productionServerUrl;
+  String build() => initial;
+
+  Future<void> set(String url) async {
+    state = url;
+    await _secureStorage.write(key: _kServerUrlStorageKey, value: url);
+  }
 }
 
 final serverUrlProvider = NotifierProvider<ServerUrlNotifier, String>(
   ServerUrlNotifier.new,
 );
 
+/// The active tree on [serverUrlProvider]'s server - a server can host
+/// more than one; see TreePickerScreen and "Stammbaum wechseln" in
+/// account_screen.dart. Same persistence story as [ServerUrlNotifier].
 class TreeNameNotifier extends Notifier<String> {
+  TreeNameNotifier({this.initial = productionTreeName});
+
+  final String initial;
+
   @override
-  String build() => productionTreeName;
+  String build() => initial;
+
+  Future<void> set(String tree) async {
+    state = tree;
+    await _secureStorage.write(key: _kTreeNameStorageKey, value: tree);
+  }
 }
 
 final treeNameProvider = NotifierProvider<TreeNameNotifier, String>(
@@ -166,6 +216,21 @@ extension AuthErrorL10n on AuthError {
   };
 }
 
+/// A raw exception message (timeouts, TLS, DNS, ...) is meaningless to
+/// someone tapping "Anmelden" (or waiting on a "Verbinden" link to
+/// resolve) on their phone — collapse it to one clear message instead of
+/// surfacing Dio's internals. Shared by [AuthController.login] and
+/// [AuthController.adoptPairedSession].
+AuthError _authErrorFromDioException(DioException e) => switch (e.type) {
+  DioExceptionType.connectionTimeout ||
+  DioExceptionType.sendTimeout ||
+  DioExceptionType.receiveTimeout ||
+  DioExceptionType.connectionError =>
+    AuthError.serverUnreachable,
+  DioExceptionType.badCertificate => AuthError.insecureConnection,
+  _ => AuthError.loginFailedGeneric,
+};
+
 class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
@@ -196,18 +261,39 @@ class AuthController extends Notifier<AuthState> {
       );
       return null;
     } on DioException catch (e) {
-      // A raw exception message (timeouts, TLS, DNS, ...) is meaningless to
-      // someone tapping "Anmelden" on their phone — collapse it to one clear
-      // message instead of surfacing Dio's internals.
-      return switch (e.type) {
-        DioExceptionType.connectionTimeout ||
-        DioExceptionType.sendTimeout ||
-        DioExceptionType.receiveTimeout ||
-        DioExceptionType.connectionError =>
-          AuthError.serverUnreachable,
-        DioExceptionType.badCertificate => AuthError.insecureConnection,
-        _ => AuthError.loginFailedGeneric,
-      };
+      return _authErrorFromDioException(e);
+    } on Exception {
+      return AuthError.loginFailedGeneric;
+    }
+  }
+
+  /// Completes a "Verbinden" pairing (see connect_deep_link.dart): the
+  /// server has already authenticated this device via a one-time code
+  /// (`WebtreesClient.pair`, called on `ref.read(webtreesClientProvider)`
+  /// beforehand so it's talking to the *new* server/session already) - no
+  /// password involved, unlike [login]. This just confirms the resulting
+  /// session actually is logged in, then saves it the same way [login]
+  /// does.
+  Future<AuthError?> adoptPairedSession(String tree) async {
+    final client = ref.read(webtreesClientProvider);
+
+    try {
+      final info = await client.info(tree);
+      final user = info['user'] as Map<String, dynamic>;
+      if (user['loggedIn'] != true) {
+        return AuthError.loginDidNotWork;
+      }
+
+      await _saveSession(client);
+      state = AuthState(
+        loggedIn: true,
+        userName: user['userName'] as String?,
+        realName: user['realName'] as String?,
+        isAdmin: user['isAdmin'] as bool? ?? false,
+      );
+      return null;
+    } on DioException catch (e) {
+      return _authErrorFromDioException(e);
     } on Exception {
       return AuthError.loginFailedGeneric;
     }

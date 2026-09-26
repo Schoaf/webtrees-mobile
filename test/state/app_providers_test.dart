@@ -73,6 +73,34 @@ void main() {
       expect(container.read(serverUrlProvider), productionServerUrl);
       expect(container.read(treeNameProvider), productionTreeName);
     });
+
+    test('set() updates state and persists to secure storage', () async {
+      await container.read(serverUrlProvider.notifier).set('https://other.example.com/');
+      await container.read(treeNameProvider.notifier).set('OtherTree');
+
+      expect(container.read(serverUrlProvider), 'https://other.example.com/');
+      expect(container.read(treeNameProvider), 'OtherTree');
+      expect(secureStore['active_server_url'], 'https://other.example.com/');
+      expect(secureStore['active_tree_name'], 'OtherTree');
+    });
+  });
+
+  group('loadActiveConnection', () {
+    test('falls back to the production defaults when nothing was ever persisted', () async {
+      final active = await loadActiveConnection();
+      expect(active.serverUrl, productionServerUrl);
+      expect(active.treeName, productionTreeName);
+    });
+
+    test('returns a previously persisted server/tree', () async {
+      secureStore['active_server_url'] = 'https://other.example.com/';
+      secureStore['active_tree_name'] = 'OtherTree';
+
+      final active = await loadActiveConnection();
+
+      expect(active.serverUrl, 'https://other.example.com/');
+      expect(active.treeName, 'OtherTree');
+    });
   });
 
   group('privacyPolicyUrl', () {
@@ -191,6 +219,52 @@ void main() {
       final error = await container.read(authControllerProvider.notifier).login('alice', 's3cret');
 
       expect(error, AuthError.loginFailedGeneric);
+    });
+  });
+
+  group('AuthController.adoptPairedSession', () {
+    test('on success, saves the session and reflects the logged-in user - only one info() call', () async {
+      when(() => client.info('Famtree')).thenAnswer(
+        (_) async => {
+          'user': {'loggedIn': true, 'userName': 'alice', 'realName': 'Alice A.', 'isAdmin': true},
+        },
+      );
+      when(() => client.sessionCookie).thenReturn('wtcookie=paired');
+
+      final error = await container.read(authControllerProvider.notifier).adoptPairedSession('Famtree');
+
+      expect(error, isNull);
+      final state = container.read(authControllerProvider);
+      expect(state.loggedIn, isTrue);
+      expect(state.userName, 'alice');
+      expect(state.isAdmin, isTrue);
+      expect(secureStore['wt_session_cookie'], 'wtcookie=paired');
+      // Unlike login(), pairing already authenticated server-side - this
+      // only needs to confirm it, not establish a CSRF context first.
+      verify(() => client.info('Famtree')).called(1);
+    });
+
+    test('a session that somehow is not actually logged in surfaces a retry message', () async {
+      when(() => client.info('Famtree')).thenAnswer(
+        (_) async => {
+          'user': {'loggedIn': false},
+        },
+      );
+
+      final error = await container.read(authControllerProvider.notifier).adoptPairedSession('Famtree');
+
+      expect(error, AuthError.loginDidNotWork);
+      expect(container.read(authControllerProvider).loggedIn, isFalse);
+    });
+
+    test('a connection-error DioException is collapsed to a friendly unreachable-server message', () async {
+      when(() => client.info('Famtree')).thenThrow(
+        DioException(requestOptions: RequestOptions(path: '/'), type: DioExceptionType.connectionError),
+      );
+
+      final error = await container.read(authControllerProvider.notifier).adoptPairedSession('Famtree');
+
+      expect(error, AuthError.serverUnreachable);
     });
   });
 

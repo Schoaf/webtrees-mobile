@@ -11,6 +11,7 @@ import '../../widgets/copyable_error_text.dart';
 import '../../widgets/person_card.dart';
 import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
+import '../tree_picker/tree_picker_screen.dart';
 
 /// The server's raw role string (stable, not display text); see
 /// [_roleLabel] for the localized text shown for each. Kept off the
@@ -377,6 +378,14 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           },
                           icon: const Icon(Icons.logout, size: 18),
                           label: Text(l10n.logoutButton),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const TreePickerScreen()),
+                          ),
+                          icon: const Icon(Icons.swap_horiz, size: 16),
+                          label: Text(l10n.switchTreeMenuItem),
                         ),
                         if (_biometricSupported) ...[
                           const SizedBox(height: 12),
