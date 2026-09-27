@@ -12,8 +12,10 @@ import 'screens/search/search_screen.dart';
 import 'screens/tree_view/my_tree_view_screen.dart';
 import 'state/app_providers.dart';
 import 'theme/app_theme.dart';
+import 'utils/device_size.dart';
 import 'utils/person_deep_link.dart';
 import 'utils/share_review_deep_link.dart';
+import 'widgets/tab_navigator.dart';
 import 'widgets/tree_icons.dart';
 
 void main() {
@@ -205,9 +207,14 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
   }
 }
 
-class _HomeShell extends ConsumerWidget {
+class _HomeShell extends ConsumerStatefulWidget {
   const _HomeShell();
 
+  @override
+  ConsumerState<_HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<_HomeShell> {
   static const _screens = [
     HomeScreen(),
     MyTreeViewScreen(),
@@ -215,12 +222,36 @@ class _HomeShell extends ConsumerWidget {
     AddPersonScreen(),
   ];
 
+  // One per tab, created once and kept for this State's whole lifetime -
+  // each tab's nested Navigator (tablet only, see build()) needs the SAME
+  // GlobalKey across rebuilds for its own pushed route stack to survive
+  // switching tabs and back, not a fresh one every build().
+  final _navigatorKeys = List.generate(
+    _screens.length,
+    (_) => GlobalKey<NavigatorState>(),
+  );
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final index = ref.watch(selectedTabProvider);
     final l10n = AppLocalizations.of(context)!;
+    // Phone: screens render directly, so every push goes to the app's one
+    // root Navigator - full-screen, covering this whole shell including
+    // the bottom nav bar, exactly as before this existed. Tablet: each tab
+    // gets its own nested Navigator instead, so opening a person/tree/etc.
+    // pushes within that tab's own content area, and the bottom nav bar -
+    // a sibling of that content area, not something any of those pushes
+    // can cover - stays on screen the whole time. See TabNavigator for
+    // the back-button wiring this needs to keep working correctly.
+    final tabbed = isTabletDevice(context);
+    final screens = tabbed
+        ? [
+            for (var i = 0; i < _screens.length; i++)
+              TabNavigator(navigatorKey: _navigatorKeys[i], child: _screens[i]),
+          ]
+        : _screens;
     return Scaffold(
-      body: IndexedStack(index: index, children: _screens),
+      body: IndexedStack(index: index, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) =>
@@ -250,3 +281,4 @@ class _HomeShell extends ConsumerWidget {
     );
   }
 }
+
