@@ -255,10 +255,16 @@ void main() {
     // are what actually prove the form is usable, not just "no error".
     expect(tester.takeException(), isNull);
 
-    // BIRT sorts first (see kFactDisplayOrder), so its editor is near the
-    // top of the form and doesn't need scrolling into view.
+    // SEX sorts first, then BIRT (see kFactDisplayOrder), so both editors
+    // are near the top of the form and don't need scrolling into view.
+    expect(find.text('Geschlecht'), findsOneWidget);
     expect(find.text('Geburt'), findsOneWidget);
     expect(find.byType(TextField), findsWidgets);
+    expect(
+      tester.getTopLeft(find.text('Geschlecht')).dy,
+      lessThan(tester.getTopLeft(find.text('Geburt')).dy),
+      reason: 'Geschlecht (SEX) must be the first field in the edit form',
+    );
   });
 
   testWidgets(
@@ -333,6 +339,29 @@ void main() {
       expect(find.text('Änderungen gespeichert — wartet ggf. auf Freigabe.'), findsOneWidget);
     },
   );
+
+  testWidgets('record-metadata fields (Datensatz-ID, Quellenangabe, ...) are visible read-only but never editable', (
+    tester,
+  ) async {
+    final json = personJson('I1');
+    json['facts'] = [
+      ...json['facts'] as List<dynamic>,
+      {'tag': 'RIN', 'label': 'Datensatz-ID', 'value': '123'},
+      {'tag': 'SOUR', 'label': 'Quellenangabe', 'value': 'Kirchenbuch'},
+    ];
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+
+    await pumpScreen(tester);
+    await tester.tap(find.textContaining('Mehr anzeigen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Datensatz-ID'), findsOneWidget, reason: 'still shown read-only');
+    expect(find.text('Quellenangabe'), findsOneWidget, reason: 'still shown read-only');
+
+    await tester.tap(find.byTooltip('Bearbeiten'));
+    await tester.pumpAndSettle();
+    expect(find.text('Datensatz-ID'), findsNothing);
+    expect(find.text('Quellenangabe'), findsNothing);
+  });
 
   testWidgets(
     'regression: opening edit mode pre-selects the sex segment that is actually already set',

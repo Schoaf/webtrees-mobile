@@ -33,24 +33,22 @@ import '../tree_view/tree_view_screen.dart';
 const _primaryFactTags = {'SEX', 'BIRT', 'DEAT'};
 
 /// Record-metadata tags shown (read-only) under "Mehr anzeigen" but never
-/// offered as editable fields - REFN (the record ID) and CHAN (last
-/// changed, not currently returned by the API at all, but excluded here
-/// too in case that changes) are system/bookkeeping data, not something a
-/// person edits about themselves.
-const _nonEditableFactTags = {'REFN', 'CHAN'};
+/// offered as editable fields - RIN ("Datensatz-ID"), CHAN ("Aktualisiert
+/// am" - not currently returned by the API at all, but excluded here too
+/// in case that changes), SOUR ("Quellenangabe") and REFN (the record ID)
+/// are system/bookkeeping data, not something a person edits about
+/// themselves.
+const _nonEditableFactTags = {'RIN', 'CHAN', 'SOUR', 'REFN'};
 
-/// Desired display/edit order for a person's facts, top to bottom.
+/// Desired display/edit order for a person's facts, top to bottom. SEX and
+/// NAME lead (NAME only actually appears in the edit form - the read-only
+/// card filters it out separately, shown up top next to the photo instead).
 ///
 /// This is the single place to change field order — edit the list below and
 /// both the read-only facts card and the edit form pick it up automatically.
 /// Any tag not listed here keeps its server-given order, appended after the
 /// ones listed.
-///
-/// NOTE: "Aktualisiert am" (the GEDCOM CHAN / last-changed tag) isn't in
-/// this list because the api4webtrees module strips it out server-side
-/// (its SKIP_FACTS list) — it currently can't be fetched via this API at
-/// all, so there's nothing to display yet even though it's on the wishlist.
-const kFactDisplayOrder = ['BIRT', 'DEAT', 'SEX', 'TITL', 'RESI', 'REFN'];
+const kFactDisplayOrder = ['SEX', 'NAME', 'BIRT', 'DEAT', 'TITL', 'RESI', 'REFN'];
 
 int _factOrderIndex(String tag) {
   final i = kFactDisplayOrder.indexOf(tag);
