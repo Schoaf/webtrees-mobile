@@ -46,6 +46,13 @@ class _MyTreeViewScreenState extends ConsumerState<MyTreeViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Drives TreeViewScreen.visibilitySignal - watched (not read) so this
+    // widget, and TreeViewScreen below it, rebuild on every tab switch even
+    // though both stay alive offstage the rest of the time (this is the
+    // Stammbaum tab in an IndexedStack) - see the comment on
+    // visibilitySignal for why that rebuild matters.
+    final selectedTab = ref.watch(selectedTabProvider);
+
     return FutureBuilder<String?>(
       future: _future,
       builder: (context, snapshot) {
@@ -70,7 +77,7 @@ class _MyTreeViewScreenState extends ConsumerState<MyTreeViewScreen> {
             ),
           );
         }
-        return TreeViewScreen(xref: xref);
+        return TreeViewScreen(xref: xref, visibilitySignal: selectedTab);
       },
     );
   }

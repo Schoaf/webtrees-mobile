@@ -49,9 +49,18 @@ const _kFrameLabelTopOffset = -8.0 - _kFrameTopPadding;
 /// `stammbaum-ansicht-spec.md` for the exact layout and suppression rules
 /// this implements.
 class TreeViewScreen extends ConsumerStatefulWidget {
-  const TreeViewScreen({super.key, required this.xref});
+  const TreeViewScreen({super.key, required this.xref, this.visibilitySignal});
 
   final String xref;
+
+  /// Set this when the screen can be built while genuinely invisible (e.g.
+  /// kept alive offstage inside an `IndexedStack` bottom-nav tab, as
+  /// `MyTreeViewScreen` does) and change it to a new value whenever the
+  /// screen actually becomes visible - see the centering fields below for
+  /// why. Leave null for a screen that's always visible once built (a
+  /// plain `Navigator.push`, e.g. from `PersonDetailScreen`'s tree
+  /// button), where this doesn't apply.
+  final Object? visibilitySignal;
 
   @override
   ConsumerState<TreeViewScreen> createState() => _TreeViewScreenState();
@@ -71,6 +80,35 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   // into the initial fit).
   final _familyGroupKey = GlobalKey();
   String? _centeredForXref;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastVisibilitySignal = widget.visibilitySignal;
+  }
+
+  // Bug this fixes: an IndexedStack bottom-nav tab never rebuilds its
+  // offstage children just because the selected index changed elsewhere -
+  // Flutter reuses the same Element untouched. So the postFrameCallback
+  // below, gated only by activeXref, got exactly one chance to measure and
+  // center - typically the moment the tree data first finished loading,
+  // often while this tab was still offstage (built eagerly by
+  // IndexedStack at app launch, long before anyone tapped it) - and never
+  // ran again once actually visible, even though nothing was visibly
+  // wrong with the *first* computation itself. widget.visibilitySignal
+  // changing is this screen's only signal that it might finally be worth
+  // re-measuring; see MyTreeViewScreen, which drives it from the
+  // selected-tab index.
+  Object? _lastVisibilitySignal;
+
+  @override
+  void didUpdateWidget(covariant TreeViewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.visibilitySignal != _lastVisibilitySignal) {
+      _lastVisibilitySignal = widget.visibilitySignal;
+      _centeredForXref = null;
+    }
+  }
 
   @override
   void dispose() {
