@@ -178,6 +178,32 @@ void main() {
     expect(infoButtonIndex, greaterThan(banderoleIndex));
   });
 
+  testWidgets(
+    'a narrower card gets a proportionally thicker banderole, so its absolute reach into the '
+    'card stays the same as a wider one\'s',
+    (tester) async {
+      // Regression test: DeathBanderole's thicknessFactor is a fraction of
+      // the card's own shortest side, so at one fixed factor the ribbon
+      // read visibly thinner/shallower on a plain 90px-wide sibling/child/
+      // parent card than on the wider (~110px), zoomed active/partner
+      // card. TreeNodeCard derives thicknessFactor from its own width
+      // instead, targeting the same absolute thickness regardless of
+      // which role's card it's drawn on.
+      Future<double> thicknessFactorFor(double width) async {
+        await tester.pumpWidget(
+          _wrap(TreeNodeCard(firstName: 'Anna', sex: 'F', isDead: true, birthYear: 1958, width: width)),
+        );
+        return tester.widget<DeathBanderole>(find.byType(DeathBanderole)).thicknessFactor;
+      }
+
+      final narrow = await thicknessFactorFor(90);
+      final wide = await thicknessFactorFor(110);
+
+      expect(narrow, greaterThan(wide), reason: 'the narrower card needs a bigger fraction for the same absolute reach');
+      expect(narrow * 90, closeTo(wide * 110, 0.01), reason: 'both must resolve to the same absolute thickness');
+    },
+  );
+
   testWidgets('UnknownPersonCard shows the placeholder text and has no tap handler', (tester) async {
     await tester.pumpWidget(_wrap(const UnknownPersonCard()));
 

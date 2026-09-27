@@ -22,6 +22,18 @@ const _kRelationshipBadgeSize = 33.0;
 // background in tree_view_screen.dart.
 const _kBadgeBackground = Color(0xFFF8F9FA);
 
+// DeathBanderole's thicknessFactor is a fraction of the card's shortest
+// side, so at a *fixed* factor the ribbon reads thinner/shallower on a
+// plain sibling/child/parent card (default width 90) than on the wider
+// zoomed active/partner card (width ~110, see _kCardWidth * _kActiveZoom
+// in tree_view_screen.dart) - the same fraction of a smaller number is a
+// smaller ribbon. Deriving thicknessFactor from *this* card's own width
+// instead keeps the ribbon's absolute reach into the card constant across
+// every role - 18px matches what the active/partner card already gets at
+// the plain default factor (110 * 0.16 ≈ 17.6), which is the one look
+// this was tuned to match.
+const _kBanderoleThickness = 18.0;
+
 /// One card in the family-tree view (`PersonCardV4d` in the design). Purely
 /// presentational — which badges to show is a per-role decision made by
 /// whoever builds the tree layout (see `treeCardSuppression` doc in
@@ -132,7 +144,7 @@ class TreeNodeCard extends StatelessWidget {
               // Below the corner badges (painted after it, further down
               // this list) but above the plain white background - spans
               // the whole card, not just the avatar circle.
-              if (isDead) const Positioned.fill(child: DeathBanderole()),
+              if (isDead) Positioned.fill(child: DeathBanderole(thicknessFactor: _kBanderoleThickness / width)),
               Padding(
                 padding: _kCardPadding,
                 child: Column(
