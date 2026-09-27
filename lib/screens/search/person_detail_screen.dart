@@ -688,7 +688,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     const avatarSize = 84.0;
-                    const treeButtonSize = 40.0;
+                    // Matches FloatingActionButton's own default size (the
+                    // home FAB uses it unmodified - no theme override).
+                    const treeButtonSize = 56.0;
                     final avatarLeft = (constraints.maxWidth - avatarSize) / 2;
                     // The tree-view button sits centered between the
                     // content area's left edge and the avatar's left edge.
@@ -1026,15 +1028,20 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
 /// where this button's visual circle center lands, so it can center that
 /// point (not the widget's bounding box, which is off-center because of
 /// the sprig) between the content area's left edge and the avatar.
-/// Opens the family-tree view, centered on this person — a plain solid
-/// circle with a white icon, [size] diameter, styled like the home FAB
-/// ([AppColors.secondary] background, white icon, no text) rather than the
-/// artwork's own outlined-circle-plus-sprig look.
+/// Opens the family-tree view, centered on this person — styled and sized
+/// like the home FAB ([AppColors.secondary] background, white icon, no
+/// text, same 56x56 default FAB size and rounded-square shape) rather than
+/// the artwork's own circle-plus-sprig look or a plain circle.
 class _TreeViewButton extends StatelessWidget {
   const _TreeViewButton({required this.onTap, required this.size});
 
   final VoidCallback onTap;
   final double size;
+
+  // Matches FloatingActionButton's own Material 3 default shape (there's
+  // no ThemeData.floatingActionButtonTheme override in app_theme.dart to
+  // read it from, so this is the plain framework default).
+  static const _shape = RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16)));
 
   @override
   Widget build(BuildContext context) {
@@ -1043,10 +1050,11 @@ class _TreeViewButton extends StatelessWidget {
       height: size,
       child: Material(
         color: AppColors.secondary,
-        shape: const CircleBorder(),
+        shape: _shape,
         child: InkWell(
+          key: const Key('treeViewButton'),
           onTap: onTap,
-          customBorder: const CircleBorder(),
+          customBorder: _shape,
           child: Padding(
             padding: EdgeInsets.all(size * 0.25),
             child: Image.asset('assets/images/tree_button_icon.png', color: Colors.white),

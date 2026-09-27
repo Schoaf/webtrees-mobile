@@ -169,8 +169,21 @@ class DeathBanderole extends StatelessWidget {
     // something to clip. Without this, the ribbon silently bled into
     // whatever sat above/beside its box (e.g. PersonDetailScreen's header
     // bar, above the corner ribbon's own area).
-    return ClipRect(
-      child: CustomPaint(painter: _DeathBanderolePainter(color: color, thicknessFactor: thicknessFactor)),
+    //
+    // IgnorePointer matters whenever this sits as a Stack *sibling* of
+    // something tappable rather than as a descendant of it (e.g.
+    // PersonDetailScreen's header, where it shares a Stack with the
+    // tree-view button instead of being nested inside its InkWell): a plain
+    // CustomPaint's hitTestSelf treats its whole bounding box as opaque by
+    // default (CustomPainter.hitTest() isn't overridden here), and Stack
+    // hit-testing stops at the first opaque hit in paint order - so without
+    // this, this decorative ribbon silently swallowed taps meant for
+    // whatever sat underneath its corner, for deceased people only (no
+    // banderole, no problem, for living ones).
+    return IgnorePointer(
+      child: ClipRect(
+        child: CustomPaint(painter: _DeathBanderolePainter(color: color, thicknessFactor: thicknessFactor)),
+      ),
     );
   }
 }
