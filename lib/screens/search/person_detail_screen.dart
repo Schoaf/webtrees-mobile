@@ -21,7 +21,6 @@ import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
-import '../../widgets/tree_icons.dart';
 import '../add_person/add_person_screen.dart';
 import '../tree_view/tree_view_screen.dart';
 
@@ -686,66 +685,79 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Balances the tree-view button's width
-                    // on the other side so the avatar stays
-                    // centered, matching the layout before
-                    // this button existed - only needed
-                    // when the button actually shows. Plain
-                    // Row instead of a negative-offset
-                    // Positioned/Stack: simpler and can't
-                    // run into clipping or hit-testing edge
-                    // cases.
-                    if (showTreeButton) const SizedBox(width: 40),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    const avatarSize = 84.0;
+                    const treeButtonWidth = 44.0;
+                    final avatarLeft = (constraints.maxWidth - avatarSize) / 2;
+                    // The tree-view button's visual circle (not its
+                    // bounding box, which is off-center because of the
+                    // sprig overflowing above/right of it) sits centered
+                    // between the content area's left edge and the
+                    // avatar's left edge.
+                    final circleCenterX = avatarLeft / 2;
+
+                    return SizedBox(
+                      height: avatarSize,
+                      child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          if (showTreeButton) ...[
-                            _TreeViewButton(
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      TreeViewScreen(xref: widget.xref),
+                          Align(
+                            alignment: Alignment.center,
+                            child: PersonAvatar(
+                              sex: person['sex'] as String? ?? 'U',
+                              isDead: isDead,
+                              size: avatarSize,
+                              photoUrl: photoUrl,
+                              photoHeaders: ref
+                                  .read(webtreesClientProvider)
+                                  .imageHeaders,
+                              editable: _editing && canEdit,
+                              // The whole screen carries its own corner
+                              // banderole below, spanning further than
+                              // this small header avatar.
+                              showBanderole: false,
+                              onTap: _editing
+                                  ? (canEdit ? _pickAndUploadPhoto : null)
+                                  : (hasPhoto
+                                        ? () => _openPhotoViewer(
+                                            media.isNotEmpty
+                                                ? (media.first['file']
+                                                          as String? ??
+                                                      photoUrl)
+                                                : photoUrl,
+                                          )
+                                        : (canEdit
+                                              ? _pickAndUploadPhoto
+                                              : null)),
+                            ),
+                          ),
+                          if (showTreeButton)
+                            Positioned(
+                              left:
+                                  circleCenterX -
+                                  _TreeViewButton.circleCenterX(
+                                    treeButtonWidth,
+                                  ),
+                              top:
+                                  avatarSize / 2 -
+                                  _TreeViewButton.circleCenterY(
+                                    treeButtonWidth,
+                                  ),
+                              child: _TreeViewButton(
+                                width: treeButtonWidth,
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        TreeViewScreen(xref: widget.xref),
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                          ],
-                          PersonAvatar(
-                            sex: person['sex'] as String? ?? 'U',
-                            isDead: isDead,
-                            size: 84,
-                            photoUrl: photoUrl,
-                            photoHeaders: ref
-                                .read(webtreesClientProvider)
-                                .imageHeaders,
-                            editable: _editing && canEdit,
-                            // The whole screen carries its own corner
-                            // banderole below, spanning further than
-                            // this small header avatar.
-                            showBanderole: false,
-                            onTap: _editing
-                                ? (canEdit ? _pickAndUploadPhoto : null)
-                                : (hasPhoto
-                                      ? () => _openPhotoViewer(
-                                          media.isNotEmpty
-                                              ? (media.first['file']
-                                                        as String? ??
-                                                    photoUrl)
-                                              : photoUrl,
-                                        )
-                                      : (canEdit
-                                            ? _pickAndUploadPhoto
-                                            : null)),
-                          ),
                         ],
                       ),
-                    ),
-                    if (showTreeButton) const SizedBox(width: 40),
-                  ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -1013,25 +1025,61 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   }
 }
 
-/// Opens the family-tree view, centered on this person — the round
+/// Opens the family-tree view, centered on this person — the
 /// tree-icon button to the left of the avatar.
+///
+/// The artwork (`assets/images/tree_button_icon.png`) already draws its
+/// own circle, with a sprig overflowing its top-right corner, so this
+/// doesn't wrap it in another circular background like the old hand-painted
+/// tree icon needed — that would show a mismatched square/circle fill
+/// behind the transparent parts of the art. The ripple is clipped to
+/// the drawn circle instead. [width] is also how the header row measures
+/// where this button's visual circle center lands, so it can center that
+/// point (not the widget's bounding box, which is off-center because of
+/// the sprig) between the content area's left edge and the avatar.
 class _TreeViewButton extends StatelessWidget {
-  const _TreeViewButton({required this.onTap});
+  const _TreeViewButton({required this.onTap, required this.width});
 
   final VoidCallback onTap;
+  final double width;
+
+  // Measured from the source artwork (817x860): the drawn circle's
+  // diameter and center, as fractions of the full asset bounding box
+  // (which includes the sprig overflowing above/right of the circle).
+  static const double aspectRatio = 817 / 860;
+  static const double circleFraction = 0.75;
+  static const double circleCenterXFraction = 322 / 817;
+  static const double circleCenterYFraction = 526 / 860;
+
+  static double circleCenterX(double width) => width * circleCenterXFraction;
+
+  static double circleCenterY(double width) => (width / aspectRatio) * circleCenterYFraction;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.secondary.withValues(alpha: 0.12),
-      shape: const CircleBorder(),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: const Padding(
-          padding: EdgeInsets.all(10),
-          child: GenealogyTreeIcon(size: 20, color: AppColors.secondary),
-        ),
+    final height = width / aspectRatio;
+    final circleDiameter = width * circleFraction;
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Image.asset('assets/images/tree_button_icon.png', width: width),
+          Positioned(
+            left: circleCenterX(width) - circleDiameter / 2,
+            top: circleCenterY(width) - circleDiameter / 2,
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              child: SizedBox(
+                width: circleDiameter,
+                height: circleDiameter,
+                child: InkWell(onTap: onTap, customBorder: const CircleBorder()),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
