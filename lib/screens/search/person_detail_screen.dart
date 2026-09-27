@@ -688,14 +688,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     const avatarSize = 84.0;
-                    const treeButtonWidth = 44.0;
+                    const treeButtonSize = 40.0;
                     final avatarLeft = (constraints.maxWidth - avatarSize) / 2;
-                    // The tree-view button's visual circle (not its
-                    // bounding box, which is off-center because of the
-                    // sprig overflowing above/right of it) sits centered
-                    // between the content area's left edge and the
-                    // avatar's left edge.
-                    final circleCenterX = avatarLeft / 2;
+                    // The tree-view button sits centered between the
+                    // content area's left edge and the avatar's left edge.
+                    final buttonCenterX = avatarLeft / 2;
 
                     return SizedBox(
                       height: avatarSize,
@@ -734,18 +731,10 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                           ),
                           if (showTreeButton)
                             Positioned(
-                              left:
-                                  circleCenterX -
-                                  _TreeViewButton.circleCenterX(
-                                    treeButtonWidth,
-                                  ),
-                              top:
-                                  avatarSize / 2 -
-                                  _TreeViewButton.circleCenterY(
-                                    treeButtonWidth,
-                                  ),
+                              left: buttonCenterX - treeButtonSize / 2,
+                              top: avatarSize / 2 - treeButtonSize / 2,
                               child: _TreeViewButton(
-                                width: treeButtonWidth,
+                                size: treeButtonSize,
                                 onTap: () => Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (_) =>
@@ -1037,49 +1026,32 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
 /// where this button's visual circle center lands, so it can center that
 /// point (not the widget's bounding box, which is off-center because of
 /// the sprig) between the content area's left edge and the avatar.
+/// Opens the family-tree view, centered on this person — a plain solid
+/// circle with a white icon, [size] diameter, styled like the home FAB
+/// ([AppColors.secondary] background, white icon, no text) rather than the
+/// artwork's own outlined-circle-plus-sprig look.
 class _TreeViewButton extends StatelessWidget {
-  const _TreeViewButton({required this.onTap, required this.width});
+  const _TreeViewButton({required this.onTap, required this.size});
 
   final VoidCallback onTap;
-  final double width;
-
-  // Measured from the source artwork (817x860): the drawn circle's
-  // diameter and center, as fractions of the full asset bounding box
-  // (which includes the sprig overflowing above/right of the circle).
-  static const double aspectRatio = 817 / 860;
-  static const double circleFraction = 0.75;
-  static const double circleCenterXFraction = 322 / 817;
-  static const double circleCenterYFraction = 526 / 860;
-
-  static double circleCenterX(double width) => width * circleCenterXFraction;
-
-  static double circleCenterY(double width) => (width / aspectRatio) * circleCenterYFraction;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    final height = width / aspectRatio;
-    final circleDiameter = width * circleFraction;
     return SizedBox(
-      width: width,
-      height: height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Image.asset('assets/images/tree_button_icon.png', width: width),
-          Positioned(
-            left: circleCenterX(width) - circleDiameter / 2,
-            top: circleCenterY(width) - circleDiameter / 2,
-            child: Material(
-              color: Colors.transparent,
-              shape: const CircleBorder(),
-              child: SizedBox(
-                width: circleDiameter,
-                height: circleDiameter,
-                child: InkWell(onTap: onTap, customBorder: const CircleBorder()),
-              ),
-            ),
+      width: size,
+      height: size,
+      child: Material(
+        color: AppColors.secondary,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Padding(
+            padding: EdgeInsets.all(size * 0.25),
+            child: Image.asset('assets/images/tree_button_icon.png', color: Colors.white),
           ),
-        ],
+        ),
       ),
     );
   }
