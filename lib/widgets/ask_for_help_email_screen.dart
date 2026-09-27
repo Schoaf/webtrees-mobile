@@ -3,6 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
+import 'tablet_bounded_body.dart';
+
+// A 13" iPad in portrait is 1024 logical px wide - a bit less than that,
+// so the content never reads as edge-to-edge even on the largest tablet.
+const _kContentMaxWidth = 900.0;
+
+// Flutter has no CSS-style "em" unit (a fixed logical-pixel value already
+// scales with the OS's own display/accessibility text-size settings the
+// same way every other size in this app does, same as web "px" more than
+// "em") - a plain double is the closest equivalent and consistent with
+// the rest of this codebase.
+const _kFieldMaxWidth = 310.0;
 
 /// Lets the user personalize and send the webtrees-contribution-request "please help" email
 /// — subject/body are server-rendered (see [WebtreesClient.sendShareRequestEmail]),
@@ -103,84 +115,121 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'E-Mail-Adresse',
-                hintText: 'oma@beispiel.at',
+        child: TabletBoundedBody(
+          maxWidth: _kContentMaxWidth,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _NarrowField(
+                child: TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'E-Mail-Adresse',
+                    hintText: 'oma@beispiel.at',
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Name (optional)'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _messageController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Persönliche Nachricht (optional)',
-                alignLabelWithHint: true,
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              _NarrowField(
+                child: TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Name (optional)'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _messageController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Persönliche Nachricht (optional)',
+                  alignLabelWithHint: true,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+              const SizedBox(height: 24),
+              const Text(
+                'Vorschau',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: AppColors.cardShadow,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.subject,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_previewBody),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton(
+                  onPressed: _sending ? null : _send,
+                  // The theme's own FilledButtonThemeData sets
+                  // minimumSize: Size.fromHeight(56) - an infinite-width
+                  // minimum, meant for full-width primary actions like a
+                  // form's Save button. This one isn't that - a normal,
+                  // content-hugging button width instead, height still
+                  // matching the rest of the app's buttons.
+                  style: FilledButton.styleFrom(minimumSize: const Size(88, 56)),
+                  child: _sending
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Senden'),
+                ),
               ),
             ],
-            const SizedBox(height: 24),
-            const Text(
-              'Vorschau',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: AppColors.cardShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.subject,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(_previewBody),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _sending ? null : _send,
-              child: _sending
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Senden'),
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// Caps [child]'s width at [_kFieldMaxWidth] and keeps it left-aligned -
+/// used for the email/name fields, which stay compact even when the rest
+/// of the screen's content is capped much wider on a tablet.
+class _NarrowField extends StatelessWidget {
+  const _NarrowField({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _kFieldMaxWidth),
+        child: child,
       ),
     );
   }
