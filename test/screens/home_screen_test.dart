@@ -9,6 +9,7 @@ import 'package:webtrees_mobile/screens/home/home_screen.dart';
 import 'package:webtrees_mobile/screens/responses/responses_list_screen.dart';
 import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/widgets/tablet_bounded_body.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -84,6 +85,30 @@ void main() {
     expect(find.text('Familie Muster'), findsOneWidget);
     expect(find.text('Startperson Muster', findRichText: true), findsOneWidget);
     expect(find.text('42 Personen im Stammbaum'), findsOneWidget);
+  });
+
+  testWidgets('on a wide landscape tablet, the top bar/content width matches PersonDetailScreen\'s two-column width', (
+    tester,
+  ) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
+    when(() => client.anniversaries('Famtree', days: 7)).thenAnswer((_) async => {'data': <dynamic>[]});
+    when(() => client.shareRequestUnreadCount('Famtree')).thenAnswer((_) async => 0);
+
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    // TabletBoundedBody itself (an Align) fills the full available width -
+    // its capped-width child is what actually matters here.
+    final contentWidth = tester
+        .getSize(find.descendant(of: find.byType(TabletBoundedBody), matching: find.byType(Column)).first)
+        .width;
+    expect(contentWidth, 1100, reason: 'must match tabletBoundedMaxWidth, same as PersonDetailScreen uses here');
   });
 
   testWidgets('surfaces a load error instead of crashing', (tester) async {

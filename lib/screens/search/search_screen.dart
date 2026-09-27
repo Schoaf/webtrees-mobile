@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/device_size.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import 'person_detail_screen.dart';
@@ -87,6 +88,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       body: SafeArea(
         bottom: false,
         child: TabletBoundedBody(
+          // Matches PersonDetailScreen's own top-bar/content width in the
+          // same situation - see tabletBoundedMaxWidth.
+          maxWidth: tabletBoundedMaxWidth(context),
           child: Column(
             children: [
               Container(

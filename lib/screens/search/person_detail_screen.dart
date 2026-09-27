@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
+import '../../utils/device_size.dart';
 import '../../utils/gedcom.dart';
 import '../../utils/server_error.dart';
 import '../../widgets/add_fact_sheet.dart';
@@ -125,26 +126,11 @@ int? _ageInYears(num? birthJd) {
 }
 
 /// Whether to use the tablet landscape two-column layout (own info next to
-/// "die Verwandten") instead of the default single column. Reacts to the
-/// real viewport at runtime - actual orientation (width > height) plus a
-/// minimum size on both axes, not a fixed "is this a tablet" platform flag
-/// - so it naturally follows rotation, split-screen/multi-window resizes,
-/// and any device whose metrics happen to qualify, rather than only ever
-/// firing for a hardcoded device class.
-///
-/// Both thresholds matter: `shortestSide >= 600` (Flutter's own common
-/// tablet heuristic) alone would also fire for a large phone in landscape
-/// (e.g. a 6.9" phone's ~930-logical-pixel landscape width easily clears
-/// it), and `width >= 900` alone would also fire for `flutter_test`'s
-/// stock 800x600 surface at some derived sizes - together they keep this
-/// to genuinely tablet-shaped viewports, wide enough that two columns are
-/// each still comfortably usable.
-bool _useTwoColumnLayout(BuildContext context) {
-  final size = MediaQuery.sizeOf(context);
-  return size.width > size.height &&
-      size.width >= 900 &&
-      size.shortestSide >= 600;
-}
+/// "die Verwandten") instead of the default single column - see
+/// [isWideLandscapeTablet] for the actual threshold logic, shared with
+/// every other screen that needs to match this one's width exactly (see
+/// [tabletBoundedMaxWidth]).
+bool _useTwoColumnLayout(BuildContext context) => isWideLandscapeTablet(context);
 
 /// Full "review everything we know" view for one person — priority-2 in the
 /// project plan — plus the fast fact-capture entry point (priority-1),
@@ -921,8 +907,10 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             // Portrait (any device) and phone landscape stay at the
             // original comfortable reading width; the two-column tablet
             // landscape layout needs real width for both columns to be
-            // useful, so it gets a wider cap instead.
-            maxWidth: useTwoColumn ? 1100 : 480,
+            // useful, so it gets a wider cap instead - tabletBoundedMaxWidth
+            // is also what every other screen's own top bar/content uses,
+            // so they all stay the same width as this one.
+            maxWidth: tabletBoundedMaxWidth(context),
             child: Stack(
               children: [
                 SafeArea(

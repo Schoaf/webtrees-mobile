@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../repositories/quick_note_store.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/device_size.dart';
 import '../../utils/gedcom.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
@@ -144,6 +145,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             final data = snapshot.data!;
             return TabletBoundedBody(
+              // Matches PersonDetailScreen's own top-bar/content width in
+              // the same situation - see tabletBoundedMaxWidth.
+              maxWidth: tabletBoundedMaxWidth(context),
               child: Column(
                 children: [
                   _Header(

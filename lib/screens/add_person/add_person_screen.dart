@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/device_size.dart';
 import '../../utils/gedcom_date.dart';
 import '../../widgets/copyable_error_text.dart';
 import '../../widgets/place_autocomplete_field.dart';
@@ -257,6 +258,9 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
       body: SafeArea(
         bottom: false,
         child: TabletBoundedBody(
+          // Matches PersonDetailScreen's own top-bar/content width in the
+          // same situation - see tabletBoundedMaxWidth.
+          maxWidth: tabletBoundedMaxWidth(context),
           child: Column(
             children: [
               Container(
