@@ -111,6 +111,35 @@ void main() {
     expect(contentWidth, 1100, reason: 'must match tabletBoundedMaxWidth, same as PersonDetailScreen uses here');
   });
 
+  testWidgets('on a wide landscape tablet, "Person suchen" sits in its own right-hand column', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
+    when(() => client.anniversaries('Famtree', days: 7)).thenAnswer((_) async => {'data': <dynamic>[]});
+    when(() => client.shareRequestUnreadCount('Famtree')).thenAnswer((_) async => 0);
+
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    final searchLeft = tester.getTopLeft(find.text('Person suchen…')).dx;
+    final startPersonLeft = tester.getTopLeft(find.text('Startperson')).dx;
+    // A wide margin, not just "greater than" - the search button's own
+    // internal icon+padding already pushes its text right of a plain label
+    // by ~40-50px even stacked in a single column, which a weaker
+    // assertion wouldn't reliably tell apart from an actual column split
+    // (confirmed: forcing the single-column branch here still gave ~50px,
+    // the real two-column split gives ~590px).
+    expect(
+      searchLeft,
+      greaterThan(startPersonLeft + 200),
+      reason: 'search must be in its own right-hand column, not just after some internal padding',
+    );
+  });
+
   testWidgets('surfaces a load error instead of crashing', (tester) async {
     when(() => client.info('Famtree')).thenAnswer((_) => Future.error(Exception('offline')));
 

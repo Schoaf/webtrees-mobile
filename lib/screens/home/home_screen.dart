@@ -170,20 +170,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                   Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                      children: [
-                        _SearchEntryButton(
-                          // Switches the bottom-nav tab instead of pushing a
-                          // route: SearchScreen has no back button of its
-                          // own (it's meant to live inside the tab bar), so
-                          // pushing it stranded people with no way back to
-                          // the main menu. Index must match Search's
-                          // position in _HomeShell._screens (main.dart).
-                          onTap: () =>
-                              ref.read(selectedTabProvider.notifier).select(2),
-                        ),
-                        const SizedBox(height: 18),
+                    child: _HomeContent(
+                      searchButton: _SearchEntryButton(
+                        // Switches the bottom-nav tab instead of pushing a
+                        // route: SearchScreen has no back button of its
+                        // own (it's meant to live inside the tab bar), so
+                        // pushing it stranded people with no way back to
+                        // the main menu. Index must match Search's
+                        // position in _HomeShell._screens (main.dart).
+                        onTap: () =>
+                            ref.read(selectedTabProvider.notifier).select(2),
+                      ),
+                      rest: [
                         if (data.startPerson != null) ...[
                           Text(
                             l10n.startPerson,
@@ -365,6 +363,46 @@ class _Header extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Splits [searchButton] into its own right-hand column, [rest] filling the
+/// left one, on a wide landscape tablet - single-column phone/portrait
+/// layout keeps everything in one scrolling list, search button on top,
+/// exactly as before this existed.
+class _HomeContent extends StatelessWidget {
+  const _HomeContent({required this.searchButton, required this.rest});
+
+  final Widget searchButton;
+  final List<Widget> rest;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isWideLandscapeTablet(context)) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        children: [searchButton, const SizedBox(height: 18), ...rest],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 18, 12, 20),
+            children: rest,
+          ),
+        ),
+        const VerticalDivider(width: 1, color: AppColors.divider),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 18, 20, 20),
+            child: searchButton,
+          ),
+        ),
+      ],
     );
   }
 }
