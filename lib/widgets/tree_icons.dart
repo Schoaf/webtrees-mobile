@@ -48,11 +48,15 @@ class _GenealogyTreeIconPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     final cutout = Paint()..blendMode = BlendMode.clear;
 
-    final topCenter = Offset(w * 0.5, h * 0.27);
-    final leftCenter = Offset(w * 0.24, h * 0.76);
-    final rightCenter = Offset(w * 0.76, h * 0.76);
-    final boxSize = w * 0.42;
-    final midY = h * 0.53;
+    // Boxes deliberately smaller and pulled further apart than a "natural"
+    // tight org-chart layout - the connecting lines are what actually reads
+    // as a tree/hierarchy; packed close together (boxSize 0.42, ~2-5% gaps)
+    // they nearly touched, so the lines all but disappeared between them.
+    final topCenter = Offset(w * 0.5, h * 0.22);
+    final leftCenter = Offset(w * 0.2, h * 0.8);
+    final rightCenter = Offset(w * 0.8, h * 0.8);
+    final boxSize = w * 0.32;
+    final midY = h * 0.52;
 
     canvas.saveLayer(Offset.zero & size, Paint());
 
