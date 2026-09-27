@@ -24,6 +24,13 @@
 // widget tree, letting FutureProviders resolve) uses ordinary fake-async
 // pumping exactly like the rest of this test suite; only the final
 // image-capture step is wrapped in `runAsync`.
+//
+// Second gotcha, same root cause: decoding a real `Image.asset` (as
+// opposed to the app's hand-painted `CustomPainter` icons, which paint
+// synchronously) also does real async I/O and never resolves under fake
+// async - the `Image` widget just silently stays unpainted, no error. See
+// `_precacheBundledImages`, called after every `pumpAndSettle()` in
+// `_renderAndSave`.
 library;
 
 import 'dart:io';
@@ -343,6 +350,7 @@ Future<void> _renderAndSave(
   var boundaryKey = GlobalKey();
   await tester.pumpWidget(RepaintBoundary(key: boundaryKey, child: buildApp()));
   await tester.pumpAndSettle();
+  await _precacheBundledImages(tester, boundaryKey);
   if (afterPump != null) await afterPump(tester);
 
   final patches = _collectBareRichTextPatches();
@@ -358,6 +366,7 @@ Future<void> _renderAndSave(
       ),
     );
     await tester.pumpAndSettle();
+    await _precacheBundledImages(tester, boundaryKey);
     if (afterPump != null) await afterPump(tester);
   }
 
@@ -374,6 +383,28 @@ Future<void> _renderAndSave(
     final file = File('${dir.path}/$name.png');
     file.writeAsBytesSync(byteData!.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
   });
+}
+
+/// Same gotcha as the image-capture step (see file-level comment): decoding
+/// a real `Image.asset` (unlike the app's hand-painted `CustomPainter`
+/// icons) does real async I/O via `instantiateImageCodec` and never
+/// resolves under fake-async `pump()`/`pumpAndSettle()` - the `Image`
+/// widget stays permanently un-painted, silently missing from the
+/// screenshot, with no error or warning. Precaching every bundled image
+/// under `runAsync` first, then a plain `pump()` to let the now-resolved
+/// `ImageStream`s repaint, fixes that without switching the rest of the
+/// pumping to real async (which the file-level comment warns against).
+Future<void> _precacheBundledImages(WidgetTester tester, GlobalKey boundaryKey) async {
+  await tester.runAsync(() async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final context = boundaryKey.currentContext!;
+    for (final path in manifest.listAssets()) {
+      if (path.startsWith('assets/images/')) {
+        await precacheImage(AssetImage(path), context);
+      }
+    }
+  });
+  await tester.pump();
 }
 
 void main() {
