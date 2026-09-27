@@ -7,6 +7,82 @@ import '../models/tree_neighborhood.dart';
 /// same coordinates as the design boards' inline SVGs, in the style of the
 /// existing `CustomPainter`s in `person_avatar.dart`.
 
+/// An org-chart glyph — one person-card box on top, connected down to two
+/// more below, each with a cut-out person silhouette — for the entry-point
+/// button into the tree view.
+///
+/// Vector-drawn, not the supplied reference photo it's modeled on: that
+/// photo's shading turned out too soft/near-white in its flat areas to
+/// extract as a crisp, fully opaque icon (confirmed with a flood-fill
+/// attempt - only the outer ring and branch were dark enough to separate
+/// from the background, not the org-chart detail itself), which showed up
+/// as a washed-out grey instead of solid white once tinted over a colored
+/// background. A redrawn vector doesn't have that whole class of problem -
+/// it's exactly one color, always fully opaque, at any size.
+class GenealogyTreeIcon extends StatelessWidget {
+  const GenealogyTreeIcon({super.key, this.color = Colors.white, this.size = 24});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(width: size, height: size, child: CustomPaint(painter: _GenealogyTreeIconPainter(color: color)));
+  }
+}
+
+class _GenealogyTreeIconPainter extends CustomPainter {
+  const _GenealogyTreeIconPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final fillPaint = Paint()..color = color;
+    final linePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.07
+      ..strokeCap = StrokeCap.round;
+    final cutout = Paint()..blendMode = BlendMode.clear;
+
+    final topCenter = Offset(w * 0.5, h * 0.27);
+    final leftCenter = Offset(w * 0.24, h * 0.76);
+    final rightCenter = Offset(w * 0.76, h * 0.76);
+    final boxSize = w * 0.42;
+    final midY = h * 0.53;
+
+    canvas.saveLayer(Offset.zero & size, Paint());
+
+    canvas.drawLine(Offset(topCenter.dx, topCenter.dy + boxSize / 2), Offset(topCenter.dx, midY), linePaint);
+    canvas.drawLine(Offset(leftCenter.dx, midY), Offset(rightCenter.dx, midY), linePaint);
+    canvas.drawLine(Offset(leftCenter.dx, midY), Offset(leftCenter.dx, leftCenter.dy - boxSize / 2), linePaint);
+    canvas.drawLine(Offset(rightCenter.dx, midY), Offset(rightCenter.dx, rightCenter.dy - boxSize / 2), linePaint);
+
+    for (final center in [topCenter, leftCenter, rightCenter]) {
+      final rect = Rect.fromCenter(center: center, width: boxSize, height: boxSize);
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(boxSize * 0.24)), fillPaint);
+
+      final headCenter = Offset(center.dx, center.dy - boxSize * 0.12);
+      canvas.drawCircle(headCenter, boxSize * 0.16, cutout);
+
+      final shoulders = Rect.fromCenter(
+        center: Offset(center.dx, center.dy + boxSize * 0.30),
+        width: boxSize * 0.6,
+        height: boxSize * 0.36,
+      );
+      canvas.drawArc(shoulders, 3.14159265, 3.14159265, true, cutout);
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _GenealogyTreeIconPainter oldDelegate) => oldDelegate.color != color;
+}
+
 /// A branching tree of three dots — "has known parents" when [pointingUp]
 /// (single dot below, two above), "has children" when not (single dot
 /// above, two below).

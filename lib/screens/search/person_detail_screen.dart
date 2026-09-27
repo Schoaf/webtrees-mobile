@@ -21,6 +21,7 @@ import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
+import '../../widgets/tree_icons.dart';
 import '../add_person/add_person_screen.dart';
 import '../tree_view/tree_view_screen.dart';
 
@@ -30,6 +31,13 @@ import '../tree_view/tree_view_screen.dart';
 /// isn't listed here at all — it's never shown in the read-only card (it's
 /// already up top next to the photo), only as editable fields in edit mode.
 const _primaryFactTags = {'SEX', 'BIRT', 'DEAT'};
+
+/// Record-metadata tags shown (read-only) under "Mehr anzeigen" but never
+/// offered as editable fields - REFN (the record ID) and CHAN (last
+/// changed, not currently returned by the API at all, but excluded here
+/// too in case that changes) are system/bookkeeping data, not something a
+/// person edits about themselves.
+const _nonEditableFactTags = {'REFN', 'CHAN'};
 
 /// Desired display/edit order for a person's facts, top to bottom.
 ///
@@ -76,6 +84,21 @@ String _factCopyText(Map<String, dynamic> fact) {
   final place = fact['place'] as Map<String, dynamic>?;
   if (place != null) parts.add(place['short'] as String);
   return parts.isEmpty ? '—' : parts.join(' · ');
+}
+
+/// Synthesizes read-only "Vorname"/"Nachname" fact-shaped rows from a NAME
+/// fact's raw GEDCOM value, for [_FactsCard]'s expanded ("Mehr anzeigen")
+/// view — not real facts from the server, just split for display the same
+/// way the edit form splits them.
+List<Map<String, dynamic>> _givenSurnameRows(
+  Map<String, dynamic> nameFact,
+  AppLocalizations l10n,
+) {
+  final (given, surname) = splitGedcomName(nameFact['value'] as String? ?? '');
+  return [
+    {'tag': '_GIVN', 'label': l10n.givenName, 'value': given},
+    {'tag': '_SURN', 'label': l10n.surname, 'value': surname},
+  ];
 }
 
 enum _ShareChoice { link, data }
@@ -224,7 +247,12 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   /// "fly in" every fact/home button did; a Stack child has no such
   /// animation, so it's simply there or not.
   Widget? _buildFabs({required bool canEdit, required String name}) {
-    final showHome = widget.depth >= 2;
+    // depth 0 is the first person screen reached from outside (search,
+    // a tree-view tap, ...) - still one back-navigation away from home, so
+    // no shortcut needed yet. depth 1 is already two navigations deep (the
+    // screen that opened it, plus this one), where a direct way back saves
+    // more than one back-tap.
+    final showHome = widget.depth >= 1;
     final showAddPerson = canEdit;
     if (!showHome && !showAddPerson) return null;
     final l10n = AppLocalizations.of(context)!;
@@ -776,12 +804,16 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             _FactsCard(
               facts: facts,
               onAddFact: canEdit ? () => _openAddFact(name) : null,
+              // Tablet has the room to just show everything by default;
+              // the user can still collapse it back down if they want to.
+              initiallyExpanded: useTwoColumn,
             ),
           if (_editing)
             _EditFactsSection(
               key: _editKey,
               xref: widget.xref,
               facts: facts,
+              rawSex: person['sex'] as String? ?? 'U',
               savingNotifier: _savingNotifier,
               onSaved: _onEditSaved,
             ),
@@ -1016,22 +1048,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   }
 }
 
-/// Opens the family-tree view, centered on this person — the
-/// tree-icon button to the left of the avatar.
-///
-/// The artwork (`assets/images/tree_button_icon.png`) already draws its
-/// own circle, with a sprig overflowing its top-right corner, so this
-/// doesn't wrap it in another circular background like the old hand-painted
-/// tree icon needed — that would show a mismatched square/circle fill
-/// behind the transparent parts of the art. The ripple is clipped to
-/// the drawn circle instead. [width] is also how the header row measures
-/// where this button's visual circle center lands, so it can center that
-/// point (not the widget's bounding box, which is off-center because of
-/// the sprig) between the content area's left edge and the avatar.
 /// Opens the family-tree view, centered on this person — styled and sized
 /// like the home FAB ([AppColors.secondary] background, white icon, no
-/// text, same 56x56 default FAB size and rounded-square shape) rather than
-/// the artwork's own circle-plus-sprig look or a plain circle.
+/// text, same 56x56 default FAB size and rounded-square shape).
 class _TreeViewButton extends StatelessWidget {
   const _TreeViewButton({required this.onTap, required this.size});
 
@@ -1055,10 +1074,7 @@ class _TreeViewButton extends StatelessWidget {
           key: const Key('treeViewButton'),
           onTap: onTap,
           customBorder: _shape,
-          child: Padding(
-            padding: EdgeInsets.all(size * 0.25),
-            child: Image.asset('assets/images/tree_button_icon.png', color: Colors.white),
-          ),
+          child: Center(child: GenealogyTreeIcon(color: Colors.white, size: size * 0.68)),
         ),
       ),
     );
@@ -1146,29 +1162,52 @@ class _Header extends StatelessWidget {
 }
 
 class _FactsCard extends StatefulWidget {
-  const _FactsCard({required this.facts, this.onAddFact});
+  const _FactsCard({
+    required this.facts,
+    this.onAddFact,
+    this.initiallyExpanded = false,
+  });
 
   final List<Map<String, dynamic>> facts;
 
   /// Null hides the "Fakt hinzufügen" chip entirely (view-only access).
   final VoidCallback? onAddFact;
 
+  final bool initiallyExpanded;
+
   @override
   State<_FactsCard> createState() => _FactsCardState();
 }
 
 class _FactsCardState extends State<_FactsCard> {
-  bool _expanded = false;
+  late bool _expanded = widget.initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    Map<String, dynamic>? nameFact;
+    for (final f in widget.facts) {
+      if (f['tag'] == 'NAME') {
+        nameFact = f;
+        break;
+      }
+    }
+    // Given/surname aren't worth a row in the collapsed view - the full
+    // name is already up top next to the photo - but under "Mehr anzeigen"
+    // they're useful on their own (e.g. to see exactly what will split into
+    // which field before editing).
+    final nameRows = nameFact == null ? <Map<String, dynamic>>[] : _givenSurnameRows(nameFact, l10n);
+
     final visible = widget.facts.where((f) => f['tag'] != 'NAME').toList();
     final primary = _sortedByFieldOrder(
       visible.where((f) => _primaryFactTags.contains(f['tag'])).toList(),
     );
-    final secondary = _sortedByFieldOrder(
-      visible.where((f) => !_primaryFactTags.contains(f['tag'])).toList(),
-    );
+    final secondary = [
+      ...nameRows,
+      ..._sortedByFieldOrder(
+        visible.where((f) => !_primaryFactTags.contains(f['tag'])).toList(),
+      ),
+    ];
     final shown = _expanded ? [...primary, ...secondary] : primary;
     // Normally only appears once "Mehr anzeigen" is expanded - but if there
     // are no secondary facts at all, there's no toggle to expand in the
@@ -1339,7 +1378,7 @@ class _EditableFact {
        _originalPlace = placeController?.text,
        _originalSex = sex;
 
-  factory _EditableFact.fromJson(Map<String, dynamic> json) {
+  factory _EditableFact.fromJson(Map<String, dynamic> json, {String? rawSex}) {
     final tag = json['tag'] as String;
     final label = json['label'] as String? ?? tag;
     final factId = json['id'] as String?;
@@ -1366,11 +1405,15 @@ class _EditableFact {
           surnameController: TextEditingController(text: surname),
         );
       case 'SEX':
+        // Not `value`: the SEX fact's own value is always webtrees'
+        // localized display text ("Male"/"Weiblich"/...), which never
+        // matches the raw 'M'/'F'/'U' codes _SexSegment compares against -
+        // using it here left the segmented control permanently unselected.
         return _EditableFact(
           tag: tag,
           factId: factId,
           label: label,
-          sex: value.isEmpty ? 'U' : value,
+          sex: (rawSex == null || rawSex.isEmpty) ? 'U' : rawSex,
         );
       case 'RESI':
         return _EditableFact(
@@ -1470,12 +1513,21 @@ class _EditFactsSection extends ConsumerStatefulWidget {
     super.key,
     required this.xref,
     required this.facts,
+    required this.rawSex,
     required this.savingNotifier,
     required this.onSaved,
   });
 
   final String xref;
   final List<Map<String, dynamic>> facts;
+
+  /// The person's raw GEDCOM sex code ('M'/'F'/'U'), from `person['sex']` -
+  /// separate from the SEX fact's own `value`, which is always webtrees'
+  /// localized display text ("Male"/"Female"/...), not the raw code
+  /// [_SexSegment] compares against. Using the fact's own value there used
+  /// to leave the segmented control unselected even when a sex was set.
+  final String rawSex;
+
   final ValueNotifier<bool> savingNotifier;
   final VoidCallback onSaved;
 
@@ -1490,8 +1542,14 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
   @override
   void initState() {
     super.initState();
-    final sorted = _sortedByFieldOrder(widget.facts);
-    _fields = [for (final f in sorted) _EditableFact.fromJson(f)];
+    final editable = widget.facts.where(
+      (f) => !_nonEditableFactTags.contains(f['tag']),
+    ).toList();
+    final sorted = _sortedByFieldOrder(editable);
+    _fields = [
+      for (final f in sorted)
+        _EditableFact.fromJson(f, rawSex: widget.rawSex),
+    ];
   }
 
   @override

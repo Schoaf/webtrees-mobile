@@ -152,13 +152,15 @@ void main() {
     expect(find.text('Fakt hinzufügen'), findsOneWidget);
   });
 
-  testWidgets('the Home shortcut FAB only appears once nested two Person screens deep', (tester) async {
+  testWidgets('the Home shortcut FAB appears once nested one Person screen deep (after the 2nd navigation)', (
+    tester,
+  ) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
 
-    await pumpScreen(tester, depth: 1);
+    await pumpScreen(tester, depth: 0);
     expect(find.byTooltip('Zum Start'), findsNothing);
 
-    await pumpScreen(tester, depth: 2);
+    await pumpScreen(tester, depth: 1);
     expect(find.byTooltip('Zum Start'), findsOneWidget);
   });
 
@@ -273,9 +275,6 @@ void main() {
       when(
         () => client.postFact('Famtree', 'I1', factId: null, tag: 'TITL', value: 'Prof.', date: null, place: null),
       ).thenAnswer((_) async => {'ok': true});
-      when(
-        () => client.postFact('Famtree', 'I1', factId: null, tag: 'REFN', value: 'REF-999', date: null, place: null),
-      ).thenAnswer((_) async => {'ok': true});
 
       // The edit form is a ListView taller than the default 800x600 test
       // surface - a real device scrolls it, but repeatedly scrolling to
@@ -307,10 +306,12 @@ void main() {
       expect(find.text('20. Mai 1980'), findsOneWidget);
 
       // BIRT's place (PlaceAutocompleteField) is the first plain TextField
-      // in the edit form, followed by TITL's and REFN's value fields.
+      // in the edit form, followed by TITL's value field. REFN (the record
+      // ID - system/bookkeeping data) isn't editable at all: see the
+      // findsNothing check below.
       await tester.enterText(find.byType(TextField).at(0), 'Berlin');
       await tester.enterText(find.byType(TextField).at(1), 'Prof.');
-      await tester.enterText(find.byType(TextField).at(2), 'REF-999');
+      expect(find.text('Referenz'), findsNothing);
 
       // SEX's segmented picker.
       await tester.tap(find.text('Männlich'));
@@ -328,10 +329,34 @@ void main() {
       verify(
         () => client.postFact('Famtree', 'I1', factId: null, tag: 'TITL', value: 'Prof.', date: null, place: null),
       ).called(1);
-      verify(
-        () => client.postFact('Famtree', 'I1', factId: null, tag: 'REFN', value: 'REF-999', date: null, place: null),
-      ).called(1);
+      verifyNever(() => client.postFact('Famtree', 'I1', factId: any(named: 'factId'), tag: 'REFN', value: any(named: 'value'), date: any(named: 'date'), place: any(named: 'place')));
       expect(find.text('Änderungen gespeichert — wartet ggf. auf Freigabe.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'regression: opening edit mode pre-selects the sex segment that is actually already set',
+    (tester) async {
+      // The SEX fact's own `value` is always webtrees' localized display
+      // text ("Weiblich"), never the raw 'M'/'F'/'U' code the segmented
+      // picker compares against - using it directly left the picker with
+      // nothing selected even though the person clearly has a sex set.
+      // The raw code has to come from `person['sex']` instead.
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', sex: 'F'));
+
+      await pumpScreen(tester);
+      await tester.tap(find.byTooltip('Bearbeiten'));
+      await tester.pumpAndSettle();
+
+      final femaleChip = tester.widget<ChoiceChip>(
+        find.ancestor(of: find.text('Weiblich'), matching: find.byType(ChoiceChip)),
+      );
+      expect(femaleChip.selected, isTrue, reason: 'Weiblich must already be selected, not left blank');
+
+      final maleChip = tester.widget<ChoiceChip>(
+        find.ancestor(of: find.text('Männlich'), matching: find.byType(ChoiceChip)),
+      );
+      expect(maleChip.selected, isFalse);
     },
   );
 
