@@ -235,6 +235,90 @@ void main() {
     },
   );
 
+  testWidgets(
+    'on a wide landscape tablet, "Weitere Angabe hinzufügen" sits in its own right-hand column - and still works',
+    (tester) async {
+      // Regression coverage for the generic contract: whatever's in the
+      // "Weitere Angabe hinzufügen" section (today: the extra-fact rows and
+      // its own add button) must land in the right column, not just visual
+      // inspection - a real extra field still has to reach
+      // postAddIndividual correctly once added there.
+      when(
+        () => client.postAddIndividual(
+          'Famtree',
+          relation: 'none',
+          relativeTo: null,
+          given: 'Max',
+          surname: '',
+          sex: 'M',
+          birthDate: null,
+          birthPlace: null,
+        ),
+      ).thenAnswer((_) async => {'ok': true, 'xref': 'I99'});
+      when(
+        () => client.postFact('Famtree', 'I99', tag: 'OCCU', value: 'Tischler'),
+      ).thenAnswer((_) async => {'ok': true});
+
+      await pumpScreen(tester);
+
+      // pumpScreen sets its own (800, 2600) view size for the other tests'
+      // "everything reachable without scrolling" needs - override it back
+      // to a wide landscape tablet size afterward instead.
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpAndSettle();
+
+      final buttonWidth = tester.getRect(find.widgetWithText(TextButton, 'Weitere Angabe hinzufügen')).width;
+      // The top title bar sits outside the (possibly two-column) ListView
+      // entirely, so its own Container always reports the screen's full
+      // content width regardless of layout - a reliable reference the
+      // button's own width (which, like every ListView/Column child,
+      // always reports the full width of whatever tightly constrains it)
+      // can be compared against.
+      final fullContentWidth = tester
+          .getRect(find.ancestor(of: find.text('Person hinzufügen'), matching: find.byType(Container)).first)
+          .width;
+      expect(
+        buttonWidth,
+        lessThan(fullContentWidth * 0.6),
+        reason: '"Weitere Angabe hinzufügen" must be in its own (narrower) right-hand column',
+      );
+
+      await tester.enterText(find.byType(TextField).at(0), 'Max');
+      await tester.tap(find.text('Weitere Angabe hinzufügen').last);
+      await tester.pump();
+
+      // Property dropdown defaults to the first extra-field key ("Beruf" /
+      // occupation -> OCCU) - same field order as the single-column layout
+      // (Row visits its children depth-first, left column before right, so
+      // this ends up the same index either way): 0 given, 1 surname,
+      // 2 birth place, 3 relative search, 4 this row's value field.
+      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      await tester.enterText(find.byType(TextField).at(4), 'Tischler');
+
+      await tester.tap(find.text('Speichern'));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      verify(
+        () => client.postAddIndividual(
+          'Famtree',
+          relation: 'none',
+          relativeTo: null,
+          given: 'Max',
+          surname: '',
+          sex: 'M',
+          birthDate: null,
+          birthPlace: null,
+        ),
+      ).called(1);
+      verify(() => client.postFact('Famtree', 'I99', tag: 'OCCU', value: 'Tischler')).called(1);
+    },
+  );
+
   group('pre-linked via linkedXref/linkedName (reached from a person\'s own "Person hinzufügen")', () {
     testWidgets('pre-fills "Verknüpft mit" read-only and blocks Save until a relation is chosen', (tester) async {
       await pumpScreen(tester, linkedXref: 'I7', linkedName: 'Anna Muster');

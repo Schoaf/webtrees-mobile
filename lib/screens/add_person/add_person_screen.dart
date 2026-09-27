@@ -246,6 +246,125 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
     }
   }
 
+  /// Name, sex, birth date/place and the "linked with" relative picker -
+  /// everything shown before "Weitere Angabe hinzufügen" existed. The left
+  /// column on a wide landscape tablet, the top of the single list
+  /// otherwise (see build()).
+  List<Widget> _mainFields(AppLocalizations l10n) {
+    return [
+      Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _givenController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l10n.givenName,
+                hintText: 'Max',
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _surnameController,
+              decoration: InputDecoration(
+                labelText: l10n.surname,
+                hintText: 'Scharf',
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 18),
+      _SexPicker(value: _sex, onChanged: (v) => setState(() => _sex = v)),
+      const SizedBox(height: 18),
+      _BirthDatePicker(controller: _birthDateController),
+      const SizedBox(height: 18),
+      PlaceAutocompleteField(
+        controller: _birthPlaceController,
+        labelText: l10n.birthPlace,
+        hintText: l10n.birthPlaceHint,
+      ),
+      const SizedBox(height: 18),
+      Text(
+        l10n.linkedWithLabel,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textTertiary,
+        ),
+      ),
+      const SizedBox(height: 6),
+      TextField(
+        controller: _relativeQueryController,
+        onChanged: _onRelativeQueryChanged,
+        readOnly: widget.linkedXref != null,
+        decoration: InputDecoration(hintText: l10n.searchPersonOptionalHint),
+      ),
+      for (final person in _suggestions)
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(person['name'] as String? ?? ''),
+          subtitle: Text(person['lifespan'] as String? ?? ''),
+          onTap: () => setState(() {
+            _selectedRelative = person;
+            _relativeQueryController.text = person['name'] as String? ?? '';
+            _suggestions = [];
+            _relation = 'child';
+          }),
+        ),
+      if (_selectedRelative != null) ...[
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final key in _relationKeys)
+              ChoiceChip(
+                label: Text(_relationLabel(l10n, key)),
+                selected: _relation == key,
+                onSelected: (_) => setState(() => _relation = key),
+              ),
+          ],
+        ),
+      ],
+    ];
+  }
+
+  /// Everything a person can add under "Weitere Angabe hinzufügen" - kept
+  /// as its own method (not inlined in build()) so this stays the one
+  /// place that decides what lands here, generically: whatever's added to
+  /// this list in the future - a new extra-fact type, a new button next to
+  /// it, anything - automatically lands in the right column on a wide
+  /// landscape tablet, same as everything here does today, with no
+  /// special-casing needed at the call site.
+  List<Widget> _extraFieldsSection(AppLocalizations l10n, {bool showHeading = true}) {
+    return [
+      if (showHeading) ...[
+        Text(
+          l10n.addAnotherDetailButton,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textTertiary,
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+      for (final field in _extraFields)
+        _ExtraFieldRow(
+          field: field,
+          onRemove: () => setState(() => _extraFields.remove(field)),
+        ),
+      TextButton.icon(
+        onPressed: () => setState(() => _extraFields.add(_ExtraField())),
+        icon: const Icon(Icons.add, size: 15),
+        label: Text(l10n.addAnotherDetailButton),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -297,105 +416,34 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _givenController,
-                            autofocus: true,
-                            decoration: InputDecoration(
-                              labelText: l10n.givenName,
-                              hintText: 'Max',
+                    if (isWideLandscapeTablet(context))
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: _mainFields(l10n),
+                              ),
                             ),
-                          ),
+                            const VerticalDivider(width: 33, color: AppColors.divider),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: _extraFieldsSection(l10n),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _surnameController,
-                            decoration: InputDecoration(
-                              labelText: l10n.surname,
-                              hintText: 'Scharf',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    _SexPicker(
-                      value: _sex,
-                      onChanged: (v) => setState(() => _sex = v),
-                    ),
-                    const SizedBox(height: 18),
-                    _BirthDatePicker(controller: _birthDateController),
-                    const SizedBox(height: 18),
-                    PlaceAutocompleteField(
-                      controller: _birthPlaceController,
-                      labelText: l10n.birthPlace,
-                      hintText: l10n.birthPlaceHint,
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      l10n.linkedWithLabel,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _relativeQueryController,
-                      onChanged: _onRelativeQueryChanged,
-                      readOnly: widget.linkedXref != null,
-                      decoration: InputDecoration(
-                        hintText: l10n.searchPersonOptionalHint,
-                      ),
-                    ),
-                    for (final person in _suggestions)
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(person['name'] as String? ?? ''),
-                        subtitle: Text(person['lifespan'] as String? ?? ''),
-                        onTap: () => setState(() {
-                          _selectedRelative = person;
-                          _relativeQueryController.text =
-                              person['name'] as String? ?? '';
-                          _suggestions = [];
-                          _relation = 'child';
-                        }),
-                      ),
-                    if (_selectedRelative != null) ...[
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          for (final key in _relationKeys)
-                            ChoiceChip(
-                              label: Text(_relationLabel(l10n, key)),
-                              selected: _relation == key,
-                              onSelected: (_) =>
-                                  setState(() => _relation = key),
-                            ),
-                        ],
-                      ),
+                      )
+                    else ...[
+                      ..._mainFields(l10n),
+                      const SizedBox(height: 8),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      ..._extraFieldsSection(l10n, showHeading: false),
                     ],
-                    const SizedBox(height: 8),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    for (final field in _extraFields)
-                      _ExtraFieldRow(
-                        field: field,
-                        onRemove: () =>
-                            setState(() => _extraFields.remove(field)),
-                      ),
-                    TextButton.icon(
-                      onPressed: () =>
-                          setState(() => _extraFields.add(_ExtraField())),
-                      icon: const Icon(Icons.add, size: 15),
-                      label: Text(l10n.addAnotherDetailButton),
-                    ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       CopyableErrorText(message: _error!),
