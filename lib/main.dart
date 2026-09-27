@@ -9,10 +9,12 @@ import 'screens/home/home_screen.dart';
 import 'screens/responses/response_detail_screen.dart';
 import 'screens/search/person_detail_screen.dart';
 import 'screens/search/search_screen.dart';
+import 'screens/tree_view/my_tree_view_screen.dart';
 import 'state/app_providers.dart';
 import 'theme/app_theme.dart';
 import 'utils/person_deep_link.dart';
 import 'utils/share_review_deep_link.dart';
+import 'widgets/tree_icons.dart';
 
 void main() {
   runApp(const ProviderScope(child: StammbaumApp()));
@@ -206,7 +208,12 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
 class _HomeShell extends ConsumerWidget {
   const _HomeShell();
 
-  static const _screens = [HomeScreen(), SearchScreen(), AddPersonScreen()];
+  static const _screens = [
+    HomeScreen(),
+    MyTreeViewScreen(),
+    SearchScreen(),
+    AddPersonScreen(),
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -223,6 +230,15 @@ class _HomeShell extends ConsumerWidget {
             icon: const Icon(Icons.home_outlined),
             selectedIcon: const Icon(Icons.home),
             label: l10n.navHome,
+          ),
+          NavigationDestination(
+            // Same colors NavigationBarThemeData.iconTheme resolves for
+            // Icon-based destinations - GenealogyTreeIcon is a CustomPaint,
+            // not an Icon, so it doesn't pick up the ambient IconTheme
+            // NavigationBar injects automatically; set explicitly instead.
+            icon: const GenealogyTreeIcon(color: AppColors.textSecondary),
+            selectedIcon: const GenealogyTreeIcon(color: AppColors.primary),
+            label: l10n.navTree,
           ),
           NavigationDestination(
             icon: const Icon(Icons.search),

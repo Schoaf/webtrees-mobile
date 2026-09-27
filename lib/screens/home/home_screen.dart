@@ -174,9 +174,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           // route: SearchScreen has no back button of its
                           // own (it's meant to live inside the tab bar), so
                           // pushing it stranded people with no way back to
-                          // the main menu.
+                          // the main menu. Index must match Search's
+                          // position in _HomeShell._screens (main.dart).
                           onTap: () =>
-                              ref.read(selectedTabProvider.notifier).select(1),
+                              ref.read(selectedTabProvider.notifier).select(2),
                         ),
                         const SizedBox(height: 18),
                         if (data.startPerson != null) ...[

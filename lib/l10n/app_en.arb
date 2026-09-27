@@ -6,8 +6,11 @@
   "unlockAppReason": "Please unlock the app",
 
   "navHome": "Home",
+  "navTree": "Family tree",
   "navSearch": "Search",
   "navNew": "New",
+
+  "noLinkedPersonError": "No person is linked to this account.",
 
   "cancel": "Cancel",
   "save": "Save",

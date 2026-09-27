@@ -6,8 +6,11 @@
   "unlockAppReason": "Bitte entsperre die App",
 
   "navHome": "Start",
+  "navTree": "Stammbaum",
   "navSearch": "Suche",
   "navNew": "Neu",
+
+  "noLinkedPersonError": "Für dieses Konto ist keine Person verknüpft.",
 
   "cancel": "Abbrechen",
   "save": "Speichern",

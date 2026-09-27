@@ -125,8 +125,8 @@ void main() {
     // SearchScreen route on top of the bottom-nav Scaffold, stranding
     // people on a screen with no way back to the main menu. It must
     // instead switch main.dart's tab index, same as the bottom-nav bar
-    // itself would.
-    expect(container.read(selectedTabProvider), 1);
+    // itself would. Index 2: Home, Stammbaum, Search, New.
+    expect(container.read(selectedTabProvider), 2);
     expect(find.byType(BackButton), findsNothing);
   });
 

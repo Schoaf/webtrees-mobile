@@ -1864,9 +1864,14 @@ class _FamilySection extends StatelessWidget {
                       for (var i = 0; i < children.length; i++) ...[
                         if (partner != null || i > 0)
                           const SizedBox(height: 8),
-                        PersonCard(
-                          person: children[i],
-                          onTap: () => openPerson(children[i]),
+                        Padding(
+                          // Nests children visually under the partner,
+                          // within the same family bracket.
+                          padding: const EdgeInsets.only(left: 30),
+                          child: PersonCard(
+                            person: children[i],
+                            onTap: () => openPerson(children[i]),
+                          ),
                         ),
                       ],
                     ],
