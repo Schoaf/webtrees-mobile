@@ -5,12 +5,11 @@ import '../theme/app_theme.dart';
 import 'person_avatar.dart';
 import 'tree_icons.dart';
 
-// The card's own inner padding - deliberately asymmetric (generous bottom
-// padding so the descendants-count badge has somewhere to sit without
-// covering the birth-year text right above it). _CornerBadge positions
-// against the CARD's true edges, not the padded Stack's, so it has to
-// subtract this back out per side - sharing this constant is what keeps
-// the two in sync.
+// The content Column's own padding - deliberately asymmetric (generous
+// bottom padding so the descendants-count badge has somewhere to sit
+// without covering the birth-year text right above it). Only the Column
+// is padded, not the Stack around it - _CornerBadge and the banderole
+// both need the card's true, unpadded bounds.
 const _kCardPadding = EdgeInsets.fromLTRB(6, 10, 6, 16);
 
 // Matches _RelationshipBubble's size in tree_view_screen.dart (1.5x the
@@ -94,99 +93,148 @@ class TreeNodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = PersonAvatar(sex: sex, isDead: isDead, size: 32, photoUrl: thumb, photoHeaders: photoHeaders);
+    // The card's own banderole below spans the whole card, not just this
+    // small avatar circle.
+    final avatar = PersonAvatar(
+      sex: sex,
+      isDead: isDead,
+      size: 32,
+      photoUrl: thumb,
+      photoHeaders: photoHeaders,
+      showBanderole: false,
+    );
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: width,
-        constraints: minHeight == null ? null : BoxConstraints(minHeight: minHeight!),
-        padding: _kCardPadding,
+        constraints: minHeight == null
+            ? null
+            : BoxConstraints(minHeight: minHeight!),
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? AppColors.primary : const Color(0xFFE5E7EB), width: selected ? 2.5 : 1.5),
+          border: Border.all(
+            color: selected ? AppColors.primary : const Color(0xFFE5E7EB),
+            width: selected ? 2.5 : 1.5,
+          ),
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          // Stack's default alignment is top-left for non-positioned
-          // children, not center - the Column below shrink-wraps to its
-          // widest child (usually narrower than the full card width), so
-          // without this it sits left-aligned instead of centered.
-          alignment: Alignment.topCenter,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                avatar,
-                const SizedBox(height: 4),
-                Text(
-                  firstName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
-                ),
-                if (partnerNameRow != null) _PartnerNameRow(name: partnerNameRow!),
-                Text(
-                  birthYear?.toString() ?? '',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
-                ),
-                if (detail != null) _DetailBlock(detail: detail!),
-              ],
-            ),
-            if (showAncestorsIcon)
-              _CornerBadge(
-                top: true,
-                right: ancestorsIconOnRight,
-                // Ancestors/descendants sit a touch inside the true edge
-                // (unlike the partner badge, which stays flush) - see
-                // _CornerBadge.edgeGap.
-                edgeGap: 1,
-                child: TreeBranchIcon(pointingUp: true, size: 11, color: const Color(0xFF4B5563)),
-              ),
-            if (showPartnerIcon)
-              _CornerBadge(
-                top: true,
-                right: true,
-                // Not a true circle (icon+count pill, wider than tall) - a
-                // mathematically-equal edgeGap on every side still read as
-                // sitting a shade closer to the right edge than the top
-                // one. 1px more inset both vertically and horizontally
-                // lines the two up.
-                edgeGap: 1,
-                horizontalEdgeGap: 1,
-                child: _CountBadgeContent(
-                  icon: RelationshipIcon(status: MaritalStatus.married, size: 11, color: const Color(0xFF4B5563)),
-                  count: (partnerExtraCount ?? 0) > 0 ? partnerExtraCount : null,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            clipBehavior: Clip.none,
+            // Stack's default alignment is top-left for non-positioned
+            // children, not center - the Column below shrink-wraps to its
+            // widest child (usually narrower than the full card width), so
+            // without this it sits left-aligned instead of centered.
+            alignment: Alignment.topCenter,
+            children: [
+              const Positioned.fill(child: ColoredBox(color: Colors.white)),
+              // Below the corner badges (painted after it, further down
+              // this list) but above the plain white background - spans
+              // the whole card, not just the avatar circle.
+              if (isDead) const Positioned.fill(child: DeathBanderole()),
+              Padding(
+                padding: _kCardPadding,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    avatar,
+                    const SizedBox(height: 4),
+                    Text(
+                      firstName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    if (partnerNameRow != null)
+                      _PartnerNameRow(name: partnerNameRow!),
+                    Text(
+                      birthYear?.toString() ?? '',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                    if (detail != null) _DetailBlock(detail: detail!),
+                  ],
                 ),
               ),
-            if (showChildrenIcon)
-              _CornerBadge(
-                top: false,
-                right: false,
-                edgeGap: 1,
-                child: _CountBadgeContent(
-                  icon: TreeBranchIcon(pointingUp: false, size: 10, color: const Color(0xFF4B5563)),
-                  count: childrenCount,
+              if (showAncestorsIcon)
+                _CornerBadge(
+                  top: true,
+                  right: ancestorsIconOnRight,
+                  // Ancestors/descendants sit a touch inside the true edge
+                  // (unlike the partner badge, which stays flush) - see
+                  // _CornerBadge.edgeGap.
+                  edgeGap: 1,
+                  child: TreeBranchIcon(
+                    pointingUp: true,
+                    size: 11,
+                    color: const Color(0xFF4B5563),
+                  ),
                 ),
-              ),
-            if (showInfoButton)
-              _CornerBadge(
-                top: false,
-                right: true,
-                edgeGap: 1,
-                // Sized to match the relationship bubble between partner
-                // cards (_RelationshipBubble in tree_view_screen.dart) for
-                // visual parity between the two "circle button" affordances
-                // on a card.
-                size: _kRelationshipBadgeSize,
-                child: GestureDetector(
-                  onTap: onInfoTap,
-                  child: const Icon(Icons.info_outline, size: 20, color: Color(0xFF4B5563)),
+              if (showPartnerIcon)
+                _CornerBadge(
+                  top: true,
+                  right: true,
+                  // Not a true circle (icon+count pill, wider than tall) - a
+                  // mathematically-equal edgeGap on every side still read as
+                  // sitting a shade closer to the right edge than the top
+                  // one. 1px more inset both vertically and horizontally
+                  // lines the two up.
+                  edgeGap: 1,
+                  horizontalEdgeGap: 1,
+                  child: _CountBadgeContent(
+                    icon: RelationshipIcon(
+                      status: MaritalStatus.married,
+                      size: 11,
+                      color: const Color(0xFF4B5563),
+                    ),
+                    count: (partnerExtraCount ?? 0) > 0
+                        ? partnerExtraCount
+                        : null,
+                  ),
                 ),
-              ),
-          ],
+              if (showChildrenIcon)
+                _CornerBadge(
+                  top: false,
+                  right: false,
+                  edgeGap: 1,
+                  child: _CountBadgeContent(
+                    icon: TreeBranchIcon(
+                      pointingUp: false,
+                      size: 10,
+                      color: const Color(0xFF4B5563),
+                    ),
+                    count: childrenCount,
+                  ),
+                ),
+              if (showInfoButton)
+                _CornerBadge(
+                  top: false,
+                  right: true,
+                  edgeGap: 1,
+                  // Sized to match the relationship bubble between partner
+                  // cards (_RelationshipBubble in tree_view_screen.dart) for
+                  // visual parity between the two "circle button" affordances
+                  // on a card.
+                  size: _kRelationshipBadgeSize,
+                  child: GestureDetector(
+                    onTap: onInfoTap,
+                    child: const Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: Color(0xFF4B5563),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -209,7 +257,11 @@ class _PartnerNameRow extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          RelationshipIcon(status: MaritalStatus.married, size: 9, color: const Color(0xFF6B7280)),
+          RelationshipIcon(
+            status: MaritalStatus.married,
+            size: 9,
+            color: const Color(0xFF6B7280),
+          ),
           const SizedBox(width: 2),
           Flexible(
             child: Text(
@@ -236,13 +288,23 @@ class _DetailBlock extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.only(top: 8),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0xFFF0F1F3)))),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFF0F1F3))),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(detail.birthDateText, style: const TextStyle(fontSize: 11, color: Color(0xFF374151)), textAlign: TextAlign.center),
+          Text(
+            detail.birthDateText,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF374151)),
+            textAlign: TextAlign.center,
+          ),
           if (detail.birthPlace.isNotEmpty)
-            Text(detail.birthPlace, style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)), textAlign: TextAlign.center),
+            Text(
+              detail.birthPlace,
+              style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+              textAlign: TextAlign.center,
+            ),
           if (detail.occupation.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -292,15 +354,15 @@ class _CornerBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // This Positioned lives inside the padded Stack, not against the
-    // card's true edges directly - subtracting the card's own padding
-    // back out is what makes edgeGap actually uniform on screen despite
-    // the card's padding being asymmetric (see _kCardPadding).
+    // The Stack this lives in now wraps the whole card (not just the
+    // padded content - see TreeNodeCard.build, which needs the full card
+    // bounds itself for the banderole), so edgeGap applies directly with
+    // no padding to subtract back out.
     return Positioned(
-      top: top ? edgeGap - _kCardPadding.top : null,
-      bottom: top ? null : edgeGap - _kCardPadding.bottom,
-      left: right ? null : horizontalEdgeGap - _kCardPadding.left,
-      right: right ? horizontalEdgeGap - _kCardPadding.right : null,
+      top: top ? edgeGap : null,
+      bottom: top ? null : edgeGap,
+      left: right ? null : horizontalEdgeGap,
+      right: right ? horizontalEdgeGap : null,
       child: _CornerCircle(size: size, child: child),
     );
   }
@@ -348,7 +410,14 @@ class _CountBadgeContent extends StatelessWidget {
       children: [
         icon,
         const SizedBox(width: 1),
-        Text('+$count', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF4B5563))),
+        Text(
+          '+$count',
+          style: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF4B5563),
+          ),
+        ),
       ],
     );
   }
@@ -366,11 +435,17 @@ class UnknownPersonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      constraints: minHeight == null ? null : BoxConstraints(minHeight: minHeight!),
+      constraints: minHeight == null
+          ? null
+          : BoxConstraints(minHeight: minHeight!),
       padding: const EdgeInsets.fromLTRB(6, 10, 6, 8),
       decoration: const ShapeDecoration(
         color: Color(0xFFF9FAFB),
-        shape: _DashedRoundedRectangleBorder(color: Color(0xFFE5E7EB), radius: 12, width: 1.5),
+        shape: _DashedRoundedRectangleBorder(
+          color: Color(0xFFE5E7EB),
+          radius: 12,
+          width: 1.5,
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -378,12 +453,29 @@ class UnknownPersonCard extends StatelessWidget {
           Container(
             width: 32,
             height: 32,
-            decoration: const BoxDecoration(color: Color(0xFFD1D5DB), shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Color(0xFFD1D5DB),
+              shape: BoxShape.circle,
+            ),
             alignment: Alignment.center,
-            child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            child: const Text(
+              '?',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
           ),
           const SizedBox(height: 4),
-          const Text('Unbekannt', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9CA3AF))),
+          const Text(
+            'Unbekannt',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF9CA3AF),
+            ),
+          ),
         ],
       ),
     );
@@ -394,7 +486,11 @@ class UnknownPersonCard extends StatelessWidget {
 /// rounded-rect outline with `Path.computeMetrics()` and paints short
 /// segments along it, the standard way to get a dashed border.
 class _DashedRoundedRectangleBorder extends ShapeBorder {
-  const _DashedRoundedRectangleBorder({required this.color, required this.radius, required this.width});
+  const _DashedRoundedRectangleBorder({
+    required this.color,
+    required this.radius,
+    required this.width,
+  });
 
   final Color color;
   final double radius;
@@ -406,8 +502,13 @@ class _DashedRoundedRectangleBorder extends ShapeBorder {
   EdgeInsetsGeometry get dimensions => EdgeInsets.all(width);
 
   @override
-  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
-      Path()..addRRect(RRect.fromRectAndRadius(rect.deflate(width), Radius.circular(radius - width)));
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => Path()
+    ..addRRect(
+      RRect.fromRectAndRadius(
+        rect.deflate(width),
+        Radius.circular(radius - width),
+      ),
+    );
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) =>
@@ -424,12 +525,19 @@ class _DashedRoundedRectangleBorder extends ShapeBorder {
       var distance = 0.0;
       while (distance < metric.length) {
         final next = distance + dashLength;
-        canvas.drawPath(metric.extractPath(distance, next.clamp(0, metric.length)), paint);
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
         distance = next + gapLength;
       }
     }
   }
 
   @override
-  ShapeBorder scale(double t) => _DashedRoundedRectangleBorder(color: color, radius: radius * t, width: width * t);
+  ShapeBorder scale(double t) => _DashedRoundedRectangleBorder(
+    color: color,
+    radius: radius * t,
+    width: width * t,
+  );
 }

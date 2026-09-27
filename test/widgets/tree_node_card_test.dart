@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:webtrees_mobile/models/tree_neighborhood.dart';
+import 'package:webtrees_mobile/widgets/person_avatar.dart';
 import 'package:webtrees_mobile/widgets/tree_node_card.dart';
 
 Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: Center(child: child)));
@@ -109,17 +110,15 @@ void main() {
       ),
     );
 
-    // Regression test: the card's own content padding is deliberately
-    // asymmetric (fromLTRB(6, 10, 6, 16) - see _kCardPadding), but a
-    // corner badge's Positioned offset is relative to that PADDED content
-    // box, not the card's actual outer edge - so a naive uniform offset
-    // produced wildly different real-world gaps per side (0px on the left,
-    // 10px floating above the bottom) even though the numbers looked
-    // symmetric. True distance from the card's real edge is
-    // padding-on-that-side + the Positioned offset - the ancestors/
-    // descendants badges sit 1px inside the true edge, the partner badge
-    // stays flush (0) - see _CornerBadge.edgeGap's call sites.
-    const cardPadding = EdgeInsets.fromLTRB(6, 10, 6, 16);
+    // Regression test: a corner badge's Positioned offset must be relative
+    // to the card's true outer edge, not the (deliberately asymmetric,
+    // fromLTRB(6, 10, 6, 16)) padding around the content Column - the
+    // Stack the badges (and the death banderole) live in wraps the whole
+    // card, with only the Column separately padded, precisely so this
+    // holds directly with no padding math needed at the call site. The
+    // ancestors/descendants badges sit 1px inside the true edge, the
+    // partner badge stays flush (0) - see _CornerBadge.edgeGap's call
+    // sites.
     final positioneds = tester
         .widgetList<Positioned>(find.descendant(of: find.byType(TreeNodeCard), matching: find.byType(Positioned)))
         .toList();
@@ -129,14 +128,54 @@ void main() {
     final bottomLeft = positioneds.firstWhere((p) => p.bottom != null && p.left != null && p.right == null && p.top == null);
 
     // Ancestors (top-left).
-    expect(cardPadding.top + topLeft.top!, closeTo(1, 0.01));
-    expect(cardPadding.left + topLeft.left!, closeTo(1, 0.01));
+    expect(topLeft.top!, closeTo(1, 0.01));
+    expect(topLeft.left!, closeTo(1, 0.01));
     // Partner (top-right).
-    expect(cardPadding.top + topRight.top!, closeTo(1, 0.01));
-    expect(cardPadding.right + topRight.right!, closeTo(1, 0.01));
+    expect(topRight.top!, closeTo(1, 0.01));
+    expect(topRight.right!, closeTo(1, 0.01));
     // Descendants (bottom-left).
-    expect(cardPadding.bottom + bottomLeft.bottom!, closeTo(1, 0.01));
-    expect(cardPadding.left + bottomLeft.left!, closeTo(1, 0.01));
+    expect(bottomLeft.bottom!, closeTo(1, 0.01));
+    expect(bottomLeft.left!, closeTo(1, 0.01));
+  });
+
+  testWidgets('a deceased person\'s banderole spans the whole card and sits under the corner icons', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const TreeNodeCard(
+          firstName: 'Anna',
+          sex: 'F',
+          isDead: true,
+          birthYear: 1958,
+          showInfoButton: true,
+        ),
+      ),
+    );
+
+    // Spans the whole card, not just the avatar (Positioned.fill - all
+    // four offsets zero), so it's unmistakable regardless of card content.
+    final banderolePositioned = tester.widget<Positioned>(
+      find.ancestor(of: find.byType(DeathBanderole), matching: find.byType(Positioned)).first,
+    );
+    expect(banderolePositioned.left, 0);
+    expect(banderolePositioned.top, 0);
+    expect(banderolePositioned.right, 0);
+    expect(banderolePositioned.bottom, 0);
+
+    // Painted below the info-button icon: earlier in the enclosing Stack's
+    // children list paints first, i.e. further back. The info button is
+    // wrapped in the (private) _CornerBadge, not a bare Positioned - Stack
+    // .children holds what was literally passed in, before _CornerBadge
+    // builds its own Positioned further down the tree - so this matches
+    // by runtime type name instead of importing a private class.
+    final stack = tester.widget<Stack>(
+      find.ancestor(of: find.byType(DeathBanderole), matching: find.byType(Stack)).first,
+    );
+    final banderoleIndex = stack.children.indexOf(banderolePositioned);
+    final infoButtonIndex = stack.children.indexWhere(
+      (w) => w.runtimeType.toString() == '_CornerBadge',
+    );
+    expect(banderoleIndex, greaterThanOrEqualTo(0));
+    expect(infoButtonIndex, greaterThan(banderoleIndex));
   });
 
   testWidgets('UnknownPersonCard shows the placeholder text and has no tap handler', (tester) async {
