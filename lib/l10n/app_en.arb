@@ -113,6 +113,13 @@
   "loginButton": "Log in",
   "forgotPasswordLink": "Forgot password",
   "registerLink": "Register",
+  "registerTitle": "Request an account",
+  "registerCommentsLabel": "Why do you want an account?",
+  "registerCommentsHint": "Briefly explain how you're related to the family.",
+  "registerSubmitButton": "Request account",
+  "registerSuccessTitle": "Request sent",
+  "registerSuccessMessage": "Please confirm the email we just sent you. After that, an administrator still needs to approve the account.",
+  "backToLoginButton": "Back to login",
 
   "noResponsesMessage": "No responses yet.",
   "fromResponder": "From {name}",
@@ -212,5 +219,14 @@
   "authErrorInvalidConnectCode": "The connection code is invalid or has expired.",
   "authErrorConnectDidNotWork": "Connecting didn't work. Please try again.",
   "authErrorConnectFailedGeneric": "Connecting failed. Please try again later.",
-  "connectFailedTitle": "Connection failed"
+  "connectFailedTitle": "Connection failed",
+
+  "registerErrorDisabled": "Registration isn't enabled on this server.",
+  "registerErrorMissingFields": "Please fill in all fields.",
+  "registerErrorWeakPassword": "The password must be at least 8 characters.",
+  "registerErrorUsernameTaken": "That username is already taken.",
+  "registerErrorEmailTaken": "That email address is already in use.",
+  "registerErrorCommentsLink": "Links aren't allowed in the comments field.",
+  "registerErrorRateLimited": "Too many requests. Please try again in a few minutes.",
+  "registerErrorGeneric": "Request failed. Please try again later."
 }

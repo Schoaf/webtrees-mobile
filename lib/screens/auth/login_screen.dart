@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/tablet_bounded_body.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -178,9 +179,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 8),
                       TextButton(
-                        onPressed: () => launchUrl(
-                          siteUrl(registerUrl(ref), mobile: true),
-                          mode: LaunchMode.externalApplication,
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterScreen(),
+                          ),
                         ),
                         child: Text(
                           l10n.registerLink,
