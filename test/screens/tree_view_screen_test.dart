@@ -277,4 +277,40 @@ void main() {
       expect(controller.value, centeredValue);
     },
   );
+
+  testWidgets('the top bar matches every other screen\'s width on a wide landscape tablet, not the full screen', (
+    tester,
+  ) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer(
+      (_) async => {
+        'person': {'xref': 'I1', 'name': 'Elisabeth Muster', 'sortName': 'Muster,Elisabeth', 'sex': 'F', 'isDead': false},
+        'canEdit': false,
+        'facts': <dynamic>[],
+        'parentFamilies': <dynamic>[],
+        'spouseFamilies': <dynamic>[],
+        'siblings': <dynamic>[],
+        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'media': <dynamic>[],
+      },
+    );
+
+    await pumpScreen(tester);
+
+    // pumpScreen sets its own tall-phone view size for the centering
+    // math's own needs - override it back to a wide landscape tablet
+    // size afterward instead.
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpAndSettle();
+
+    final topBarWidth = tester.getSize(find.byType(InteractiveViewer).hitTestable().first).width;
+    expect(topBarWidth, greaterThan(1300), reason: 'sanity check: the canvas below stays full-width');
+
+    final topBarContainerWidth = tester
+        .getSize(find.ancestor(of: find.byIcon(Icons.arrow_back), matching: find.byType(Container)).first)
+        .width;
+    expect(topBarContainerWidth, 1100, reason: 'must match tabletBoundedMaxWidth, same as every other screen');
+  });
 }

@@ -105,106 +105,134 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        title: const Text(
-          'Per E-Mail senden',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-      ),
       body: SafeArea(
         child: TabletBoundedBody(
           maxWidth: _kContentMaxWidth,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
+          child: Column(
             children: [
-              _NarrowField(
-                child: TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'E-Mail-Adresse',
-                    hintText: 'oma@beispiel.at',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _NarrowField(
-                child: TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Name (optional)'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _messageController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Persönliche Nachricht (optional)',
-                  alignLabelWithHint: true,
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 24),
-              const Text(
-                'Vorschau',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 8),
+              // A plain AppBar always spans the full screen width - this
+              // screen's own top bar matches its content's width instead,
+              // same as every other screen's custom top bar does.
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: AppColors.cardShadow,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.fromLTRB(4, 8, 20, 8),
+                decoration: BoxDecoration(color: AppColors.surface, boxShadow: AppColors.cardShadow),
+                child: Row(
                   children: [
-                    Text(
-                      widget.subject,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(_previewBody),
+                    const Text(
+                      'Per E-Mail senden',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton(
-                  onPressed: _sending ? null : _send,
-                  // The theme's own FilledButtonThemeData sets
-                  // minimumSize: Size.fromHeight(56) - an infinite-width
-                  // minimum, meant for full-width primary actions like a
-                  // form's Save button. This one isn't that - a normal,
-                  // content-hugging button width instead, height still
-                  // matching the rest of the app's buttons.
-                  style: FilledButton.styleFrom(minimumSize: const Size(88, 56)),
-                  child: _sending
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    _NarrowField(
+                      child: TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'E-Mail-Adresse',
+                          hintText: 'oma@beispiel.at',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _NarrowField(
+                      child: TextField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Name (optional)',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _messageController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Persönliche Nachricht (optional)',
+                        alignLabelWithHint: true,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Vorschau',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: AppColors.cardShadow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.subject,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                        )
-                      : const Text('Senden'),
+                          const SizedBox(height: 8),
+                          Text(_previewBody),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton(
+                        onPressed: _sending ? null : _send,
+                        // The theme's own FilledButtonThemeData sets
+                        // minimumSize: Size.fromHeight(56) - an infinite-width
+                        // minimum, meant for full-width primary actions like a
+                        // form's Save button. This one isn't that - a normal,
+                        // content-hugging button width instead, height still
+                        // matching the rest of the app's buttons.
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(88, 56),
+                        ),
+                        child: _sending
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Senden'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -7,7 +7,9 @@ import '../../l10n/app_localizations.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
 import '../../state/tree_view_providers.dart';
+import '../../utils/device_size.dart';
 import '../../widgets/load_error_view.dart';
+import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
 import '../../widgets/tree_node_card.dart';
 import '../search/person_detail_screen.dart';
@@ -171,12 +173,19 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _TopBar(
-              canUndo: treeState.canUndo,
-              canRedo: treeState.canRedo,
-              onBack: () => Navigator.of(context).pop(),
-              onUndo: controller.undo,
-              onRedo: controller.redo,
+            // Matches every other screen's own top-bar width - the canvas
+            // below stays full-width, deliberately (see TabletBoundedBody's
+            // own doc comment): panning into extra tablet space there is
+            // the point, unlike a fixed top bar.
+            TabletBoundedBody(
+              maxWidth: tabletBoundedMaxWidth(context),
+              child: _TopBar(
+                canUndo: treeState.canUndo,
+                canRedo: treeState.canRedo,
+                onBack: () => Navigator.of(context).pop(),
+                onUndo: controller.undo,
+                onRedo: controller.redo,
+              ),
             ),
             Expanded(
               child: Builder(

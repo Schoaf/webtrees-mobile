@@ -52,6 +52,15 @@ void main() {
     expect(listViewWidth, lessThan(1024));
   });
 
+  testWidgets('the top bar matches the content width, not the full screen', (tester) async {
+    await pumpScreen(tester, viewSize: const Size(1366, 1024));
+
+    final topBarWidth = tester.getSize(find.widgetWithText(Container, 'Per E-Mail senden')).width;
+    final contentWidth = tester.getSize(find.byType(ListView)).width;
+    expect(topBarWidth, contentWidth);
+    expect(topBarWidth, lessThan(1024));
+  });
+
   testWidgets('email and name fields are capped at ~310px even on a wide viewport', (tester) async {
     await pumpScreen(tester, viewSize: const Size(1366, 1024));
 
