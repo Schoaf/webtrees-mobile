@@ -12,6 +12,14 @@ import 'gedcom_date_field.dart';
 /// only saved locally because the server couldn't be reached.
 enum AddFactResult { posted, savedLocally, cancelled }
 
+/// Record/bookkeeping tags the server's tag list (client.tags) returns
+/// unfiltered along with every real, addable fact type - RIN
+/// ("Datensatz-ID"), CHAN ("Aktualisiert am"), SOUR ("Quellenangabe") and
+/// REFN aren't something a person adds by hand any more than they're
+/// something they edit by hand (see person_detail_screen.dart's own
+/// _nonEditableFactTags, same set, for the edit-form side of this).
+const _nonAddableFactTags = {'RIN', 'CHAN', 'SOUR', 'REFN'};
+
 /// The fast fact-capture flow (originally its own "Quick Capture" screen),
 /// now reached from a person's own detail page since every fact needs a
 /// person anyway — one less step than picking a person first.
@@ -48,7 +56,9 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
       if (!mounted) return;
       setState(() {
         _tags = (response['data'] as List<dynamic>? ?? [])
-            .cast<Map<String, dynamic>>();
+            .cast<Map<String, dynamic>>()
+            .where((t) => !_nonAddableFactTags.contains(t['tag']))
+            .toList();
         _loadingTags = false;
       });
     } on Exception catch (e) {

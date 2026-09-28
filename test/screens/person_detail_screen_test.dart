@@ -441,5 +441,42 @@ void main() {
 
       verify(() => client.postFact('Famtree', 'I1', tag: 'OCCU', value: 'Bäcker', date: any(named: 'date'))).called(1);
     });
+
+    testWidgets('record-metadata tags (Aktualisiert am, Datensatz-ID, ...) never appear as addable, even if the server sends them', (
+      tester,
+    ) async {
+      // Regression test: the server's own tag list isn't filtered - it
+      // sends every GEDCOM tag it knows about, including system ones. The
+      // app has to exclude them itself, same as it already does for the
+      // inline edit form's own field list.
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+      // Distinct labels from personJson's own REFN fact ("Referenz"),
+      // which is legitimately shown read-only elsewhere on this same
+      // screen once expanded - that's not what this test is about, so it
+      // uses different label text to avoid colliding with it.
+      when(() => client.tags('Famtree', type: 'INDI')).thenAnswer(
+        (_) async => {
+          'data': [
+            {'tag': 'OCCU', 'label': 'Beruf'},
+            {'tag': 'CHAN', 'label': 'Aktualisiert am'},
+            {'tag': 'RIN', 'label': 'Datensatz-ID (Server)'},
+            {'tag': 'SOUR', 'label': 'Quellenangabe (Server)'},
+          ],
+        },
+      );
+
+      await pumpScreen(tester);
+      await tester.tap(find.textContaining('Mehr anzeigen'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Fakt hinzufügen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fakt hinzufügen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Beruf'), findsOneWidget);
+      expect(find.text('Aktualisiert am'), findsNothing);
+      expect(find.text('Datensatz-ID (Server)'), findsNothing);
+      expect(find.text('Quellenangabe (Server)'), findsNothing);
+    });
   });
 }
