@@ -134,6 +134,45 @@ void main() {
   );
 
   testWidgets(
+    '"Weitere Angabe hinzufügen" starts with one empty row per possible detail, none of them posted if left blank',
+    (tester) async {
+      when(
+        () => client.postAddIndividual(
+          'Famtree',
+          relation: 'none',
+          relativeTo: null,
+          given: 'Max',
+          surname: '',
+          sex: 'M',
+          birthDate: null,
+          birthPlace: null,
+        ),
+      ).thenAnswer((_) async => {'ok': true, 'xref': 'I99'});
+
+      await pumpScreen(tester);
+
+      // All 5 possible extra-field types, as if someone had tapped "+
+      // Weitere Angabe hinzufügen" for each one and left it blank - not
+      // just the one that used to need a manual tap.
+      expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(5));
+      expect(find.text('Beruf'), findsWidgets);
+      expect(find.text('Konfession'), findsWidgets);
+      expect(find.text('Wohnort'), findsWidgets);
+      expect(find.text('Spitzname'), findsWidgets);
+      expect(find.text('Notiz'), findsWidgets);
+
+      await tester.enterText(find.byType(TextField).at(0), 'Max');
+      await tester.tap(find.text('Speichern'));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      // Every row left blank - none of them should have posted anything.
+      verifyNever(() => client.postFact(any(), any(), tag: any(named: 'tag'), value: any(named: 'value')));
+    },
+  );
+
+  testWidgets(
     'an "extra detail" row (property dropdown + value field) posts as its own fact after the person is created',
     (tester) async {
       when(
@@ -156,14 +195,11 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), 'Max');
 
-      await tester.tap(find.text('Weitere Angabe hinzufügen'));
-      await tester.pump();
-
-      // Property dropdown defaults to the first extra-field key ("Beruf" /
-      // occupation -> OCCU) - just fill its paired value field. Field order:
-      // 0 given, 1 surname, 2 birth place, 3 relative search, 4 this row's
-      // value field.
-      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      // Every possible "Weitere Angabe" row is already there, empty, from
+      // the start (no "+" tap needed) - "Beruf" (occupation -> OCCU) is
+      // the first of the 5. Field order: 0 given, 1 surname, 2 birth
+      // place, 3 relative search, 4 this (first extra) row's value field.
+      expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(5));
       expect(find.text('Beruf'), findsWidgets);
       await tester.enterText(find.byType(TextField).at(4), 'Bäcker');
 
@@ -287,15 +323,15 @@ void main() {
       );
 
       await tester.enterText(find.byType(TextField).at(0), 'Max');
-      await tester.tap(find.text('Weitere Angabe hinzufügen').last);
-      await tester.pump();
 
-      // Property dropdown defaults to the first extra-field key ("Beruf" /
-      // occupation -> OCCU) - same field order as the single-column layout
+      // Every possible "Weitere Angabe" row is already there, empty, from
+      // the start (no "+" tap needed) - "Beruf" (occupation -> OCCU) is
+      // the first of the 5. Same field order as the single-column layout
       // (Row visits its children depth-first, left column before right, so
       // this ends up the same index either way): 0 given, 1 surname,
-      // 2 birth place, 3 relative search, 4 this row's value field.
-      expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+      // 2 birth place, 3 relative search, 4 this (first extra) row's value
+      // field.
+      expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(5));
       await tester.enterText(find.byType(TextField).at(4), 'Tischler');
 
       await tester.tap(find.text('Speichern'));
@@ -318,6 +354,21 @@ void main() {
       verify(() => client.postFact('Famtree', 'I99', tag: 'OCCU', value: 'Tischler')).called(1);
     },
   );
+
+  testWidgets('the Speichern button stays at its portrait width on a wide landscape tablet, not full-width', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpAndSettle();
+
+    final saveButtonWidth = tester.getSize(find.widgetWithText(FilledButton, 'Speichern')).width;
+    expect(saveButtonWidth, 480);
+  });
 
   group('pre-linked via linkedXref/linkedName (reached from a person\'s own "Person hinzufügen")', () {
     testWidgets('pre-fills "Verknüpft mit" read-only and blocks Save until a relation is chosen', (tester) async {

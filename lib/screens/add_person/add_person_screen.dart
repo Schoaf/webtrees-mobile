@@ -46,15 +46,25 @@ String _extraFieldLabel(AppLocalizations l10n, String key) => switch (key) {
 };
 
 class _ExtraField {
-  _ExtraField()
+  _ExtraField({String? property})
     : id =
           DateTime.now().microsecondsSinceEpoch.toString() +
-          (_counter++).toString();
+          (_counter++).toString(),
+      property = property ?? _extraFieldTags.keys.first;
   static int _counter = 0;
   final String id;
-  String property = _extraFieldTags.keys.first;
+  String property;
   final valueController = TextEditingController();
 }
+
+/// One empty row per possible "Weitere Angabe" tag, as if someone had
+/// tapped "+ Weitere Angabe hinzufügen" for every one of them and left
+/// each blank - saves the actual repeated tapping, and an unfilled row
+/// never posts anything (see _save's `if (value.isEmpty) continue`), so
+/// this is free to over-provide.
+List<_ExtraField> _initialExtraFields() => [
+  for (final tag in _extraFieldTags.keys) _ExtraField(property: tag),
+];
 
 class AddPersonScreen extends ConsumerStatefulWidget {
   const AddPersonScreen({super.key, this.linkedXref, this.linkedName});
@@ -82,7 +92,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   Map<String, dynamic>? _selectedRelative;
   String _relation = 'none';
 
-  final List<_ExtraField> _extraFields = [];
+  final List<_ExtraField> _extraFields = _initialExtraFields();
 
   bool _saving = false;
   String? _error;
@@ -213,11 +223,12 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           for (final field in _extraFields) {
             field.valueController.dispose();
           }
-          _extraFields.clear();
+          _extraFields
+            ..clear()
+            ..addAll(_initialExtraFields());
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.personSavedMessage)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.personSavedMessage)));
       } else {
         _returnToStart(success: true);
       }
@@ -240,7 +251,9 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
       ref.read(selectedTabProvider.notifier).select(0);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.personSavedMessage)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.personSavedMessage),
+          ),
         );
       }
     }
@@ -339,7 +352,10 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   /// it, anything - automatically lands in the right column on a wide
   /// landscape tablet, same as everything here does today, with no
   /// special-casing needed at the call site.
-  List<Widget> _extraFieldsSection(AppLocalizations l10n, {bool showHeading = true}) {
+  List<Widget> _extraFieldsSection(
+    AppLocalizations l10n, {
+    bool showHeading = true,
+  }) {
     return [
       if (showHeading) ...[
         Text(
@@ -427,7 +443,10 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                                 children: _mainFields(l10n),
                               ),
                             ),
-                            const VerticalDivider(width: 33, color: AppColors.divider),
+                            const VerticalDivider(
+                              width: 33,
+                              color: AppColors.divider,
+                            ),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,26 +474,44 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
                     // scrolling anyway, so the save buttons scrolling along
                     // with the rest costs nothing.
                     const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: (_saving || relationMissing)
-                          ? null
-                          : () => _save(addAnother: false),
-                      child: _saving
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(l10n.save),
-                    ),
-                    TextButton(
-                      onPressed: (_saving || relationMissing)
-                          ? null
-                          : () => _save(addAnother: true),
-                      child: Text(l10n.saveAndAddAnotherButton),
+                    // The FilledButtonThemeData default (minimumSize:
+                    // Size.fromHeight(56), i.e. full-width) is meant for a
+                    // single-column form's own full-bleed width - on a wide
+                    // landscape tablet that's now this whole (two-column)
+                    // list's width, not this button's actual portrait
+                    // width, so it's capped back to the same 480 portrait
+                    // uses instead of stretching further.
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            FilledButton(
+                              onPressed: (_saving || relationMissing)
+                                  ? null
+                                  : () => _save(addAnother: false),
+                              child: _saving
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(l10n.save),
+                            ),
+                            TextButton(
+                              onPressed: (_saving || relationMissing)
+                                  ? null
+                                  : () => _save(addAnother: true),
+                              child: Text(l10n.saveAndAddAnotherButton),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -660,7 +697,9 @@ class _ExtraFieldRowState extends State<_ExtraFieldRow> {
           Expanded(
             child: DropdownButtonFormField<String>(
               initialValue: widget.field.property,
-              decoration: InputDecoration(labelText: l10n.extraFieldPropertyLabel),
+              decoration: InputDecoration(
+                labelText: l10n.extraFieldPropertyLabel,
+              ),
               items: [
                 for (final key in _extraFieldTags.keys)
                   DropdownMenuItem(
@@ -675,10 +714,7 @@ class _ExtraFieldRowState extends State<_ExtraFieldRow> {
           Expanded(
             child: TextField(
               controller: widget.field.valueController,
-              decoration: InputDecoration(
-                labelText: l10n.value,
-                hintText: '…',
-              ),
+              decoration: InputDecoration(labelText: l10n.value, hintText: '…'),
             ),
           ),
           IconButton(
