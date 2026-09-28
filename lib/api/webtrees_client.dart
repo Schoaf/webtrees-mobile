@@ -216,6 +216,35 @@ class WebtreesClient {
     return response.statusCode == 302;
   }
 
+  /// Requests a new account (the api4webtrees `Register` action) — same
+  /// outcome as webtrees' own web registration form: the account exists
+  /// right away but needs both an email confirmation and an administrator's
+  /// approval before it can log in. Call [info] first on this same client
+  /// instance, same as [login]. The response is `{ok: true}` on success or
+  /// `{ok: false, error: <code>}` — see AppPages::postRegisterAction in
+  /// api4webtrees for the possible codes.
+  Future<Map<String, dynamic>> register(
+    String tree, {
+    required String username,
+    required String email,
+    required String realName,
+    required String password,
+    required String comments,
+  }) async {
+    final response = await _dio.postUri(
+      _moduleUri('Register', tree),
+      data: {
+        'username': username,
+        'email': email,
+        'realName': realName,
+        'password': password,
+        'comments': comments,
+      },
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> individuals(
     String tree, {
     String? query,

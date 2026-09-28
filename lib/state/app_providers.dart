@@ -106,16 +106,6 @@ String passwordRequestUrl(WidgetRef ref) {
   return '${base}index.php?route=$route';
 }
 
-/// The webtrees "create a new account" page. Same route-building convention
-/// as [privacyPolicyUrl].
-String registerUrl(WidgetRef ref) {
-  final server = ref.read(serverUrlProvider);
-  final base = server.endsWith('/') ? server : '$server/';
-  final tree = ref.read(treeNameProvider);
-  final route = Uri.encodeComponent('/register/$tree');
-  return '${base}index.php?route=$route';
-}
-
 final quickNoteStoreProvider = Provider<QuickNoteStore>(
   (ref) => QuickNoteStore(),
 );
@@ -166,6 +156,36 @@ extension AuthErrorL10n on AuthError {
   };
 }
 
+/// Error codes for [AuthController.register] — mirrors the `error` codes
+/// api4webtrees' `postRegisterAction` returns (see AppPages.php).
+enum RegisterError {
+  registrationDisabled,
+  missingFields,
+  weakPassword,
+  usernameTaken,
+  emailTaken,
+  commentsLink,
+  rateLimited,
+  serverUnreachable,
+  insecureConnection,
+  registerFailedGeneric,
+}
+
+extension RegisterErrorL10n on RegisterError {
+  String message(AppLocalizations l10n) => switch (this) {
+    RegisterError.registrationDisabled => l10n.registerErrorDisabled,
+    RegisterError.missingFields => l10n.registerErrorMissingFields,
+    RegisterError.weakPassword => l10n.registerErrorWeakPassword,
+    RegisterError.usernameTaken => l10n.registerErrorUsernameTaken,
+    RegisterError.emailTaken => l10n.registerErrorEmailTaken,
+    RegisterError.commentsLink => l10n.registerErrorCommentsLink,
+    RegisterError.rateLimited => l10n.registerErrorRateLimited,
+    RegisterError.serverUnreachable => l10n.authErrorServerUnreachable,
+    RegisterError.insecureConnection => l10n.authErrorInsecureConnection,
+    RegisterError.registerFailedGeneric => l10n.registerErrorGeneric,
+  };
+}
+
 class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
@@ -210,6 +230,55 @@ class AuthController extends Notifier<AuthState> {
       };
     } on Exception {
       return AuthError.loginFailedGeneric;
+    }
+  }
+
+  /// Requests a new account. Unlike [login], success doesn't log the user
+  /// in — the account still needs an email confirmation and an
+  /// administrator's approval, same as webtrees' own web registration form.
+  Future<RegisterError?> register({
+    required String username,
+    required String email,
+    required String realName,
+    required String password,
+    required String comments,
+  }) async {
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+
+    try {
+      await client.info(tree); // establishes session cookie + CSRF token
+      final result = await client.register(
+        tree,
+        username: username,
+        email: email,
+        realName: realName,
+        password: password,
+        comments: comments,
+      );
+      if (result['ok'] == true) return null;
+      return switch (result['error']) {
+        'registration-disabled' => RegisterError.registrationDisabled,
+        'missing-fields' => RegisterError.missingFields,
+        'weak-password' => RegisterError.weakPassword,
+        'username-taken' => RegisterError.usernameTaken,
+        'email-taken' => RegisterError.emailTaken,
+        'comments-link' => RegisterError.commentsLink,
+        'rate-limited' => RegisterError.rateLimited,
+        _ => RegisterError.registerFailedGeneric,
+      };
+    } on DioException catch (e) {
+      return switch (e.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout ||
+        DioExceptionType.connectionError =>
+          RegisterError.serverUnreachable,
+        DioExceptionType.badCertificate => RegisterError.insecureConnection,
+        _ => RegisterError.registerFailedGeneric,
+      };
+    } on Exception {
+      return RegisterError.registerFailedGeneric;
     }
   }
 

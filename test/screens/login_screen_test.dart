@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/auth/login_screen.dart';
+import 'package:webtrees_mobile/screens/auth/register_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
@@ -169,5 +170,17 @@ void main() {
     await tester.pumpAndSettle();
 
     verify(() => client.login(username: 'alice', password: 'secret')).called(1);
+  });
+
+  testWidgets('"Registrieren" opens RegisterScreen in the app, not an external browser', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Registrieren'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RegisterScreen), findsOneWidget);
   });
 }

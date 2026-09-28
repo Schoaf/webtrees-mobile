@@ -377,6 +377,47 @@ void main() {
     });
   });
 
+  group('register()', () {
+    test('posts the Register action with every field in the JSON body', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+
+      final result = await client.register(
+        'Famtree',
+        username: 'anna',
+        email: 'anna@example.com',
+        realName: 'Anna Muster',
+        password: 'hunter22',
+        comments: 'Ich bin die Enkelin von Franz Muster.',
+      );
+
+      final request = adapter.requests.single;
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/Register/Famtree');
+      expect(request.data, {
+        'username': 'anna',
+        'email': 'anna@example.com',
+        'realName': 'Anna Muster',
+        'password': 'hunter22',
+        'comments': 'Ich bin die Enkelin von Franz Muster.',
+      });
+      expect(result, {'ok': true});
+    });
+
+    test('returns the parsed error body on failure, without throwing', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":false,"error":"username-taken","status":400}'));
+
+      final result = await client.register(
+        'Famtree',
+        username: 'anna',
+        email: 'anna@example.com',
+        realName: 'Anna Muster',
+        password: 'hunter22',
+        comments: 'x',
+      );
+
+      expect(result, {'ok': false, 'error': 'username-taken', 'status': 400});
+    });
+  });
+
   group('postMedia()', () {
     test('sends a multipart form with the file and optional title', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
