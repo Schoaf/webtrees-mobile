@@ -146,14 +146,23 @@ class _Banderole extends StatelessWidget {
 class DeathBanderole extends StatelessWidget {
   const DeathBanderole({
     super.key,
-    this.thicknessFactor = 0.16,
+    this.thickness = 13,
+    this.reach = 42,
     this.color = AppColors.textPrimary,
   });
 
-  /// Ribbon thickness as a fraction of the shorter side of the area it
-  /// spans - keeps the ribbon looking proportionate whether it's drawn
-  /// across a compact list row or a whole tablet screen's corner.
-  final double thicknessFactor;
+  /// Ribbon thickness in absolute pixels - was previously a fraction of
+  /// the area's own shortest side, which read as visibly thicker/deeper on
+  /// a bigger card than a smaller one even after TreeNodeCard tried to
+  /// compensate with its own per-card factor (see git history) - still
+  /// inconsistent, since "shortest side" isn't really the same kind of
+  /// number across a small sibling card, a tall partner card and a wide
+  /// tablet corner. A constant reads the same everywhere.
+  final double thickness;
+
+  /// How far the ribbon's far (inner) corner sits from the area's own
+  /// top-left corner, in absolute pixels - constant for the same reason.
+  final double reach;
 
   final Color color;
 
@@ -182,39 +191,44 @@ class DeathBanderole extends StatelessWidget {
     // banderole, no problem, for living ones).
     return IgnorePointer(
       child: ClipRect(
-        child: CustomPaint(painter: _DeathBanderolePainter(color: color, thicknessFactor: thicknessFactor)),
+        child: CustomPaint(painter: _DeathBanderolePainter(color: color, thickness: thickness, reach: reach)),
       ),
     );
   }
 }
 
 class _DeathBanderolePainter extends CustomPainter {
-  const _DeathBanderolePainter({required this.color, required this.thicknessFactor});
+  const _DeathBanderolePainter({required this.color, required this.thickness, required this.reach});
 
   final Color color;
-  final double thicknessFactor;
+  final double thickness;
+  final double reach;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
-    final thickness = size.shortestSide * thicknessFactor;
 
     canvas.save();
     // Pivot near the top-left corner, then rotate -45deg so the ribbon
     // crosses that corner diagonally, matching the original avatar
-    // banderole's orientation.
-    canvas.translate(0, size.height * 0.14);
+    // banderole's orientation. Both offsets below are constant (not
+    // scaled by `size`), so the ribbon's reach into the card - the whole
+    // point of `reach` - stays the same regardless of the card's own
+    // size, instead of growing/shrinking along with it.
+    canvas.translate(0, reach * 0.47);
     canvas.rotate(-math.pi / 4);
-    // Wide enough that the rotated rectangle still fully covers the
-    // corner after rotation, whatever the aspect ratio of `size` is.
+    // Long enough that the rotated rectangle still fully covers the
+    // corner after rotation, whatever the aspect ratio of `size` is -
+    // this is just for full coverage before ClipRect trims it to the
+    // card's true bounds, not part of the visible "reach".
     final span = size.width + size.height;
-    canvas.drawRect(Rect.fromLTWH(-size.height * 0.3, 0, span, thickness), paint);
+    canvas.drawRect(Rect.fromLTWH(-reach, 0, span, thickness), paint);
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant _DeathBanderolePainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.thicknessFactor != thicknessFactor;
+      oldDelegate.color != color || oldDelegate.thickness != thickness || oldDelegate.reach != reach;
 }
 
 class _Silhouette extends StatelessWidget {

@@ -179,28 +179,28 @@ void main() {
   });
 
   testWidgets(
-    'a narrower card gets a proportionally thicker banderole, so its absolute reach into the '
-    'card stays the same as a wider one\'s',
+    'a narrower card and a wider one both get the exact same banderole (DeathBanderole is now size-independent)',
     (tester) async {
-      // Regression test: DeathBanderole's thicknessFactor is a fraction of
-      // the card's own shortest side, so at one fixed factor the ribbon
-      // read visibly thinner/shallower on a plain 90px-wide sibling/child/
-      // parent card than on the wider (~110px), zoomed active/partner
-      // card. TreeNodeCard derives thicknessFactor from its own width
-      // instead, targeting the same absolute thickness regardless of
-      // which role's card it's drawn on.
-      Future<double> thicknessFactorFor(double width) async {
+      // DeathBanderole itself now defaults to a constant thickness/reach
+      // (absolute pixels, not a fraction of the card) - TreeNodeCard no
+      // longer needs to derive/compensate anything per card, unlike
+      // before (see git history: a fixed *fraction* of the card's own
+      // shortest side read thinner/shallower on a plain 90px-wide
+      // sibling/child/parent card than on the wider zoomed active/partner
+      // one, and even the per-card-width compensation that followed still
+      // didn't look consistent - only a true constant does).
+      Future<DeathBanderole> banderoleFor(double width) async {
         await tester.pumpWidget(
           _wrap(TreeNodeCard(firstName: 'Anna', sex: 'F', isDead: true, birthYear: 1958, width: width)),
         );
-        return tester.widget<DeathBanderole>(find.byType(DeathBanderole)).thicknessFactor;
+        return tester.widget<DeathBanderole>(find.byType(DeathBanderole));
       }
 
-      final narrow = await thicknessFactorFor(90);
-      final wide = await thicknessFactorFor(110);
+      final narrow = await banderoleFor(90);
+      final wide = await banderoleFor(110);
 
-      expect(narrow, greaterThan(wide), reason: 'the narrower card needs a bigger fraction for the same absolute reach');
-      expect(narrow * 90, closeTo(wide * 110, 0.01), reason: 'both must resolve to the same absolute thickness');
+      expect(narrow.thickness, wide.thickness);
+      expect(narrow.reach, wide.reach);
     },
   );
 
