@@ -15,6 +15,7 @@ import 'theme/app_theme.dart';
 import 'utils/device_size.dart';
 import 'utils/person_deep_link.dart';
 import 'utils/share_review_deep_link.dart';
+import 'utils/tab_navigation.dart';
 import 'widgets/tab_navigator.dart';
 import 'widgets/tree_icons.dart';
 
@@ -222,32 +223,37 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
     AddPersonScreen(),
   ];
 
-  // One per tab, created once and kept for this State's whole lifetime -
-  // each tab's nested Navigator (tablet only, see build()) needs the SAME
-  // GlobalKey across rebuilds for its own pushed route stack to survive
-  // switching tabs and back, not a fresh one every build().
-  final _navigatorKeys = List.generate(
-    _screens.length,
-    (_) => GlobalKey<NavigatorState>(),
-  );
-
   @override
   Widget build(BuildContext context) {
     final index = ref.watch(selectedTabProvider);
     final l10n = AppLocalizations.of(context)!;
     // Phone: screens render directly, so every push goes to the app's one
     // root Navigator - full-screen, covering this whole shell including
-    // the bottom nav bar, exactly as before this existed. Tablet: each tab
-    // gets its own nested Navigator instead, so opening a person/tree/etc.
-    // pushes within that tab's own content area, and the bottom nav bar -
-    // a sibling of that content area, not something any of those pushes
-    // can cover - stays on screen the whole time. See TabNavigator for
-    // the back-button wiring this needs to keep working correctly.
+    // the bottom nav bar, exactly as before this existed.
+    //
+    // Tablet: only Home and Stammbaum get their own nested Navigator
+    // (homeNavigatorKey/treeNavigatorKey, shared via tab_navigation.dart
+    // so openPerson/openTreeView can push onto them from *outside* their
+    // own subtree - a Search result, a tree button elsewhere, ...) - a
+    // push within either stays inside that tab's own content area, and
+    // the bottom nav bar - a sibling of that content area, not something
+    // any of those pushes can cover - stays on screen the whole time.
+    // Search and Add-Person don't get one at all: they're not places a
+    // person ever browses *into* something else that should keep the
+    // "Search"/"Add Person" tab looking selected - opening a person from
+    // a search result is explicitly the Home tab's job (see openPerson),
+    // and Search's own state (query, results) already survives switching
+    // tabs regardless, since IndexedStack keeps it alive either way.
+    //
+    // See TabNavigator for the back-button wiring a nested Navigator
+    // needs to keep working correctly.
     final tabbed = isTabletDevice(context);
     final screens = tabbed
         ? [
-            for (var i = 0; i < _screens.length; i++)
-              TabNavigator(navigatorKey: _navigatorKeys[i], child: _screens[i]),
+            TabNavigator(navigatorKey: homeNavigatorKey, child: _screens[kHomeTabIndex]),
+            TabNavigator(navigatorKey: treeNavigatorKey, child: _screens[kTreeTabIndex]),
+            _screens[kSearchTabIndex],
+            _screens[kAddPersonTabIndex],
           ]
         : _screens;
     return Scaffold(

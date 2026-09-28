@@ -8,11 +8,11 @@ import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
 import '../../state/tree_view_providers.dart';
 import '../../utils/device_size.dart';
+import '../../utils/tab_navigation.dart';
 import '../../widgets/load_error_view.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
 import '../../widgets/tree_node_card.dart';
-import '../search/person_detail_screen.dart';
 
 const _kCardWidth = 90.0;
 const _kActiveZoom = 1.22;
@@ -228,9 +228,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                             familyGroupKey: _familyGroupKey,
                             onSelectPerson: controller.selectPerson,
                             onSelectPartner: controller.selectPartner,
-                            onOpenProfile: (xref) => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)),
-                            ),
+                            onOpenProfile: (xref) => openPerson(context, xref),
                           ),
                         ),
                       ),

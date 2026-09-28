@@ -13,6 +13,7 @@ import '../../utils/copy_to_clipboard.dart';
 import '../../utils/device_size.dart';
 import '../../utils/gedcom.dart';
 import '../../utils/server_error.dart';
+import '../../utils/tab_navigation.dart';
 import '../../widgets/add_fact_sheet.dart';
 import '../../widgets/ask_for_help_email_screen.dart';
 import '../../widgets/copyable_error_text.dart';
@@ -24,7 +25,6 @@ import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
 import '../add_person/add_person_screen.dart';
-import '../tree_view/tree_view_screen.dart';
 
 /// Facts always shown; everything else is collapsed under "Mehr anzeigen"
 /// so the record-metadata clutter (reference numbers, last-changed, ...)
@@ -749,12 +749,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                               top: avatarSize / 2 - treeButtonSize / 2,
                               child: _TreeViewButton(
                                 size: treeButtonSize,
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        TreeViewScreen(xref: widget.xref),
-                                  ),
-                                ),
+                                onTap: () => openTreeView(context, widget.xref),
                               ),
                             ),
                         ],
@@ -1760,13 +1755,10 @@ class _Section extends StatelessWidget {
                 if (i > 0) const SizedBox(height: 8),
                 PersonCard(
                   person: people[i],
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PersonDetailScreen(
-                        xref: people[i]['xref'] as String,
-                        depth: depth + 1,
-                      ),
-                    ),
+                  onTap: () => openPerson(
+                    context,
+                    people[i]['xref'] as String,
+                    depth: depth + 1,
                   ),
                 ),
               ],
@@ -1798,15 +1790,10 @@ class _FamilySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void openPerson(Map<String, dynamic> person) =>
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PersonDetailScreen(
-              xref: person['xref'] as String,
-              depth: depth + 1,
-            ),
-          ),
-        );
+    // Named differently from the top-level openPerson (tab_navigation.dart)
+    // it calls, purely to avoid shadowing it within this scope.
+    void openPersonDetail(Map<String, dynamic> person) =>
+        openPerson(context, person['xref'] as String, depth: depth + 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1845,7 +1832,7 @@ class _FamilySection extends StatelessWidget {
                       if (partner != null)
                         PersonCard(
                           person: partner!,
-                          onTap: () => openPerson(partner!),
+                          onTap: () => openPersonDetail(partner!),
                         ),
                       for (var i = 0; i < children.length; i++) ...[
                         if (partner != null || i > 0)
@@ -1856,7 +1843,7 @@ class _FamilySection extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 30),
                           child: PersonCard(
                             person: children[i],
-                            onTap: () => openPerson(children[i]),
+                            onTap: () => openPersonDetail(children[i]),
                           ),
                         ),
                       ],

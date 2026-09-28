@@ -8,11 +8,11 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/device_size.dart';
 import '../../utils/gedcom.dart';
+import '../../utils/tab_navigation.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../account/account_screen.dart';
 import '../responses/responses_list_screen.dart';
-import '../search/person_detail_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -176,10 +176,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         // route: SearchScreen has no back button of its
                         // own (it's meant to live inside the tab bar), so
                         // pushing it stranded people with no way back to
-                        // the main menu. Index must match Search's
-                        // position in _HomeShell._screens (main.dart).
-                        onTap: () =>
-                            ref.read(selectedTabProvider.notifier).select(2),
+                        // the main menu.
+                        onTap: () => ref
+                            .read(selectedTabProvider.notifier)
+                            .select(kSearchTabIndex),
                       ),
                       rest: [
                         if (data.startPerson != null) ...[
@@ -194,13 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           const SizedBox(height: 8),
                           PersonCard(
                             person: data.startPerson!,
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => PersonDetailScreen(
-                                  xref: data.startPerson!['xref'] as String,
-                                ),
-                              ),
-                            ),
+                            onTap: () => openPerson(context, data.startPerson!['xref'] as String),
                           ),
                         ],
                         if (data.unreadResponses > 0) ...[
@@ -477,14 +471,9 @@ class _BirthdayList extends StatelessWidget {
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PersonDetailScreen(
-                      xref:
-                          (events[i]['person'] as Map<String, dynamic>)['xref']
-                              as String,
-                    ),
-                  ),
+                onTap: () => openPerson(
+                  context,
+                  (events[i]['person'] as Map<String, dynamic>)['xref'] as String,
                 ),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -674,12 +663,7 @@ class _UnsyncedNotes extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(14),
                   onTap: note.xref == null
                       ? null
-                      : () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                PersonDetailScreen(xref: note.xref!),
-                          ),
-                        ),
+                      : () => openPerson(context, note.xref!),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,

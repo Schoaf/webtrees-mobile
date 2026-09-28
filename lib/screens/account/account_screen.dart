@@ -7,9 +7,9 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
+import '../../utils/tab_navigation.dart';
 import '../../widgets/copyable_error_text.dart';
 import '../../widgets/person_card.dart';
-import '../search/person_detail_screen.dart';
 import '../search/search_screen.dart';
 
 /// The server's raw role string (stable, not display text); see
@@ -307,12 +307,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                       if (data.linkedPerson != null && data.linkedXref != null)
                         PersonCard(
                           person: data.linkedPerson!,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  PersonDetailScreen(xref: data.linkedXref!),
-                            ),
-                          ),
+                          onTap: () => openPerson(context, data.linkedXref!),
                         )
                       else
                         _EmptyNote(text: l10n.noLinkedPersonMessage),
@@ -340,12 +335,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                           data.startXref != null)
                         PersonCard(
                           person: data.startPerson!,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  PersonDetailScreen(xref: data.startXref!),
-                            ),
-                          ),
+                          onTap: () => openPerson(context, data.startXref!),
                         )
                       else
                         _EmptyNote(text: l10n.noStartPersonMessage),

@@ -7,9 +7,9 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/device_size.dart';
+import '../../utils/tab_navigation.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
-import 'person_detail_screen.dart';
 
 /// Priority-2 screen: find a person and review everything stored about
 /// them. Charts are deliberately out of scope for v1 (hard to use on a
@@ -228,12 +228,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             person: person,
             onTap: widget.pickerTitle != null
                 ? () => Navigator.of(context).pop(person)
-                : () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          PersonDetailScreen(xref: person['xref'] as String),
-                    ),
-                  ),
+                : () => openPerson(context, person['xref'] as String),
           );
         },
       ),
