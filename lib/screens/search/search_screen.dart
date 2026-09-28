@@ -130,39 +130,45 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    Container(
-                      height: 56,
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: AppColors.primary, width: 2),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.search,
-                            size: 19,
-                            color: AppColors.textSecondary,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 430),
+                      child: Container(
+                        height: 56,
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 2,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: _queryController,
-                              focusNode: _focusNode,
-                              onChanged: _onChanged,
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                isCollapsed: true,
-                                hintText: l10n.enterNameHint,
-                              ),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: AppColors.textPrimary,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.search,
+                              size: 19,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _queryController,
+                                focusNode: _focusNode,
+                                onChanged: _onChanged,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isCollapsed: true,
+                                  hintText: l10n.enterNameHint,
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     if (_searched) ...[
@@ -206,24 +212,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      itemCount: _results.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final person = _results[index];
-        return PersonCard(
-          person: person,
-          onTap: widget.pickerTitle != null
-              ? () => Navigator.of(context).pop(person)
-              : () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        PersonDetailScreen(xref: person['xref'] as String),
+    // Narrower and centered, same as portrait (TabletBoundedBody's own
+    // default 480) - a wide list of single-line-ish result rows just
+    // reads as long empty rows stretched edge to edge otherwise, unlike
+    // e.g. Person's two-column layout, which has real two-column content
+    // to fill that width with.
+    return TabletBoundedBody(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        itemCount: _results.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final person = _results[index];
+          return PersonCard(
+            person: person,
+            onTap: widget.pickerTitle != null
+                ? () => Navigator.of(context).pop(person)
+                : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PersonDetailScreen(xref: person['xref'] as String),
+                    ),
                   ),
-                ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

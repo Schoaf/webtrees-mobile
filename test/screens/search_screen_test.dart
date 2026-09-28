@@ -74,6 +74,39 @@ void main() {
     expect(find.text('1 Treffer'), findsOneWidget);
   });
 
+  testWidgets(
+    'on a wide landscape tablet, the search field caps at 430px and the results list stays narrow/centered',
+    (tester) async {
+      when(() => client.individuals('Famtree', query: 'Anna')).thenAnswer(
+        (_) async => {
+          'data': [
+            {'xref': 'I1', 'name': 'Anna Muster', 'sex': 'F', 'isDead': false},
+          ],
+        },
+      );
+
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpSearchScreen(tester);
+      await tester.enterText(find.byType(TextField), 'Anna');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      await tester.pump();
+
+      final searchFieldWidth = tester.getSize(find.byType(TextField)).width;
+      // The field itself sits inside icon+padding, so it's narrower than
+      // the 430px cap on its enclosing row, not equal to it - this just
+      // proves it's nowhere near the screen's full/1100-capped width.
+      expect(searchFieldWidth, lessThan(400));
+
+      final resultsListWidth = tester.getSize(find.byType(ListView)).width;
+      expect(resultsListWidth, 480, reason: 'must stay at the narrow, portrait-equivalent width, not the wide top-bar one');
+    },
+  );
+
   testWidgets('shows "Keine Treffer." when the search comes back empty', (tester) async {
     when(() => client.individuals('Famtree', query: 'Zzz')).thenAnswer((_) async => {'data': <dynamic>[]});
 
