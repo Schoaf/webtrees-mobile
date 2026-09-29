@@ -134,7 +134,7 @@ void main() {
   );
 
   testWidgets(
-    '"Weitere Angabe hinzufügen" starts with one empty row per possible detail, none of them posted if left blank',
+    'on a phone, "Weitere Angabe hinzufügen" starts empty - tapping it adds rows one at a time, same as before',
     (tester) async {
       when(
         () => client.postAddIndividual(
@@ -151,15 +151,14 @@ void main() {
 
       await pumpScreen(tester);
 
-      // All 5 possible extra-field types, as if someone had tapped "+
-      // Weitere Angabe hinzufügen" for each one and left it blank - not
-      // just the one that used to need a manual tap.
-      expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(5));
+      // Nothing pre-filled - only the two-column tablet layout has room to
+      // show every possible row up front (see the tablet test below).
+      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+
+      await tester.tap(find.text('Weitere Angabe hinzufügen'));
+      await tester.pump();
+      expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(1));
       expect(find.text('Beruf'), findsWidgets);
-      expect(find.text('Konfession'), findsWidgets);
-      expect(find.text('Wohnort'), findsWidgets);
-      expect(find.text('Spitzname'), findsWidgets);
-      expect(find.text('Notiz'), findsWidgets);
 
       await tester.enterText(find.byType(TextField).at(0), 'Max');
       await tester.tap(find.text('Speichern'));
@@ -167,7 +166,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // Every row left blank - none of them should have posted anything.
+      // The one row added was left blank - it shouldn't have posted anything.
       verifyNever(() => client.postFact(any(), any(), tag: any(named: 'tag'), value: any(named: 'value')));
     },
   );
@@ -195,11 +194,12 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), 'Max');
 
-      // Every possible "Weitere Angabe" row is already there, empty, from
-      // the start (no "+" tap needed) - "Beruf" (occupation -> OCCU) is
-      // the first of the 5. Field order: 0 given, 1 surname, 2 birth
-      // place, 3 relative search, 4 this (first extra) row's value field.
-      expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(5));
+      // On a phone, a row only exists once "+" is tapped - it defaults to
+      // "Beruf" (occupation -> OCCU), the first option. Field order: 0
+      // given, 1 surname, 2 birth place, 3 relative search, 4 this (newly
+      // added) row's value field.
+      await tester.tap(find.text('Weitere Angabe hinzufügen'));
+      await tester.pump();
       expect(find.text('Beruf'), findsWidgets);
       await tester.enterText(find.byType(TextField).at(4), 'Bäcker');
 

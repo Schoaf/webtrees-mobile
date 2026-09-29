@@ -92,7 +92,7 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
   Map<String, dynamic>? _selectedRelative;
   String _relation = 'none';
 
-  final List<_ExtraField> _extraFields = _initialExtraFields();
+  final List<_ExtraField> _extraFields = [];
 
   bool _saving = false;
   String? _error;
@@ -111,6 +111,21 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
       // specific person's own "Person hinzufügen" button, so which relation
       // this new person has to them must be an explicit choice, not a
       // silent default; the Save button stays disabled until it's made.
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Only on a tablet does the form have the two-column room to show every
+    // "Weitere Angabe" row up front - on a phone this starts empty, same as
+    // before that layout existed, and "+ Weitere Angabe hinzufügen" adds
+    // them one at a time. Keyed off "currently empty" rather than a
+    // one-time flag, so rotating into a tablet layout still populates it
+    // (including right after pumpScreen in a test) - but it never clears
+    // rows the person already added or typed into, on any rotation.
+    if (_extraFields.isEmpty && isWideLandscapeTablet(context)) {
+      _extraFields.addAll(_initialExtraFields());
     }
   }
 
@@ -223,9 +238,10 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           for (final field in _extraFields) {
             field.valueController.dispose();
           }
-          _extraFields
-            ..clear()
-            ..addAll(_initialExtraFields());
+          _extraFields.clear();
+          if (isWideLandscapeTablet(context)) {
+            _extraFields.addAll(_initialExtraFields());
+          }
         });
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(l10n.personSavedMessage)));
