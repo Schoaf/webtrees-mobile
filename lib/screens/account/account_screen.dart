@@ -7,9 +7,11 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
+import '../../utils/device_size.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/copyable_error_text.dart';
 import '../../widgets/person_card.dart';
+import '../../widgets/tablet_bounded_body.dart';
 import '../search/search_screen.dart';
 
 /// The server's raw role string (stable, not display text); see
@@ -208,6 +210,103 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         }
 
         final data = snapshot.data!;
+        final useTwoColumn = isWideLandscapeTablet(context);
+
+        const sectionTitleStyle = TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textSecondary,
+        );
+
+        final accountItems = <Widget>[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: AppColors.cardShadow,
+            ),
+            child: Column(
+              children: [
+                _InfoRow(label: l10n.username, value: data.userName),
+                if (_editing)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: AppColors.divider),
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _realNameController,
+                      decoration: InputDecoration(
+                        labelText: l10n.nameLabel,
+                        isDense: true,
+                        border: InputBorder.none,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  )
+                else
+                  _InfoRow(label: l10n.nameLabel, value: data.realName),
+                _InfoRow(
+                  label: l10n.role,
+                  value: _roleLabel(l10n, data.roleKey),
+                  last: true,
+                ),
+              ],
+            ),
+          ),
+          if (_saveError != null) ...[
+            const SizedBox(height: 8),
+            CopyableErrorText(message: _saveError!),
+          ],
+        ];
+
+        final relativesItems = <Widget>[
+          Text(l10n.linkedPersonSectionTitle, style: sectionTitleStyle),
+          const SizedBox(height: 8),
+          if (data.linkedPerson != null && data.linkedXref != null)
+            PersonCard(
+              person: data.linkedPerson!,
+              onTap: () => openPerson(context, data.linkedXref!),
+            )
+          else
+            _EmptyNote(text: l10n.noLinkedPersonMessage),
+          const SizedBox(height: 24),
+          Text(l10n.startPerson, style: sectionTitleStyle),
+          const SizedBox(height: 8),
+          if (_editing)
+            _pendingStartPerson != null
+                ? PersonCard(
+                    person: _pendingStartPerson!,
+                    onTap: _pickStartPerson,
+                  )
+                : _EmptyNote(
+                    text: l10n.noStartPersonMessage,
+                    onTap: _pickStartPerson,
+                  )
+          else if (data.startPerson != null && data.startXref != null)
+            PersonCard(
+              person: data.startPerson!,
+              onTap: () => openPerson(context, data.startXref!),
+            )
+          else
+            _EmptyNote(text: l10n.noStartPersonMessage),
+          if (_editing) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _pickStartPerson,
+              icon: const Icon(Icons.swap_horiz, size: 18),
+              label: Text(l10n.changeStartPersonButton),
+            ),
+          ],
+        ];
+
         return Scaffold(
           bottomNavigationBar: _editing
               ? SafeArea(
@@ -229,201 +328,128 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                   ),
                 )
               : null,
-          body: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                _Header(
-                  editing: _editing,
-                  onBack: () => Navigator.of(context).maybePop(),
-                  onEditToggle: _editing
-                      ? _cancelEditing
-                      : () => _startEditing(data),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: AppColors.cardShadow,
-                        ),
-                        child: Column(
-                          children: [
-                            _InfoRow(label: l10n.username, value: data.userName),
-                            if (_editing)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                decoration: const BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: AppColors.divider,
-                                    ),
-                                  ),
-                                ),
-                                child: TextField(
-                                  controller: _realNameController,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.nameLabel,
-                                    isDense: true,
-                                    border: InputBorder.none,
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              )
-                            else
-                              _InfoRow(label: l10n.nameLabel, value: data.realName),
-                            _InfoRow(
-                              label: l10n.role,
-                              value: _roleLabel(l10n, data.roleKey),
-                              last: true,
+          body: TabletBoundedBody(
+            maxWidth: tabletBoundedMaxWidth(context),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  _Header(
+                    editing: _editing,
+                    onBack: () => Navigator.of(context).maybePop(),
+                    onEditToggle: _editing
+                        ? _cancelEditing
+                        : () => _startEditing(data),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                      children: [
+                        if (useTwoColumn)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: Column(children: accountItems)),
+                              const SizedBox(width: 24),
+                              Expanded(
+                                child: Column(children: relativesItems),
+                              ),
+                            ],
+                          )
+                        else ...[
+                          ...accountItems,
+                          const SizedBox(height: 24),
+                          ...relativesItems,
+                        ],
+                        if (!_editing) ...[
+                          const SizedBox(height: 32),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                await ref
+                                    .read(authControllerProvider.notifier)
+                                    .logout();
+                                // Logging out swaps what the root of the app
+                                // shows (Home -> Login), but that root sits
+                                // *below* this pushed screen in the
+                                // Navigator stack — without popping back to
+                                // it, this screen just keeps showing until
+                                // the next navigation happens to reveal the
+                                // swap.
+                                if (context.mounted) {
+                                  Navigator.of(
+                                    context,
+                                  ).popUntil((route) => route.isFirst);
+                                }
+                              },
+                              icon: const Icon(Icons.logout, size: 18),
+                              label: Text(l10n.logoutButton),
+                            ),
+                          ),
+                          if (_biometricSupported) ...[
+                            const SizedBox(height: 12),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                l10n.lockWithBiometricsTitle,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              subtitle: Text(
+                                l10n.biometricsSubtitle,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              value: _biometricEnabled,
+                              onChanged: (value) async {
+                                await ref
+                                    .read(biometricAuthProvider)
+                                    .setEnabled(value);
+                                if (mounted) {
+                                  setState(() => _biometricEnabled = value);
+                                }
+                              },
                             ),
                           ],
-                        ),
-                      ),
-                      if (_saveError != null) ...[
-                        const SizedBox(height: 8),
-                        CopyableErrorText(message: _saveError!),
-                      ],
-                      const SizedBox(height: 24),
-                      Text(
-                        l10n.linkedPersonSectionTitle,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (data.linkedPerson != null && data.linkedXref != null)
-                        PersonCard(
-                          person: data.linkedPerson!,
-                          onTap: () => openPerson(context, data.linkedXref!),
-                        )
-                      else
-                        _EmptyNote(text: l10n.noLinkedPersonMessage),
-                      const SizedBox(height: 24),
-                      Text(
-                        l10n.startPerson,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_editing)
-                        _pendingStartPerson != null
-                            ? PersonCard(
-                                person: _pendingStartPerson!,
-                                onTap: _pickStartPerson,
-                              )
-                            : _EmptyNote(
-                                text: l10n.noStartPersonMessage,
-                                onTap: _pickStartPerson,
-                              )
-                      else if (data.startPerson != null &&
-                          data.startXref != null)
-                        PersonCard(
-                          person: data.startPerson!,
-                          onTap: () => openPerson(context, data.startXref!),
-                        )
-                      else
-                        _EmptyNote(text: l10n.noStartPersonMessage),
-                      if (_editing) ...[
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: _pickStartPerson,
-                          icon: const Icon(Icons.swap_horiz, size: 18),
-                          label: Text(l10n.changeStartPersonButton),
-                        ),
-                      ],
-                      if (!_editing) ...[
-                        const SizedBox(height: 32),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            await ref
-                                .read(authControllerProvider.notifier)
-                                .logout();
-                            // Logging out swaps what the root of the app
-                            // shows (Home -> Login), but that root sits
-                            // *below* this pushed screen in the Navigator
-                            // stack — without popping back to it, this
-                            // screen just keeps showing until the next
-                            // navigation happens to reveal the swap.
-                            if (context.mounted) {
-                              Navigator.of(context)
-                                  .popUntil((route) => route.isFirst);
-                            }
-                          },
-                          icon: const Icon(Icons.logout, size: 18),
-                          label: Text(l10n.logoutButton),
-                        ),
-                        if (_biometricSupported) ...[
                           const SizedBox(height: 12),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              l10n.lockWithBiometricsTitle,
-                              style: const TextStyle(fontSize: 14),
+                          TextButton.icon(
+                            onPressed: () => launchUrl(
+                              siteUrl(
+                                ref.read(serverUrlProvider),
+                                mobile: false,
+                              ),
+                              mode: LaunchMode.externalApplication,
                             ),
-                            subtitle: Text(
-                              l10n.biometricsSubtitle,
-                              style: const TextStyle(fontSize: 12),
+                            icon: const Icon(Icons.open_in_new, size: 16),
+                            label: Text(l10n.openFullWebsite),
+                          ),
+                          const SizedBox(height: 4),
+                          TextButton.icon(
+                            onPressed: () => launchUrl(
+                              siteUrl(privacyPolicyUrl(ref), mobile: true),
+                              mode: LaunchMode.externalApplication,
                             ),
-                            value: _biometricEnabled,
-                            onChanged: (value) async {
-                              await ref
-                                  .read(biometricAuthProvider)
-                                  .setEnabled(value);
-                              if (mounted) {
-                                setState(() => _biometricEnabled = value);
-                              }
-                            },
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        TextButton.icon(
-                          onPressed: () => launchUrl(
-                            siteUrl(ref.read(serverUrlProvider), mobile: false),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                          icon: const Icon(Icons.open_in_new, size: 16),
-                          label: Text(l10n.openFullWebsite),
-                        ),
-                        const SizedBox(height: 4),
-                        TextButton.icon(
-                          onPressed: () => launchUrl(
-                            siteUrl(privacyPolicyUrl(ref), mobile: true),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                          icon: const Icon(Icons.privacy_tip_outlined, size: 16),
-                          label: Text(l10n.privacyPolicy),
-                        ),
-                        if (_appVersion != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            l10n.appVersion(_appVersion!),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textTertiary,
+                            icon: const Icon(
+                              Icons.privacy_tip_outlined,
+                              size: 16,
                             ),
+                            label: Text(l10n.privacyPolicy),
                           ),
+                          if (_appVersion != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              l10n.appVersion(_appVersion!),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
                         ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );

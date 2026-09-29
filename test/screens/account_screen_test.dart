@@ -322,4 +322,59 @@ void main() {
     expect(find.byType(AccountScreen), findsNothing);
     expect(find.text('open account'), findsOneWidget);
   });
+
+  group('tablet layout', () {
+    Future<void> pumpWideScreen(WidgetTester tester) async {
+      // 13" iPad landscape - same viewport other tablet-layout tests in
+      // this codebase use (isWideLandscapeTablet needs width > height,
+      // width >= 900, shortestSide >= 600).
+      tester.view.physicalSize = const Size(1366, 1024);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpScreen(tester);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the header bar is capped to the same width as other screens, not the full viewport', (tester) async {
+      when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
+      when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => personResponse('I2'));
+
+      await pumpWideScreen(tester);
+
+      final headerWidth = tester.getSize(find.widgetWithText(Container, 'Mein Konto')).width;
+      expect(headerWidth, 1100, reason: 'tabletBoundedMaxWidth for a wide landscape tablet - same cap every other screen uses');
+    });
+
+    testWidgets('"Verknüpfte Person"/Startperson sit beside the account details, not stacked below them', (
+      tester,
+    ) async {
+      when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
+      when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => personResponse('I2'));
+
+      await pumpWideScreen(tester);
+
+      final usernameLeft = tester.getTopLeft(find.text('Benutzername')).dx;
+      final linkedPersonLeft = tester.getTopLeft(find.text('Verknüpfte Person')).dx;
+      expect(
+        linkedPersonLeft,
+        greaterThan(usernameLeft + 100),
+        reason: 'a right-hand column, not the same left margin as a stacked single column',
+      );
+    });
+
+    testWidgets('the Abmelden button is a normal width, not stretched full-width on a tablet', (tester) async {
+      when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
+      when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => personResponse('I2'));
+
+      await pumpWideScreen(tester);
+
+      final buttonWidth = tester.getSize(find.widgetWithText(OutlinedButton, 'Abmelden')).width;
+      expect(buttonWidth, lessThan(300), reason: 'a content-hugging button, not one stretched to fill the screen');
+    });
+  });
 }
