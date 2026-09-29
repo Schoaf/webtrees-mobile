@@ -34,12 +34,15 @@ import '../add_person/add_person_screen.dart';
 const _primaryFactTags = {'SEX', 'BIRT', 'DEAT'};
 
 /// Record-metadata tags shown (read-only) under "Mehr anzeigen" but never
-/// offered as editable fields - RIN ("Datensatz-ID"), CHAN ("Aktualisiert
-/// am" - not currently returned by the API at all, but excluded here too
-/// in case that changes), SOUR ("Quellenangabe") and REFN (the record ID)
-/// are system/bookkeeping data, not something a person edits about
-/// themselves.
-const _nonEditableFactTags = {'RIN', 'CHAN', 'SOUR', 'REFN'};
+/// offered as editable fields - RIN ("Datensatz-ID"), SOUR
+/// ("Quellenangabe") and REFN (the record ID) are system/bookkeeping data,
+/// not something a person edits about themselves. CHAN ("Aktualisiert am")
+/// isn't in this set — it's dropped entirely, read-only card included, the
+/// moment `facts` is built in build() below, so there's exactly one place
+/// that decides it never appears at all instead of every consumer (the
+/// read-only card, the share text, this edit-form filter, ...) needing its
+/// own copy of that exclusion.
+const _nonEditableFactTags = {'RIN', 'SOUR', 'REFN'};
 
 /// Desired display/edit order for a person's facts, top to bottom. SEX and
 /// NAME lead (NAME only actually appears in the edit form - the read-only
@@ -661,7 +664,14 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final person = data['person'] as Map<String, dynamic>;
         final name = person['name'] as String? ?? l10n.noNamePlaceholder;
         final facts = (data['facts'] as List<dynamic>? ?? [])
-            .cast<Map<String, dynamic>>();
+            .cast<Map<String, dynamic>>()
+            // CHAN ("Aktualisiert am") is server/bookkeeping metadata, not
+            // a real fact about the person - dropped here, once, so it
+            // never reaches the read-only card, the share text, or the
+            // edit form below, instead of each of those needing to
+            // remember to filter it out themselves.
+            .where((f) => f['tag'] != 'CHAN')
+            .toList();
         final parentFamilies = (data['parentFamilies'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
         final spouseFamilies = (data['spouseFamilies'] as List<dynamic>? ?? [])

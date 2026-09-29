@@ -364,6 +364,32 @@ void main() {
   });
 
   testWidgets(
+    'CHAN ("Aktualisiert am") never appears at all, not even read-only under "Mehr anzeigen" - unlike RIN/SOUR/REFN',
+    (tester) async {
+      final json = personJson('I1');
+      json['facts'] = [
+        ...json['facts'] as List<dynamic>,
+        {
+          'tag': 'CHAN',
+          'label': 'Aktualisiert am',
+          'value': '',
+          'date': {'text': '1. Jan 2026', 'gedcom': '1 JAN 2026'},
+        },
+      ];
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+
+      await pumpScreen(tester);
+      await tester.tap(find.textContaining('Mehr anzeigen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Aktualisiert am'), findsNothing, reason: 'not even in the read-only card');
+
+      await tester.tap(find.byTooltip('Bearbeiten'));
+      await tester.pumpAndSettle();
+      expect(find.text('Aktualisiert am'), findsNothing, reason: 'nor in the edit form');
+    },
+  );
+
+  testWidgets(
     'regression: opening edit mode pre-selects the sex segment that is actually already set',
     (tester) async {
       // The SEX fact's own `value` is always webtrees' localized display

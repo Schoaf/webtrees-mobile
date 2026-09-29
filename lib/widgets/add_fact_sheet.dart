@@ -16,8 +16,11 @@ enum AddFactResult { posted, savedLocally, cancelled }
 /// unfiltered along with every real, addable fact type - RIN
 /// ("Datensatz-ID"), CHAN ("Aktualisiert am"), SOUR ("Quellenangabe") and
 /// REFN aren't something a person adds by hand any more than they're
-/// something they edit by hand (see person_detail_screen.dart's own
-/// _nonEditableFactTags, same set, for the edit-form side of this).
+/// something they edit by hand. This is a different data source from a
+/// person's own facts (the server's whole tag catalog, not what that
+/// person actually has), so it needs its own copy of the exclusion - see
+/// person_detail_screen.dart's build(), which drops CHAN from a person's
+/// own facts instead, and _nonEditableFactTags there for RIN/SOUR/REFN.
 const _nonAddableFactTags = {'RIN', 'CHAN', 'SOUR', 'REFN'};
 
 /// The fast fact-capture flow (originally its own "Quick Capture" screen),
