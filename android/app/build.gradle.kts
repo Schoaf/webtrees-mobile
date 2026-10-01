@@ -57,6 +57,9 @@ android {
                 // (e.g. a fresh checkout without android/key.properties).
                 signingConfigs.getByName("debug")
             }
+            optimization {
+                enable = true // Enables code and resource optimizations with Google R8
+            }
         }
     }
 }
