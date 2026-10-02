@@ -12,14 +12,34 @@ extension _FirstOrNull<T> on Iterable<T> {
 
 enum MaritalStatus { married, partnership, divorced, ended, widowed, unknown }
 
-MaritalStatus _maritalStatusFromJson(String? value) => switch (value) {
-  'married' => MaritalStatus.married,
-  'partnership' => MaritalStatus.partnership,
-  'divorced' => MaritalStatus.divorced,
-  'ended' => MaritalStatus.ended,
-  'widowed' => MaritalStatus.widowed,
-  _ => MaritalStatus.unknown,
-};
+/// api4webtrees 1.8.0 dropped the server-side `maritalStatus` field
+/// deliberately ("that's more an interpretation and belongs in the app") -
+/// this ports the exact logic our own fork used to compute it server-side
+/// (webtreesand-api commit 87c97de), now client-side instead. `facts` is
+/// a family's own `facts[]` (GEDCOM tags like MARR/DIV), `husbandDead`/
+/// `wifeDead` its husband/wife `isDead` flags - both already present on
+/// every family in the Individual response (parentFamilies, spouseFamilies,
+/// stepFamilies all share the same shape).
+MaritalStatus _maritalStatusFromFamilyJson(Map<String, dynamic> json) {
+  final facts = (json['facts'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+  final tags = facts.map((f) => f['tag'] as String?).toSet();
+  final hasMarriage = tags.contains('MARR');
+  // Gedcom::DIVORCE_EVENTS (webtrees core, app/Gedcom.php).
+  final hasDivorce = tags.contains('DIV') || tags.contains('ANUL') || tags.contains('_SEPR');
+
+  if (hasDivorce) {
+    return hasMarriage ? MaritalStatus.divorced : MaritalStatus.ended;
+  }
+
+  final husband = json['husband'] as Map<String, dynamic>?;
+  final wife = json['wife'] as Map<String, dynamic>?;
+  final partnerDead = (husband?['isDead'] as bool? ?? false) || (wife?['isDead'] as bool? ?? false);
+
+  if (partnerDead) return MaritalStatus.widowed;
+  if (hasMarriage) return MaritalStatus.married;
+  if (husband != null && wife != null) return MaritalStatus.partnership;
+  return MaritalStatus.unknown;
+}
 
 int? _yearFromEvent(Map<String, dynamic>? event) {
   final date = event?['date'] as Map<String, dynamic>?;
@@ -131,7 +151,7 @@ class TreePartnerFamily {
     return TreePartnerFamily(
       familyXref: json['xref'] as String,
       partner: spouseJson == null ? null : TreeNode.fromJson(spouseJson),
-      maritalStatus: _maritalStatusFromJson(json['maritalStatus'] as String?),
+      maritalStatus: _maritalStatusFromFamilyJson(json),
       marriageYear: _yearFromEvent(json['marriage'] as Map<String, dynamic>?),
       children: _sortedByBirthThenName(childrenJson.map(TreeNode.fromJson).toList()),
     );
@@ -171,22 +191,47 @@ class TreeNeighborhood {
   });
 
   factory TreeNeighborhood.fromJson(Map<String, dynamic> json) {
+    final person = TreeNode.fromJson(json['person'] as Map<String, dynamic>);
     final parentFamilies = (json['parentFamilies'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
     final primaryParents = parentFamilies.firstOrNull;
     final fatherJson = primaryParents?['husband'] as Map<String, dynamic>?;
     final motherJson = primaryParents?['wife'] as Map<String, dynamic>?;
+    final fatherXref = fatherJson?['xref'] as String?;
+    final motherXref = motherJson?['xref'] as String?;
+
+    // api4webtrees never sent a dedicated "siblings" field - it's just the
+    // primary parent family's own children, minus the person themself (the
+    // maintainer's own words: "its the children of parentFamilies without
+    // the person itself").
+    final siblingsJson = (primaryParents?['children'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>()
+        .where((c) => c['xref'] != person.xref);
 
     final spouseFamilies = (json['spouseFamilies'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-    final siblingsJson = (json['siblings'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-    final extra = json['extraChildrenByParent'] as Map<String, dynamic>? ?? const {};
+
+    // 1.8.0 replaced extraChildrenByParent (a plain {father,mother} count)
+    // with stepFamilies: full family objects (same shape as parentFamilies)
+    // for every OTHER partner either parent has, each carrying which parent
+    // it belongs to via "parent". Sum each side's children back down to the
+    // two counts this screen actually shows (a "+N" hint, not the families
+    // themselves - showing those is a nice future upgrade, not this one).
+    final stepFamilies = (json['stepFamilies'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    var extraChildrenFather = 0;
+    var extraChildrenMother = 0;
+    for (final family in stepFamilies) {
+      final parentXref = family['parent'] as String?;
+      final childCount = (family['children'] as List<dynamic>? ?? []).length;
+      if (parentXref != null && parentXref == fatherXref) extraChildrenFather += childCount;
+      if (parentXref != null && parentXref == motherXref) extraChildrenMother += childCount;
+    }
 
     return TreeNeighborhood(
-      person: TreeNode.fromJson(json['person'] as Map<String, dynamic>),
+      person: person,
       personDetail: TreePersonDetail.fromIndividualJson(json),
       father: fatherJson == null ? null : TreeNode.fromJson(fatherJson),
       mother: motherJson == null ? null : TreeNode.fromJson(motherJson),
-      extraChildrenFather: extra['father'] as int? ?? 0,
-      extraChildrenMother: extra['mother'] as int? ?? 0,
+      extraChildrenFather: extraChildrenFather,
+      extraChildrenMother: extraChildrenMother,
       siblings: _sortedByBirthThenName(siblingsJson.map(TreeNode.fromJson).toList()),
       partners: spouseFamilies.map(TreePartnerFamily.fromFamilyJson).toList(),
     );

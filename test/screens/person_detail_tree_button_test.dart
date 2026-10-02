@@ -21,8 +21,7 @@ Future<void> _pumpPersonDetail(WidgetTester tester, {required bool isDead}) asyn
       'facts': <dynamic>[],
       'parentFamilies': <dynamic>[],
       'spouseFamilies': <dynamic>[],
-      'siblings': <dynamic>[],
-      'extraChildrenByParent': {'father': 0, 'mother': 0},
+      'stepFamilies': <dynamic>[],
       'media': <dynamic>[],
     },
   );

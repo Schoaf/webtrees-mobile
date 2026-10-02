@@ -45,6 +45,18 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="stammbaum.familiescharf.at"/>
             </intent-filter>
+            <!-- Connect link: the "App" page on a webtrees site (any
+                 instance, not just ours - see lib/utils/connect_deep_link.dart)
+                 offers this as a custom-scheme deep link/QR code that pairs
+                 the app to that account with a one-time code, no password
+                 ever typed. No autoVerify/host - custom schemes aren't
+                 domain-bound like the https App Link above. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="webtreesmobile" android:host="connect"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

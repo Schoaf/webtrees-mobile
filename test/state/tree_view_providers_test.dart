@@ -13,8 +13,7 @@ Map<String, dynamic> _individualJson(String xref, {String name = 'Test Person'})
   'facts': <dynamic>[],
   'parentFamilies': <dynamic>[],
   'spouseFamilies': <dynamic>[],
-  'siblings': <dynamic>[],
-  'extraChildrenByParent': {'father': 0, 'mother': 0},
+  'stepFamilies': <dynamic>[],
 };
 
 void main() {
@@ -138,8 +137,7 @@ void main() {
         'facts': <dynamic>[],
         'parentFamilies': <dynamic>[],
         'spouseFamilies': <dynamic>[],
-        'siblings': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
       },
     );
 
