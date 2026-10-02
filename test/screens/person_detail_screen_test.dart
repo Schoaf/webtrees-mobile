@@ -65,7 +65,6 @@ void main() {
         ],
       },
     ],
-    'siblings': <dynamic>[],
     'media': <dynamic>[],
     'canEdit': canEdit,
   };
@@ -187,8 +186,14 @@ void main() {
 
   testWidgets('shows a Geschwister section when the person has siblings', (tester) async {
     final json = personJson('I1');
-    json['siblings'] = [
-      {'xref': 'I6', 'name': 'Peter Muster', 'sex': 'M', 'isDead': false},
+    json['parentFamilies'] = [
+      <String, dynamic>{
+        ...(json['parentFamilies'] as List<dynamic>)[0] as Map<String, dynamic>,
+        'children': [
+          {'xref': 'I1', 'name': 'Anna Muster', 'sex': 'F', 'isDead': false},
+          {'xref': 'I6', 'name': 'Peter Muster', 'sex': 'M', 'isDead': false},
+        ],
+      },
     ];
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
 

@@ -572,6 +572,11 @@ void main() {
           {
             'husband': {'xref': 'I2', 'name': 'Friedrich Bergmann', 'sex': 'M', 'isDead': true},
             'wife': {'xref': 'I3', 'name': 'Karolina Bergmann', 'sex': 'F', 'isDead': false},
+            'children': [
+              {'xref': 'I1', 'name': 'Elisabeth Bergmann', 'sex': 'F', 'isDead': false},
+              {'xref': 'I8', 'name': 'Heinrich Bergmann', 'sex': 'M', 'isDead': false},
+              {'xref': 'I9', 'name': 'Anna Bergmann', 'sex': 'F', 'isDead': false},
+            ],
           },
         ],
         'spouseFamilies': [
@@ -583,10 +588,6 @@ void main() {
               {'xref': 'I7', 'name': 'Lena Wagner', 'sex': 'F', 'isDead': false},
             ],
           },
-        ],
-        'siblings': [
-          {'xref': 'I8', 'name': 'Heinrich Bergmann', 'sex': 'M', 'isDead': false},
-          {'xref': 'I9', 'name': 'Anna Bergmann', 'sex': 'F', 'isDead': false},
         ],
         'media': <dynamic>[],
         'canEdit': false,
