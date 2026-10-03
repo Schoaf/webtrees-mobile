@@ -66,6 +66,17 @@ void main() {
     expect(screen.xref, 'I1');
   });
 
+  testWidgets('falls back to the tree\'s general start person when the user has neither', (tester) async {
+    final info = infoResponse(userXref: '', defaultXref: '');
+    ((info['trees'] as List<dynamic>).first as Map<String, dynamic>)['rootXref'] = 'I9';
+    when(() => client.info('Famtree')).thenAnswer((_) async => info);
+
+    await pumpScreen(tester);
+
+    final screen = tester.widget<TreeViewScreen>(find.byType(TreeViewScreen));
+    expect(screen.xref, 'I9');
+  });
+
   testWidgets('shows a friendly error when neither is set', (tester) async {
     when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
 

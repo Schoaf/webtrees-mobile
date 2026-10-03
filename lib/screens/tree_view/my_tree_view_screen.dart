@@ -41,7 +41,11 @@ class _MyTreeViewScreenState extends ConsumerState<MyTreeViewScreen> {
     final userXref = treeInfo['userXref'] as String? ?? '';
     if (userXref.isNotEmpty) return userXref;
     final defaultXref = treeInfo['defaultXref'] as String? ?? '';
-    return defaultXref.isNotEmpty ? defaultXref : null;
+    if (defaultXref.isNotEmpty) return defaultXref;
+    // Neither linked nor a Startperson of their own: the tree's general
+    // start person, as on the website.
+    final rootXref = treeInfo['rootXref'] as String? ?? '';
+    return rootXref.isNotEmpty ? rootXref : null;
   }
 
   @override
