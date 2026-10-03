@@ -153,7 +153,7 @@ class WebtreesClient {
     // Some actions (Pair, reached before any tree is even known) have no
     // tree segment at all in their route - not an empty one. Mirrors the
     // PHP side's own actionUrl($action, tree: null).
-    final route = tree == null ? '/module/$moduleSlug/$action' : '/module/$moduleSlug/$action/$tree';
+    final route = tree == null || tree.isEmpty ? '/module/$moduleSlug/$action' : '/module/$moduleSlug/$action/$tree';
     return Uri.parse(_baseUrl).replace(
       path: '${Uri.parse(_baseUrl).path}index.php',
       queryParameters: {

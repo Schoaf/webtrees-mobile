@@ -286,10 +286,18 @@ class AuthController extends Notifier<AuthState> {
 
   Future<AuthError?> login(String username, String password) async {
     final client = ref.read(webtreesClientProvider);
-    final tree = ref.read(treeNameProvider);
+    var tree = ref.read(treeNameProvider);
 
     try {
-      await client.info(tree); // establishes session cookie + CSRF token
+      // Establishes session cookie + CSRF token. Without a known tree (an
+      // install where only the server got saved), take the first one.
+      final firstInfo = await client.info(tree.isEmpty ? null : tree);
+      if (tree.isEmpty) {
+        final trees = (firstInfo['trees'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+        if (trees.isEmpty) return AuthError.loginFailedGeneric;
+        tree = trees.first['name'] as String;
+        await ref.read(treeNameProvider.notifier).set(tree);
+      }
       final ok = await client.login(username: username, password: password);
       if (!ok) {
         return AuthError.invalidCredentials;
@@ -311,7 +319,8 @@ class AuthController extends Notifier<AuthState> {
       return null;
     } on DioException catch (e) {
       return _authErrorFromDioException(e);
-    } on Exception {
+    } catch (_) {
+      // Also TypeErrors - e.g. an HTML error page where JSON was expected.
       return AuthError.loginFailedGeneric;
     }
   }

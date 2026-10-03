@@ -88,15 +88,17 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
       return;
     }
 
-    await ref.read(serverUrlProvider.notifier).set(serverUrl);
-    // Set the first tree right away (not just inside the picker), so the
-    // login screen is already consistent even if the picker is backed out of.
+    // Tree first, server last: on first start, setting the server swaps
+    // this screen out for the login screen right away, so nothing after
+    // that may depend on this widget still being mounted. The first tree
+    // is set even when there are several, so the login screen is
+    // consistent even if the picker is backed out of.
+    final navigator = Navigator.of(context);
     await ref.read(treeNameProvider.notifier).set(trees.first['name'] as String);
-    if (!mounted) return;
+    await ref.read(serverUrlProvider.notifier).set(serverUrl);
 
     // On first start this screen is the app's root, not pushed: setting the
-    // server above already swaps it for the login screen underneath.
-    final navigator = Navigator.of(context);
+    // server above already swapped it for the login screen.
     final route = MaterialPageRoute<void>(builder: (_) => TreePickerScreen(trees: trees));
     if (navigator.canPop()) {
       if (trees.length > 1) {

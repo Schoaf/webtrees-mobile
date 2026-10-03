@@ -146,6 +146,44 @@ void main() {
   });
 
   group('AuthController.login', () {
+    test('without a saved tree, uses and saves the server\'s first tree', () async {
+      final c = ProviderContainer(
+        overrides: [
+          webtreesClientProvider.overrideWithValue(client),
+          treeNameProvider.overrideWith(() => TreeNameNotifier(initial: '')),
+        ],
+      );
+      addTearDown(c.dispose);
+      when(() => client.info(null)).thenAnswer(
+        (_) async => {
+          'csrf': 'tok',
+          'trees': [
+            {'name': 'Ahnen'},
+          ],
+        },
+      );
+      when(() => client.info('Ahnen')).thenAnswer(
+        (_) async => {
+          'user': {'loggedIn': true, 'userName': 'alice'},
+        },
+      );
+      when(() => client.login(username: 'alice', password: 'pw')).thenAnswer((_) async => true);
+      when(() => client.sessionCookie).thenReturn('c');
+
+      final error = await c.read(authControllerProvider.notifier).login('alice', 'pw');
+
+      expect(error, isNull);
+      expect(c.read(treeNameProvider), 'Ahnen');
+    });
+
+    test('an unexpected response (e.g. an HTML error page) ends with an error, not a stuck spinner', () async {
+      when(() => client.info('Famtree')).thenAnswer((_) async => throw TypeError());
+
+      final error = await container.read(authControllerProvider.notifier).login('alice', 'pw');
+
+      expect(error, AuthError.loginFailedGeneric);
+    });
+
     test('on success, saves the session and reflects the logged-in user', () async {
       var infoCallCount = 0;
       when(() => client.info('Famtree')).thenAnswer((_) async {
