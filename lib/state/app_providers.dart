@@ -57,16 +57,17 @@ Future<void> clearSecureStorageAfterReinstall() async {
   }
 }
 
-/// The server+tree this device is currently paired to (production if
-/// never paired via a "Verbinden" link) - read in `main()` before
-/// `runApp`, see [_kServerUrlStorageKey].
+/// The server+tree this device is currently connected to - read in
+/// `main()` before `runApp`, see [_kServerUrlStorageKey]. An empty
+/// serverUrl means none was chosen yet: the app then starts on the
+/// server selection (ServerScreen) instead of the login screen.
 Future<({String serverUrl, String treeName})> loadActiveConnection() async {
   try {
     final serverUrl = await _secureStorage.read(key: _kServerUrlStorageKey).timeout(const Duration(seconds: 3));
     final treeName = await _secureStorage.read(key: _kTreeNameStorageKey).timeout(const Duration(seconds: 3));
-    return (serverUrl: serverUrl ?? productionServerUrl, treeName: treeName ?? productionTreeName);
+    return (serverUrl: serverUrl ?? '', treeName: treeName ?? '');
   } on Exception {
-    return (serverUrl: productionServerUrl, treeName: productionTreeName); // secure storage unavailable
+    return (serverUrl: '', treeName: ''); // secure storage unavailable
   }
 }
 

@@ -242,5 +242,12 @@
   "serverErrorInvalidUrl": "Please enter a valid address.",
   "serverErrorNoApi": "No webtrees with the api4webtrees module was found at this address.",
   "serverErrorNoTrees": "This server doesn't offer any family tree to the app.",
-  "@serverLabel": {"placeholders": {"host": {"type": "String"}}}
+  "@serverLabel": {"placeholders": {"host": {"type": "String"}}},
+  "welcomeTitle": "Welcome",
+  "welcomeWebtrees": "webtrees is free software for family trees. It runs as a website on its own server – for example your family's or your society's.",
+  "welcomeApp": "This app connects to such a webtrees site. You view and edit the family tree there with your account – or register a new one.",
+  "welcomeHowToTitle": "How to connect the app",
+  "welcomeHowToLink": "Easiest: sign in to your webtrees site in the browser, open its “App” page and tap the connect link – or scan the QR code with the camera. The app is then signed in without a password.",
+  "welcomeHowToAddress": "Or enter the address of the webtrees site below and sign in afterwards.",
+  "welcomeRequirement": "The server needs the api4webtrees module. If it's missing, ask whoever runs the site."
 }

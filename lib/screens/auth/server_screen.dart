@@ -29,8 +29,9 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
   @override
   void initState() {
     super.initState();
+    final current = ref.read(serverUrlProvider);
     _urlController = TextEditingController(
-      text: Uri.parse(ref.read(serverUrlProvider)).host,
+      text: current.isEmpty ? '' : Uri.parse(current).host,
     );
   }
 
@@ -93,20 +94,29 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
     await ref.read(treeNameProvider.notifier).set(trees.first['name'] as String);
     if (!mounted) return;
 
-    if (trees.length > 1) {
-      await Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => TreePickerScreen(trees: trees)),
-      );
-    } else {
-      Navigator.of(context).pop();
+    // On first start this screen is the app's root, not pushed: setting the
+    // server above already swaps it for the login screen underneath.
+    final navigator = Navigator.of(context);
+    final route = MaterialPageRoute<void>(builder: (_) => TreePickerScreen(trees: trees));
+    if (navigator.canPop()) {
+      if (trees.length > 1) {
+        await navigator.pushReplacement(route);
+      } else {
+        navigator.pop();
+      }
+    } else if (trees.length > 1) {
+      await navigator.push(route);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final firstStart = !Navigator.of(context).canPop();
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.serverScreenTitle)),
+      appBar: AppBar(
+        title: Text(firstStart ? l10n.welcomeTitle : l10n.serverScreenTitle),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
@@ -114,10 +124,13 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  l10n.serverScreenIntro,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
+                if (firstStart)
+                  ..._welcome(l10n)
+                else
+                  Text(
+                    l10n.serverScreenIntro,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
                 const SizedBox(height: 24),
                 TextField(
                   controller: _urlController,
@@ -158,5 +171,30 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _welcome(AppLocalizations l10n) {
+    const body = TextStyle(color: AppColors.textSecondary, height: 1.4);
+    return [
+      Image.asset('assets/images/logo.png', height: 96),
+      const SizedBox(height: 24),
+      Text(l10n.welcomeWebtrees, style: body),
+      const SizedBox(height: 12),
+      Text(l10n.welcomeApp, style: body),
+      const SizedBox(height: 24),
+      Text(
+        l10n.welcomeHowToTitle,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+      const SizedBox(height: 8),
+      Text(l10n.welcomeHowToLink, style: body),
+      const SizedBox(height: 12),
+      Text(l10n.welcomeHowToAddress, style: body),
+      const SizedBox(height: 12),
+      Text(
+        l10n.welcomeRequirement,
+        style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
+      ),
+    ];
   }
 }

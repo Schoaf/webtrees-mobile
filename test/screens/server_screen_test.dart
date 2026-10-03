@@ -69,6 +69,8 @@ void main() {
 
   Future<void> enterAndSubmit(WidgetTester tester, String text) async {
     await tester.enterText(find.byType(TextField), text);
+    await tester.ensureVisible(find.text('Weiter'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Weiter'));
     await tester.pumpAndSettle();
   }
@@ -156,5 +158,45 @@ void main() {
 
     expect(find.text('Dieser Server stellt keinen Stammbaum für die App bereit.'), findsOneWidget);
     expect(container.read(serverUrlProvider), productionServerUrl);
+  });
+
+  testWidgets('as the first screen: shows the welcome text, then gives way to login', (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        serverUrlProvider.overrideWith(() => ServerUrlNotifier(initial: '')),
+        serverProbeProvider.overrideWithValue(
+          (_) async => {
+            'api': 20,
+            'trees': [
+              {'name': 'Ahnen', 'title': 'Unsere Ahnen', 'individuals': 12},
+            ],
+          },
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: Consumer(
+            builder: (context, ref, _) =>
+                ref.watch(serverUrlProvider).isEmpty ? const ServerScreen() : const Text('login'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Willkommen'), findsOneWidget);
+    expect(find.text('So verbindest du die App'), findsOneWidget);
+
+    await enterAndSubmit(tester, 'ahnen.example.org');
+
+    expect(find.text('login'), findsOneWidget);
+    expect(container.read(treeNameProvider), 'Ahnen');
   });
 }

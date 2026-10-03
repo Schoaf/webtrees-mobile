@@ -415,5 +415,12 @@
   "serverErrorInvalidUrl": "Bitte eine gültige Adresse eingeben.",
   "serverErrorNoApi": "Unter dieser Adresse wurde kein webtrees mit dem Modul api4webtrees gefunden.",
   "serverErrorNoTrees": "Dieser Server stellt keinen Stammbaum für die App bereit.",
-  "@serverLabel": {"placeholders": {"host": {"type": "String"}}}
+  "@serverLabel": {"placeholders": {"host": {"type": "String"}}},
+  "welcomeTitle": "Willkommen",
+  "welcomeWebtrees": "webtrees ist eine freie Software für Familienstammbäume. Sie läuft als Webseite auf einem eigenen Server – etwa dem deiner Familie oder deines Vereins.",
+  "welcomeApp": "Diese App verbindet sich mit so einer webtrees-Seite. Du siehst und bearbeitest dort den Stammbaum mit deinem Konto – oder registrierst dich neu.",
+  "welcomeHowToTitle": "So verbindest du die App",
+  "welcomeHowToLink": "Am einfachsten: Melde dich im Browser auf deiner webtrees-Seite an, öffne dort die Seite „App“ und tippe auf den Verbinden-Link – oder scanne den QR-Code mit der Kamera. Die App ist dann ohne Passwort angemeldet.",
+  "welcomeHowToAddress": "Oder gib unten die Adresse der webtrees-Seite ein und melde dich danach an.",
+  "welcomeRequirement": "Voraussetzung ist das Modul api4webtrees auf dem Server. Fehlt es, frag den Betreiber der Seite."
 }

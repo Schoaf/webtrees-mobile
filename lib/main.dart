@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/add_person/add_person_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/server_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/responses/response_detail_screen.dart';
 import 'screens/search/person_detail_screen.dart';
@@ -237,6 +238,10 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         onUnlocked: () => setState(() => _needsBiometricUnlock = false),
       );
     }
+
+    // First start (or after a reinstall): no server chosen yet - nobody
+    // should land on a login form for a server they've never heard of.
+    if (ref.watch(serverUrlProvider).isEmpty) return const ServerScreen();
 
     final auth = ref.watch(authControllerProvider);
     return auth.loggedIn ? const _HomeShell() : const LoginScreen();

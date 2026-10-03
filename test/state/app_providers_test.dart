@@ -90,10 +90,10 @@ void main() {
   });
 
   group('loadActiveConnection', () {
-    test('falls back to the production defaults when nothing was ever persisted', () async {
+    test('is empty when no server was ever chosen (first start shows the server selection)', () async {
       final active = await loadActiveConnection();
-      expect(active.serverUrl, productionServerUrl);
-      expect(active.treeName, productionTreeName);
+      expect(active.serverUrl, isEmpty);
+      expect(active.treeName, isEmpty);
     });
 
     test('returns a previously persisted server/tree', () async {
