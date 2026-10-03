@@ -113,12 +113,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    container.read(selectedTabProvider.notifier).select(2);
 
     await tester.tap(find.text('Familie Muster'));
     await tester.pumpAndSettle();
 
     expect(container.read(treeNameProvider), 'OtherTree');
     expect(secureStore['active_tree_name'], 'OtherTree');
+    // A different tree starts like a first load, on the Home tab.
+    expect(container.read(selectedTabProvider), 0);
     // The screen popped - its own AppBar title is no longer there.
     expect(find.text('Stammbaum wählen'), findsNothing);
   });

@@ -191,6 +191,15 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Startperson, linked person, role ... all belong to the tree - reload
+    // when "Stammbaum wechseln" picked another one.
+    ref.listen(treeNameProvider, (previous, next) {
+      if (previous != next) {
+        setState(() {
+          _future = _load();
+        });
+      }
+    });
     return FutureBuilder<_AccountData>(
       future: _future,
       builder: (context, snapshot) {

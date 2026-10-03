@@ -94,6 +94,30 @@ void main() {
     );
   }
 
+  testWidgets('reloads when the active tree changes (Startperson etc. belong to the tree)', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(defaultXref: ''));
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1', name: 'Linked One'));
+    when(() => client.info('Other')).thenAnswer(
+      (_) async => {
+        'user': {'loggedIn': true, 'userName': 'alice', 'realName': 'Alice A.', 'isAdmin': false},
+        'trees': [
+          {'name': 'Other', 'role': 'member', 'userXref': 'X9', 'defaultXref': ''},
+        ],
+      },
+    );
+    when(() => client.individual('Other', 'X9')).thenAnswer((_) async => personResponse('X9', name: 'Other Tree Me'));
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Linked One', findRichText: true), findsOneWidget);
+
+    await container.read(treeNameProvider.notifier).set('Other');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Other Tree Me', findRichText: true), findsOneWidget);
+    expect(find.text('Linked One', findRichText: true), findsNothing);
+  });
+
   testWidgets('shows username, real name, role, linked person and Startperson once loaded', (tester) async {
     when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1', name: 'Linked One'));

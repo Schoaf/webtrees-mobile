@@ -44,6 +44,10 @@ class _TreePickerScreenState extends ConsumerState<TreePickerScreen> {
   }
 
   Future<void> _choose(String treeName) async {
+    if (treeName != ref.read(treeNameProvider)) {
+      // A different tree starts like a first load - on the Home tab.
+      ref.read(selectedTabProvider.notifier).select(0);
+    }
     await ref.read(treeNameProvider.notifier).set(treeName);
     if (mounted) Navigator.of(context).pop();
   }

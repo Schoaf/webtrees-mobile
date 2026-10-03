@@ -244,7 +244,10 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     if (ref.watch(serverUrlProvider).isEmpty) return const ServerScreen();
 
     final auth = ref.watch(authControllerProvider);
-    return auth.loggedIn ? const _HomeShell() : const LoginScreen();
+    // Keyed by tree: switching trees ("Stammbaum wechseln") throws away
+    // every tab, nested navigation and tree-view state, so the new tree
+    // starts exactly like a first load instead of showing the old one's.
+    return auth.loggedIn ? _HomeShell(key: ValueKey(ref.watch(treeNameProvider))) : const LoginScreen();
   }
 }
 
@@ -326,7 +329,7 @@ class _LockScreenState extends ConsumerState<_LockScreen> {
 }
 
 class _HomeShell extends ConsumerStatefulWidget {
-  const _HomeShell();
+  const _HomeShell({super.key});
 
   @override
   ConsumerState<_HomeShell> createState() => _HomeShellState();
