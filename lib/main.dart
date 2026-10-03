@@ -25,6 +25,7 @@ import 'widgets/tree_icons.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await clearSecureStorageAfterReinstall();
   // A "Verbinden" link from any previous launch may have repointed this
   // device at a different server/tree than the built-in default - resolved
   // here (before runApp) rather than lazily inside the providers, since

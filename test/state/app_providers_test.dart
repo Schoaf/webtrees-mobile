@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 
@@ -30,6 +31,9 @@ void main() {
         return secureStore[args['key'] as String];
       case 'delete':
         secureStore.remove(args['key'] as String);
+        return null;
+      case 'deleteAll':
+        secureStore.clear();
         return null;
     }
     return null;
@@ -333,6 +337,28 @@ void main() {
       await container.read(authControllerProvider.notifier).tryRestoreSession();
 
       expect(container.read(authControllerProvider).loggedIn, isFalse);
+    });
+  });
+
+  group('clearSecureStorageAfterReinstall', () {
+    test('a fresh install (no marker) wipes what iOS kept in the Keychain', () async {
+      SharedPreferences.setMockInitialValues({});
+      secureStore['session_cookie'] = 'old';
+      secureStore['active_server_url'] = 'https://old.example.org';
+
+      await clearSecureStorageAfterReinstall();
+
+      expect(secureStore, isEmpty);
+    });
+
+    test('later launches (marker present) keep the session', () async {
+      SharedPreferences.setMockInitialValues({});
+      await clearSecureStorageAfterReinstall();
+      secureStore['session_cookie'] = 'current';
+
+      await clearSecureStorageAfterReinstall();
+
+      expect(secureStore['session_cookie'], 'current');
     });
   });
 }

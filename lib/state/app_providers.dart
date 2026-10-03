@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/webtrees_client.dart';
 import '../l10n/app_localizations.dart';
@@ -36,6 +37,25 @@ const devTreeName = 'devtree';
 /// rather than loaded lazily from inside the notifier.
 const _kServerUrlStorageKey = 'active_server_url';
 const _kTreeNameStorageKey = 'active_tree_name';
+
+const _kInstalledMarkerKey = 'installed';
+
+/// iOS keeps Keychain entries (everything in secure storage: session,
+/// active server/tree, biometric-lock flag) after the app is deleted, so a
+/// reinstall would silently pick up the old login. UserDefaults
+/// (shared_preferences) *are* deleted with the app - a missing marker there
+/// means a fresh install, so start from a clean secure storage. Called in
+/// `main()` before anything reads secure storage.
+Future<void> clearSecureStorageAfterReinstall() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_kInstalledMarkerKey) == true) return;
+    await _secureStorage.deleteAll().timeout(const Duration(seconds: 3));
+    await prefs.setBool(_kInstalledMarkerKey, true);
+  } on Exception {
+    // Storage unavailable - nothing to clear, try again next launch.
+  }
+}
 
 /// The server+tree this device is currently paired to (production if
 /// never paired via a "Verbinden" link) - read in `main()` before
