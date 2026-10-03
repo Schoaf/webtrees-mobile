@@ -231,5 +231,16 @@
   "registerErrorEmailTaken": "That email address is already in use.",
   "registerErrorCommentsLink": "Links aren't allowed in the comments field.",
   "registerErrorRateLimited": "Too many requests. Please try again in a few minutes.",
-  "registerErrorGeneric": "Request failed. Please try again later."
+  "registerErrorGeneric": "Request failed. Please try again later.",
+  "serverLabel": "Server: {host}",
+  "changeServerButton": "Change",
+  "serverScreenTitle": "Choose server",
+  "serverScreenIntro": "The app works with any webtrees server that has the api4webtrees module installed. You then sign in or register there.",
+  "serverUrlLabel": "webtrees server address",
+  "serverUrlHint": "e.g. familytree.example.org",
+  "serverConnectButton": "Continue",
+  "serverErrorInvalidUrl": "Please enter a valid address.",
+  "serverErrorNoApi": "No webtrees with the api4webtrees module was found at this address.",
+  "serverErrorNoTrees": "This server doesn't offer any family tree to the app.",
+  "@serverLabel": {"placeholders": {"host": {"type": "String"}}}
 }

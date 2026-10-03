@@ -404,5 +404,16 @@
   "registerErrorEmailTaken": "Diese E-Mail-Adresse wird bereits verwendet.",
   "registerErrorCommentsLink": "Im Kommentarfeld sind keine Links erlaubt.",
   "registerErrorRateLimited": "Zu viele Anfragen. Bitte in ein paar Minuten erneut versuchen.",
-  "registerErrorGeneric": "Anfrage fehlgeschlagen. Bitte später erneut versuchen."
+  "registerErrorGeneric": "Anfrage fehlgeschlagen. Bitte später erneut versuchen.",
+  "serverLabel": "Server: {host}",
+  "changeServerButton": "Ändern",
+  "serverScreenTitle": "Server wählen",
+  "serverScreenIntro": "Die App funktioniert mit jedem webtrees-Server, auf dem das Modul api4webtrees installiert ist. Danach meldest du dich dort an oder registrierst dich.",
+  "serverUrlLabel": "Adresse des webtrees-Servers",
+  "serverUrlHint": "z. B. stammbaum.example.org",
+  "serverConnectButton": "Weiter",
+  "serverErrorInvalidUrl": "Bitte eine gültige Adresse eingeben.",
+  "serverErrorNoApi": "Unter dieser Adresse wurde kein webtrees mit dem Modul api4webtrees gefunden.",
+  "serverErrorNoTrees": "Dieser Server stellt keinen Stammbaum für die App bereit.",
+  "@serverLabel": {"placeholders": {"host": {"type": "String"}}}
 }

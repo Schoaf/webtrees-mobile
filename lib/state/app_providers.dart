@@ -115,6 +115,14 @@ final webtreesClientProvider = Provider<WebtreesClient>((ref) {
   return WebtreesClient(baseUrl: url);
 });
 
+/// `GET Info` against a server that isn't the active one yet - lets
+/// ServerScreen check an entered address (reachable? api4webtrees
+/// installed? which trees?) before switching to it. A provider so tests
+/// can stub it without a real network.
+final serverProbeProvider = Provider<Future<Map<String, dynamic>> Function(String serverUrl)>(
+  (ref) => (serverUrl) => WebtreesClient(baseUrl: serverUrl).info(null),
+);
+
 /// The tree's privacy-policy page - the nearest thing to a legal-notice page
 /// this site has (see the "Datenschutz" link in the account/login screens'
 /// footers). Route format matches webtrees' own module-route convention,

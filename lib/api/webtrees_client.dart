@@ -170,8 +170,10 @@ class WebtreesClient {
   ]) => _moduleUri(action, tree, query, '_webtrees-contribution-request_');
 
   /// `GET Info` — also the way we discover/refresh the CSRF token and the
-  /// server's own idea of its base URL (see [login]).
-  Future<Map<String, dynamic>> info(String tree) async {
+  /// server's own idea of its base URL (see [login]). [tree] may be null:
+  /// the response covers every tree regardless, and a server the app has
+  /// never talked to before (see ServerScreen) has no known tree name yet.
+  Future<Map<String, dynamic>> info(String? tree) async {
     final response = await _dio.getUri(_moduleUri('Info', tree));
     final data = response.data as Map<String, dynamic>;
     final csrf = data['csrf'];
