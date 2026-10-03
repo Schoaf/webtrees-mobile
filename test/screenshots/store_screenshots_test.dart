@@ -572,6 +572,11 @@ void main() {
           {
             'husband': {'xref': 'I2', 'name': 'Friedrich Bergmann', 'sex': 'M', 'isDead': true},
             'wife': {'xref': 'I3', 'name': 'Karolina Bergmann', 'sex': 'F', 'isDead': false},
+            'children': [
+              {'xref': 'I1', 'name': 'Elisabeth Bergmann', 'sex': 'F', 'isDead': false},
+              {'xref': 'I8', 'name': 'Heinrich Bergmann', 'sex': 'M', 'isDead': false},
+              {'xref': 'I9', 'name': 'Anna Bergmann', 'sex': 'F', 'isDead': false},
+            ],
           },
         ],
         'spouseFamilies': [
@@ -583,10 +588,6 @@ void main() {
               {'xref': 'I7', 'name': 'Lena Wagner', 'sex': 'F', 'isDead': false},
             ],
           },
-        ],
-        'siblings': [
-          {'xref': 'I8', 'name': 'Heinrich Bergmann', 'sex': 'M', 'isDead': false},
-          {'xref': 'I9', 'name': 'Anna Bergmann', 'sex': 'F', 'isDead': false},
         ],
         'media': <dynamic>[],
         'canEdit': false,
@@ -653,12 +654,42 @@ void main() {
               'isDead': false,
               'birth': {'date': {'year': 1955}},
             },
+            // Every child of the primary parent family, including the
+            // active person themself (I1) - siblings are derived by
+            // filtering the person's own xref out of this list, same as
+            // the real API (no dedicated "siblings" field any more).
+            'children': [
+              {'xref': 'I1', 'name': 'Elisabeth Bergmann', 'sortName': 'Bergmann,Elisabeth', 'sex': 'F', 'isDead': false, 'birth': {'date': {'year': 1985}}},
+              {
+                'xref': 'I8',
+                'name': 'Heinrich Bergmann',
+                'sortName': 'Bergmann,Heinrich',
+                'sex': 'M',
+                'isDead': false,
+                'birth': {'date': {'year': 1982}},
+                // Exercises the descendants (branch +N) corner badge on a
+                // sibling card - also never triggered by the plain fixture.
+                'childrenCount': 3,
+              },
+              {
+                'xref': 'I9',
+                'name': 'Anna Bergmann',
+                'sortName': 'Bergmann,Anna',
+                'sex': 'F',
+                'isDead': false,
+                'birth': {'date': {'year': 1988}},
+              },
+            ],
           },
         ],
         'spouseFamilies': [
           {
             'xref': 'F1',
-            'maritalStatus': 'married',
+            'facts': [
+              {'tag': 'MARR'},
+            ],
+            'husband': {'xref': 'I4', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {'date': {'year': 2011}},
             'spouse': {
               'xref': 'I4',
@@ -700,7 +731,12 @@ void main() {
           // the "+N weitere Kinder" hint on its own; this does.
           {
             'xref': 'F2',
-            'maritalStatus': 'divorced',
+            'facts': [
+              {'tag': 'MARR'},
+              {'tag': 'DIV'},
+            ],
+            'husband': {'xref': 'I10', 'isDead': false},
+            'wife': {'xref': 'I1', 'isDead': false},
             'marriage': {'date': {'year': 2005}},
             'spouse': {
               'xref': 'I10',
@@ -722,28 +758,7 @@ void main() {
             ],
           },
         ],
-        'siblings': [
-          {
-            'xref': 'I8',
-            'name': 'Heinrich Bergmann',
-            'sortName': 'Bergmann,Heinrich',
-            'sex': 'M',
-            'isDead': false,
-            'birth': {'date': {'year': 1982}},
-            // Exercises the descendants (branch +N) corner badge on a
-            // sibling card - also never triggered by the plain fixture.
-            'childrenCount': 3,
-          },
-          {
-            'xref': 'I9',
-            'name': 'Anna Bergmann',
-            'sortName': 'Bergmann,Anna',
-            'sex': 'F',
-            'isDead': false,
-            'birth': {'date': {'year': 1988}},
-          },
-        ],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
       };
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson);
 

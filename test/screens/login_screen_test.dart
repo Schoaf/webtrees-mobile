@@ -8,6 +8,7 @@ import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/auth/login_screen.dart';
 import 'package:webtrees_mobile/screens/auth/register_screen.dart';
+import 'package:webtrees_mobile/screens/auth/server_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
@@ -83,6 +84,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Anmelden'), findsWidgets);
+  });
+
+  testWidgets('shows the active server, and "Ändern" opens the server screen', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Server: stammbaum.familiescharf.at'), findsOneWidget);
+
+    await tester.tap(find.text('Ändern'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ServerScreen), findsOneWidget);
   });
 
   testWidgets('shows the app version once PackageInfo resolves', (tester) async {

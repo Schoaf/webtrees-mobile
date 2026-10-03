@@ -8,6 +8,7 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import 'register_screen.dart';
+import 'server_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -58,6 +59,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       // Ignored - see comment above.
     }
+  }
+
+  Future<void> _changeServer() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ServerScreen()),
+    );
+    if (!mounted) return;
+    setState(() {
+      _treeTitle = null;
+      _error = null;
+    });
+    _loadTreeTitle();
   }
 
   @override
@@ -116,7 +129,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ],
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              l10n.serverLabel(
+                                Uri.parse(ref.watch(serverUrlProvider)).host,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _changeServer,
+                            child: Text(l10n.changeServerButton),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
                       TextField(
                         controller: _usernameController,
                         decoration: InputDecoration(labelText: l10n.username),

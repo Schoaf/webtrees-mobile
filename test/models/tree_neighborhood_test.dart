@@ -48,7 +48,7 @@ void main() {
       expect(neighborhood.defaultPartner?.partner?.xref, 'I4');
     });
 
-    test('extraChildrenByParent is zero (no other partners for either parent)', () {
+    test('stepFamilies contribute zero (no other partners for either parent)', () {
       expect(neighborhood.extraChildrenFather, 0);
       expect(neighborhood.extraChildrenMother, 0);
     });
@@ -60,13 +60,12 @@ void main() {
         'person': {'xref': 'I1', 'name': 'Maria Muster', 'sortName': 'Muster,Maria'},
         'facts': <dynamic>[],
         'parentFamilies': <dynamic>[],
-        'siblings': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
         'spouseFamilies': [
           {
             'xref': 'F1',
             'spouse': null,
-            'maritalStatus': 'unknown',
+            'facts': <dynamic>[],
             'marriage': null,
             'children': [
               {'xref': 'I2', 'name': 'Lea Muster', 'sortName': 'Muster,Lea'},
@@ -79,44 +78,54 @@ void main() {
       final family = neighborhood.partners.single;
 
       expect(family.partner, isNull);
+      // No husband/wife on this family (an unrecorded other parent) -
+      // MaritalStatus.unknown, same as the server-side logic this ports.
       expect(family.maritalStatus, MaritalStatus.unknown);
       expect(family.isOngoing, isFalse);
       expect(family.children.single.firstName, 'Lea');
     });
 
     test('siblings are sorted by birth year then first name', () {
+      // No dedicated "siblings" field any more - derived from the primary
+      // parent family's own children, minus the person themself (I1, not
+      // among them here).
       final json = {
         'person': {'xref': 'I1', 'name': 'Root', 'sortName': 'Root,Root'},
         'facts': <dynamic>[],
-        'parentFamilies': <dynamic>[],
-        'spouseFamilies': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
-        'siblings': [
+        'parentFamilies': [
           {
-            'xref': 'I2',
-            'name': 'Bernd Muster',
-            'sortName': 'Muster,Bernd',
-            'birth': {
-              'date': {'year': 1980},
-            },
-          },
-          {
-            'xref': 'I3',
-            'name': 'Anna Muster',
-            'sortName': 'Muster,Anna',
-            'birth': {
-              'date': {'year': 1978},
-            },
-          },
-          {
-            'xref': 'I4',
-            'name': 'Anna Zweit',
-            'sortName': 'Zweit,Anna',
-            'birth': {
-              'date': {'year': 1978},
-            },
+            'husband': {'xref': 'I10', 'name': 'Vater', 'sortName': 'Root,Vater'},
+            'wife': {'xref': 'I11', 'name': 'Mutter', 'sortName': 'Root,Mutter'},
+            'children': [
+              {
+                'xref': 'I2',
+                'name': 'Bernd Muster',
+                'sortName': 'Muster,Bernd',
+                'birth': {
+                  'date': {'year': 1980},
+                },
+              },
+              {
+                'xref': 'I3',
+                'name': 'Anna Muster',
+                'sortName': 'Muster,Anna',
+                'birth': {
+                  'date': {'year': 1978},
+                },
+              },
+              {
+                'xref': 'I4',
+                'name': 'Anna Zweit',
+                'sortName': 'Zweit,Anna',
+                'birth': {
+                  'date': {'year': 1978},
+                },
+              },
+            ],
           },
         ],
+        'spouseFamilies': <dynamic>[],
+        'stepFamilies': <dynamic>[],
       };
 
       final neighborhood = TreeNeighborhood.fromJson(json);
@@ -129,13 +138,18 @@ void main() {
         'person': {'xref': 'I1', 'name': 'Root', 'sortName': 'Root,Root'},
         'facts': <dynamic>[],
         'parentFamilies': <dynamic>[],
-        'siblings': <dynamic>[],
-        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'stepFamilies': <dynamic>[],
         'spouseFamilies': [
           {
             'xref': 'F1',
             'spouse': {'xref': 'I2', 'name': 'Ex Partner', 'sortName': 'Partner,Ex'},
-            'maritalStatus': 'divorced',
+            // divorced: both a MARR and a DIV fact.
+            'facts': [
+              {'tag': 'MARR'},
+              {'tag': 'DIV'},
+            ],
+            'husband': {'xref': 'I1', 'isDead': false},
+            'wife': {'xref': 'I2', 'isDead': false},
             'marriage': {
               'date': {'year': 2000},
             },
@@ -144,7 +158,12 @@ void main() {
           {
             'xref': 'F2',
             'spouse': {'xref': 'I3', 'name': 'Current Partner', 'sortName': 'Partner,Current'},
-            'maritalStatus': 'married',
+            // married: a MARR fact, neither partner dead, no divorce fact.
+            'facts': [
+              {'tag': 'MARR'},
+            ],
+            'husband': {'xref': 'I1', 'isDead': false},
+            'wife': {'xref': 'I3', 'isDead': false},
             'marriage': {
               'date': {'year': 2015},
             },
@@ -155,6 +174,8 @@ void main() {
 
       final neighborhood = TreeNeighborhood.fromJson(json);
 
+      expect(neighborhood.partners.first.maritalStatus, MaritalStatus.divorced);
+      expect(neighborhood.partners.last.maritalStatus, MaritalStatus.married);
       expect(neighborhood.defaultPartner?.partner?.xref, 'I3');
     });
   });

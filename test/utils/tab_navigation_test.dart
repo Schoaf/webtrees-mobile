@@ -73,7 +73,6 @@ void main() {
         'facts': <dynamic>[],
         'parentFamilies': <dynamic>[],
         'spouseFamilies': <dynamic>[],
-        'siblings': <dynamic>[],
         'media': <dynamic>[],
       },
     );

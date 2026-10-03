@@ -676,8 +676,14 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             .cast<Map<String, dynamic>>();
         final spouseFamilies = (data['spouseFamilies'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
-        final siblings = (data['siblings'] as List<dynamic>? ?? [])
-            .cast<Map<String, dynamic>>();
+        // api4webtrees has no dedicated siblings field - they're the
+        // primary parent family's children minus this person (same as
+        // TreeNeighborhood does for the tree view).
+        final siblings =
+            (parentFamilies.firstOrNull?['children'] as List<dynamic>? ?? [])
+                .cast<Map<String, dynamic>>()
+                .where((c) => c['xref'] != person['xref'])
+                .toList();
         final media = (data['media'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
         final canEdit = data['canEdit'] as bool? ?? false;
