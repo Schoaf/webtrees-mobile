@@ -104,7 +104,11 @@ void main() {
     when(() => client.info('Famtree', lang: 'de')).thenAnswer(
       (_) async => {
         'trees': <dynamic>[],
-        'login': {'welcome': 'Nur f&uuml;r Familie.<br>Bitte anmelden.', 'registration': false, 'terms': null},
+        'loginForm': {
+          'welcomeMessage': 'Nur f&uuml;r Familie.<br>Bitte anmelden.',
+          'isSelfRegistrationAllowed': false,
+          'registrationTerms': null,
+        },
       },
     );
 

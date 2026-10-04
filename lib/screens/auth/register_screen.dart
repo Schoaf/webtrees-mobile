@@ -11,11 +11,11 @@ import '../../widgets/tablet_bounded_body.dart';
 /// confirmation, then an administrator's approval — this screen only
 /// replaces the browser hand-off, not that review step).
 class RegisterScreen extends ConsumerStatefulWidget {
-  const RegisterScreen({super.key, this.terms});
+  const RegisterScreen({super.key, this.registrationTerms});
 
   /// webtrees' terms for "Request a new user account", as plain text - only
-  /// when the site shows them (Info `login.terms`).
-  final String? terms;
+  /// when the site shows them (Info `loginForm.registrationTerms`).
+  final String? registrationTerms;
 
   @override
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
@@ -158,9 +158,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.terms != null) ...[
+        if (widget.registrationTerms != null) ...[
           Text(
-            widget.terms!,
+            widget.registrationTerms!,
             style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 18),

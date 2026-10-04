@@ -25,12 +25,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _passwordVisible = false;
   AuthError? _error;
   String? _treeTitle;
-  // From Info `login` - webtrees' own login-page settings. Until known (or
+  // From Info `loginForm` - webtrees' own sign-in page settings. Until known (or
   // if Info fails), registration stays offered; the server still refuses
   // it if disabled.
-  String? _welcome;
-  bool _registrationAllowed = true;
-  String? _registerTerms;
+  String? _welcomeMessage;
+  bool _isSelfRegistrationAllowed = true;
+  String? _registrationTerms;
   String? _appVersion;
 
   @override
@@ -53,14 +53,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final info = await client.info(tree, lang: lang);
-      final login = info['login'] as Map<String, dynamic>?;
-      if (mounted && login != null) {
-        final welcome = htmlToPlainText(login['welcome'] as String? ?? '');
-        final terms = login['terms'] as String?;
+      final loginForm = info['loginForm'] as Map<String, dynamic>?;
+      if (mounted && loginForm != null) {
+        final welcome = htmlToPlainText(loginForm['welcomeMessage'] as String? ?? '');
+        final terms = loginForm['registrationTerms'] as String?;
         setState(() {
-          _welcome = welcome.isEmpty ? null : welcome;
-          _registrationAllowed = login['registration'] as bool? ?? true;
-          _registerTerms = terms == null ? null : htmlToPlainText(terms);
+          _welcomeMessage = welcome.isEmpty ? null : welcome;
+          _isSelfRegistrationAllowed = loginForm['isSelfRegistrationAllowed'] as bool? ?? true;
+          _registrationTerms = terms == null ? null : htmlToPlainText(terms);
         });
       }
       final trees = (info['trees'] as List<dynamic>?) ?? const [];
@@ -148,10 +148,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ],
-                      if (_welcome != null) ...[
+                      if (_welcomeMessage != null) ...[
                         const SizedBox(height: 12),
                         Text(
-                          _welcome!,
+                          _welcomeMessage!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 13,
@@ -243,12 +243,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (_registrationAllowed)
+                      if (_isSelfRegistrationAllowed)
                         TextButton(
                           onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) =>
-                                  RegisterScreen(terms: _registerTerms),
+                                  RegisterScreen(registrationTerms: _registrationTerms),
                             ),
                           ),
                           child: Text(
