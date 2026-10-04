@@ -1,6 +1,17 @@
 # webtrees-mobile
 
-Flutter-Begleit-App (Android/iOS) für die selbst gehostete [webtrees](https://webtrees.net)-Instanz der Familie Scharf. Die App spricht über das Custom-Modul `webtreesand-api` mit dem Server — es gibt keine eigene Backend-API.
+Flutter-App (Android/iOS) für [webtrees](https://webtrees.net)-Seiten. Die App spricht über das Modul [api4webtrees](https://github.com/thobgg/api4webtrees) mit dem Server — es gibt keine eigene Backend-API.
+
+## Server-Voraussetzungen
+
+| | Mindestversion |
+|---|---|
+| webtrees | 2.2 |
+| api4webtrees – App funktioniert | **1.13.0** (API-Stufe 24, `Info.trees[].startXref`) |
+| api4webtrees – App erscheint auf der Seite „App“ (Verbinden per Link/QR-Code) | erste Version mit [PR #7](https://github.com/thobgg/api4webtrees/pull/7) (noch nicht veröffentlicht) |
+| Registrieren in der App, Begrüßungstext/Registrierungs-Einstellungen | derzeit nur im Fork [Schoaf/webtreesand-api](https://github.com/Schoaf/webtreesand-api) (`Register`, `Info.loginForm`) |
+
+Ältere Modulversionen werden nicht unterstützt.
 
 ## Funktionen
 
