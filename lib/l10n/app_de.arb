@@ -427,5 +427,5 @@
   "fullNameHint": "Vorname Nachname",
   "fieldRequired": "Bitte ausfüllen.",
   "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
-  "passwordRules": "Mind. 8 Zeichen, 1 Zahl"
+  "passwordRules": "Mind. 8 Zeichen"
 }

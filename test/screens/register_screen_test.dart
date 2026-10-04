@@ -71,11 +71,11 @@ void main() {
     expect(button.onPressed, isNull);
   });
 
-  testWidgets('a password without a number shows the rule once the field is left', (tester) async {
+  testWidgets('a too short password shows the rule once the field is left', (tester) async {
     await pumpScreen(tester);
 
     await tester.tap(find.byType(TextField).at(3));
-    await tester.enterText(find.byType(TextField).at(3), 'longenough');
+    await tester.enterText(find.byType(TextField).at(3), 'short');
     await tester.pump();
     // The rule doubles as the placeholder, so check the field's error, not just any text.
     String? passwordError() => tester.widget<TextField>(find.byType(TextField).at(3)).decoration!.errorText;
@@ -84,7 +84,7 @@ void main() {
     await tester.tap(find.byType(TextField).at(4));
     await tester.pump();
 
-    expect(passwordError(), 'Mind. 8 Zeichen, 1 Zahl');
+    expect(passwordError(), 'Mind. 8 Zeichen');
   });
 
   testWidgets('an invalid email shows an error once the field is left', (tester) async {

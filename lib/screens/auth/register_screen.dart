@@ -55,7 +55,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return _usernameController.text.trim().isEmpty ? l10n.fieldRequired : null;
       case _Field.password:
         final password = _passwordController.text;
-        return password.length >= 8 && password.contains(RegExp(r'[0-9]')) ? null : l10n.passwordRules;
+        return password.length >= 8 ? null : l10n.passwordRules;
       case _Field.comments:
         return _commentsController.text.trim().isEmpty ? l10n.fieldRequired : null;
     }
