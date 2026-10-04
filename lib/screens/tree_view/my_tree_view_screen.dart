@@ -38,14 +38,11 @@ class _MyTreeViewScreenState extends ConsumerState<MyTreeViewScreen> {
         .cast<Map<String, dynamic>>()
         .firstWhere((t) => t['name'] == tree, orElse: () => const {});
 
-    final userXref = treeInfo['userXref'] as String? ?? '';
-    if (userXref.isNotEmpty) return userXref;
-    final defaultXref = treeInfo['defaultXref'] as String? ?? '';
-    if (defaultXref.isNotEmpty) return defaultXref;
-    // Neither linked nor a Startperson of their own: the tree's general
-    // start person, as on the website.
-    final rootXref = treeInfo['rootXref'] as String? ?? '';
-    return rootXref.isNotEmpty ? rootXref : null;
+    // The person webtrees itself would start with for this user (own
+    // Startperson, "this is me", tree default, first individual) - only
+    // if they may see it. api4webtrees 1.13.0+.
+    final startXref = treeInfo['startXref'] as String? ?? '';
+    return startXref.isNotEmpty ? startXref : null;
   }
 
   @override

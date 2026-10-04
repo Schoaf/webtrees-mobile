@@ -22,7 +22,7 @@ void main() {
 
   Map<String, dynamic> infoResponse({
     String userXref = '',
-    String defaultXref = 'I1',
+    String startXref = 'I1',
     String title = 'Familie Muster',
     int individuals = 42,
     String realName = 'Alice A.',
@@ -34,7 +34,7 @@ void main() {
         'title': title,
         'individuals': individuals,
         'userXref': userXref,
-        'defaultXref': defaultXref,
+        'startXref': startXref,
       },
     ],
   };
@@ -254,8 +254,8 @@ void main() {
     expect(screen.xref, 'I2');
   });
 
-  testWidgets('falls back to userXref for the Startperson when the tree has no defaultXref', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(defaultXref: '', userXref: 'I9'));
+  testWidgets('reuses the Startperson record when it is also the linked person', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(startXref: 'I9', userXref: 'I9'));
     when(() => client.individual('Famtree', 'I9')).thenAnswer((_) async => personResponse('I9', name: 'Linked User'));
     when(() => client.anniversaries('Famtree', days: 7)).thenAnswer((_) async => {'data': <dynamic>[]});
     when(() => client.shareRequestUnreadCount('Famtree')).thenAnswer((_) async => 0);

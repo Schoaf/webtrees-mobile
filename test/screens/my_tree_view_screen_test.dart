@@ -14,9 +14,9 @@ void main() {
   late MockWebtreesClient client;
   late ProviderContainer container;
 
-  Map<String, dynamic> infoResponse({String userXref = '', String defaultXref = ''}) => {
+  Map<String, dynamic> infoResponse({String startXref = ''}) => {
     'trees': [
-      {'name': 'Famtree', 'userXref': userXref, 'defaultXref': defaultXref},
+      {'name': 'Famtree', 'startXref': startXref},
     ],
   };
 
@@ -48,8 +48,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('prefers the account\'s own linked person over the tree\'s Startperson', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(userXref: 'I5', defaultXref: 'I1'));
+  testWidgets('starts on the server\'s startXref', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(startXref: 'I5'));
 
     await pumpScreen(tester);
 
@@ -57,27 +57,7 @@ void main() {
     expect(screen.xref, 'I5');
   });
 
-  testWidgets('falls back to the tree\'s Startperson when the account has no linked person', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(userXref: '', defaultXref: 'I1'));
-
-    await pumpScreen(tester);
-
-    final screen = tester.widget<TreeViewScreen>(find.byType(TreeViewScreen));
-    expect(screen.xref, 'I1');
-  });
-
-  testWidgets('falls back to the tree\'s general start person when the user has neither', (tester) async {
-    final info = infoResponse(userXref: '', defaultXref: '');
-    ((info['trees'] as List<dynamic>).first as Map<String, dynamic>)['rootXref'] = 'I9';
-    when(() => client.info('Famtree')).thenAnswer((_) async => info);
-
-    await pumpScreen(tester);
-
-    final screen = tester.widget<TreeViewScreen>(find.byType(TreeViewScreen));
-    expect(screen.xref, 'I9');
-  });
-
-  testWidgets('shows a friendly error when neither is set', (tester) async {
+  testWidgets('shows a friendly error without a startXref', (tester) async {
     when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
 
     await pumpScreen(tester);

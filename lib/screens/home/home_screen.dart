@@ -39,9 +39,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .firstWhere((t) => t['name'] == tree, orElse: () => const {});
 
     Map<String, dynamic>? startPerson;
-    final defaultXref = treeInfo['defaultXref'] as String? ?? '';
+    // Same start person as webtrees itself (and the Stammbaum tab) would use.
+    final xref = treeInfo['startXref'] as String? ?? '';
     final userXref = treeInfo['userXref'] as String? ?? '';
-    final xref = defaultXref.isNotEmpty ? defaultXref : userXref;
     if (xref.isNotEmpty) {
       final individual = await client.individual(tree, xref);
       startPerson = individual['person'] as Map<String, dynamic>?;
