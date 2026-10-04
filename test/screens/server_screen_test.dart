@@ -29,8 +29,9 @@ void main() {
 
   Future<ProviderContainer> pumpScreen(
     WidgetTester tester,
-    Future<Map<String, dynamic>> Function(String) probe,
-  ) async {
+    Future<Map<String, dynamic>> Function(String) probe, {
+    bool isWebtrees = false,
+  }) async {
     probedUrls.clear();
     final container = ProviderContainer(
       overrides: [
@@ -38,6 +39,7 @@ void main() {
           probedUrls.add(url);
           return probe(url);
         }),
+        webtreesPingProvider.overrideWithValue((_) async => isWebtrees),
       ],
     );
     addTearDown(container.dispose);
@@ -124,17 +126,29 @@ void main() {
     expect(find.text('Bitte eine gültige Adresse eingeben.'), findsOneWidget);
   });
 
-  testWidgets('a website without api4webtrees stays on the screen with an error', (tester) async {
+  testWidgets('a website that isn\'t webtrees stays on the screen with an error', (tester) async {
     final container = await pumpScreen(tester, (_) async => throw TypeError());
 
     await enterAndSubmit(tester, 'example.org');
 
     expect(find.byType(ServerScreen), findsOneWidget);
-    expect(
-      find.text('Unter dieser Adresse wurde kein webtrees mit dem Modul api4webtrees gefunden.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('keine webtrees-Seite gefunden', findRichText: true), findsOneWidget);
     expect(container.read(serverUrlProvider), productionServerUrl);
+  });
+
+  testWidgets('webtrees without api4webtrees says the module is missing', (tester) async {
+    await pumpScreen(
+      tester,
+      (_) async => throw DioException(
+        requestOptions: RequestOptions(),
+        response: Response(requestOptions: RequestOptions(), statusCode: 404),
+      ),
+      isWebtrees: true,
+    );
+
+    await enterAndSubmit(tester, 'example.org');
+
+    expect(find.textContaining('api4webtrees nicht installiert', findRichText: true), findsOneWidget);
   });
 
   testWidgets('an unreachable server shows the connection error', (tester) async {
@@ -164,6 +178,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         serverUrlProvider.overrideWith(() => ServerUrlNotifier(initial: '')),
+        webtreesPingProvider.overrideWithValue((_) async => false),
         serverProbeProvider.overrideWithValue(
           (_) async => {
             'api': 20,

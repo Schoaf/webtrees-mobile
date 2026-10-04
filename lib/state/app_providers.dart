@@ -144,6 +144,13 @@ final serverProbeProvider = Provider<Future<Map<String, dynamic>> Function(Strin
   (ref) => (serverUrl) => WebtreesClient(baseUrl: serverUrl).info(null),
 );
 
+/// Whether an address is a webtrees site (see [WebtreesClient.isWebtrees]) -
+/// ServerScreen's follow-up check when `Info` fails. Stubbable like
+/// [serverProbeProvider].
+final webtreesPingProvider = Provider<Future<bool> Function(String serverUrl)>(
+  (ref) => (serverUrl) => WebtreesClient(baseUrl: serverUrl).isWebtrees(),
+);
+
 /// The tree's privacy-policy page - the nearest thing to a legal-notice page
 /// this site has (see the "Datenschutz" link in the account/login screens'
 /// footers). Route format matches webtrees' own module-route convention,

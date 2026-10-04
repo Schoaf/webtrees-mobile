@@ -189,6 +189,24 @@ class WebtreesClient {
     return data;
   }
 
+  /// Whether this address is a webtrees site at all, via webtrees' own
+  /// `/ping` route (there since 2.0, answers OK/WARNING/ERROR as plain
+  /// text). Lets a failed `Info` tell "api4webtrees missing" apart from
+  /// "not webtrees".
+  Future<bool> isWebtrees() async {
+    try {
+      final response = await _dio.get<String>(
+        'index.php',
+        queryParameters: {'route': '/ping'},
+        options: Options(responseType: ResponseType.plain),
+      );
+      return const {'OK', 'WARNING', 'ERROR'}.contains(response.data?.trim());
+    } on DioException catch (e) {
+      // ERROR comes as 503, which this client's validateStatus treats as an error.
+      return e.response?.data.toString().trim() == 'ERROR';
+    }
+  }
+
   /// Logs in with a webtrees username/password. Call [info] first (on this
   /// same client instance) so a CSRF token and session cookie already exist
   /// — webtrees' CheckCsrf middleware rejects the login POST otherwise.
