@@ -60,6 +60,11 @@ android {
             optimization {
                 enable = true // Enables code and resource optimizations with Google R8
             }
+            // Native debug symbols go into the App Bundle, so Play Console can
+            // symbolicate native crashes (and stops warning that they're missing).
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
 }
