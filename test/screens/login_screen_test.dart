@@ -63,7 +63,7 @@ void main() {
   }
 
   testWidgets('shows the tree title once info() resolves', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer(
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer(
       (_) async => {
         'trees': [
           {'name': 'Famtree', 'title': 'Familie Muster'},
@@ -78,7 +78,7 @@ void main() {
   });
 
   testWidgets('silently ignores a failed info() - no title, no crash', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) => Future.error(Exception('offline')));
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) => Future.error(Exception('offline')));
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -87,7 +87,7 @@ void main() {
   });
 
   testWidgets('shows the active server, and "Ändern" opens the server screen', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -100,8 +100,23 @@ void main() {
     expect(find.byType(ServerScreen), findsOneWidget);
   });
 
+  testWidgets('shows webtrees\' welcome text and hides "Registrieren" when the site disallows it', (tester) async {
+    when(() => client.info('Famtree', lang: 'de')).thenAnswer(
+      (_) async => {
+        'trees': <dynamic>[],
+        'login': {'welcome': 'Nur f&uuml;r Familie.<br>Bitte anmelden.', 'registration': false, 'terms': null},
+      },
+    );
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Bitte anmelden.'), findsOneWidget);
+    expect(find.text('Registrieren'), findsNothing);
+  });
+
   testWidgets('shows the app version once PackageInfo resolves', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -110,7 +125,7 @@ void main() {
   });
 
   testWidgets('the password field starts obscured and the eye icon toggles visibility', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -126,7 +141,7 @@ void main() {
   });
 
   testWidgets('submitting wrong credentials shows the error and re-enables the button', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
     when(() => client.login(username: 'alice', password: 'wrong')).thenAnswer((_) async => false);
 
     await pumpScreen(tester);
@@ -143,7 +158,7 @@ void main() {
   });
 
   testWidgets('the username and password fields are present and hold exactly what was typed into them', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -165,7 +180,7 @@ void main() {
     // (CSRF setup, then the post-login loggedIn check) - only the last of
     // those needs a 'user' object.
     var infoCallCount = 0;
-    when(() => client.info('Famtree')).thenAnswer((_) async {
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async {
       infoCallCount++;
       if (infoCallCount < 3) return {'trees': <dynamic>[]};
       return {
@@ -188,7 +203,7 @@ void main() {
   });
 
   testWidgets('"Registrieren" opens RegisterScreen in the app, not an external browser', (tester) async {
-    when(() => client.info('Famtree')).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();

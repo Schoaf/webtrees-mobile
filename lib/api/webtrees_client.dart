@@ -173,8 +173,10 @@ class WebtreesClient {
   /// server's own idea of its base URL (see [login]). [tree] may be null:
   /// the response covers every tree regardless, and a server the app has
   /// never talked to before (see ServerScreen) has no known tree name yet.
-  Future<Map<String, dynamic>> info(String? tree) async {
-    final response = await _dio.getUri(_moduleUri('Info', tree));
+  ///
+  /// [lang] (e.g. "de") picks the language of the texts in `login`.
+  Future<Map<String, dynamic>> info(String? tree, {String? lang}) async {
+    final response = await _dio.getUri(_moduleUri('Info', tree, {if (lang != null) 'lang': lang}));
     final data = response.data as Map<String, dynamic>;
     final csrf = data['csrf'];
     if (csrf is String) {

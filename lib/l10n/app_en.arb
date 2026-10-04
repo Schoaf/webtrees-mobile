@@ -254,5 +254,6 @@
   "fullNameHint": "First name Last name",
   "fieldRequired": "Required.",
   "invalidEmail": "Please enter a valid email address.",
-  "passwordRules": "At least 8 characters"
+  "passwordRules": "At least 8 characters",
+  "registerApprovalNote": "You'll get an email to confirm your address. An administrator is then notified and has to approve the account before you can sign in."
 }

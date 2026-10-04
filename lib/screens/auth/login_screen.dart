@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/html_text.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import 'register_screen.dart';
 import 'server_screen.dart';
@@ -24,12 +25,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _passwordVisible = false;
   AuthError? _error;
   String? _treeTitle;
+  // From Info `login` - webtrees' own login-page settings. Until known (or
+  // if Info fails), registration stays offered; the server still refuses
+  // it if disabled.
+  String? _welcome;
+  bool _registrationAllowed = true;
+  String? _registerTerms;
   String? _appVersion;
 
   @override
   void initState() {
     super.initState();
-    _loadTreeTitle();
+    // After the first frame: needs the context's locale for the texts' language.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadTreeTitle());
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _appVersion = info.version);
     });
@@ -41,9 +49,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loadTreeTitle() async {
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
+    final lang = Localizations.localeOf(context).languageCode;
 
     try {
-      final info = await client.info(tree);
+      final info = await client.info(tree, lang: lang);
+      final login = info['login'] as Map<String, dynamic>?;
+      if (mounted && login != null) {
+        final welcome = htmlToPlainText(login['welcome'] as String? ?? '');
+        final terms = login['terms'] as String?;
+        setState(() {
+          _welcome = welcome.isEmpty ? null : welcome;
+          _registrationAllowed = login['registration'] as bool? ?? true;
+          _registerTerms = terms == null ? null : htmlToPlainText(terms);
+        });
+      }
       final trees = (info['trees'] as List<dynamic>?) ?? const [];
       Map<String, dynamic>? match;
       for (final t in trees.cast<Map<String, dynamic>>()) {
@@ -126,6 +145,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ],
+                      if (_welcome != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _welcome!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -213,17 +243,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterScreen(),
+                      if (_registrationAllowed)
+                        TextButton(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  RegisterScreen(terms: _registerTerms),
+                            ),
+                          ),
+                          child: Text(
+                            l10n.registerLink,
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
-                        child: Text(
-                          l10n.registerLink,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
                       const SizedBox(height: 48),
                       Wrap(
                         alignment: WrapAlignment.center,

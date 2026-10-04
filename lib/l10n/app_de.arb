@@ -427,5 +427,6 @@
   "fullNameHint": "Vorname Nachname",
   "fieldRequired": "Bitte ausfüllen.",
   "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
-  "passwordRules": "Mind. 8 Zeichen"
+  "passwordRules": "Mind. 8 Zeichen",
+  "registerApprovalNote": "Sie erhalten eine E-Mail, um Ihre Adresse zu bestätigen. Danach wird ein Administrator benachrichtigt; er muss das Konto freigeben, bevor Sie sich anmelden können."
 }
