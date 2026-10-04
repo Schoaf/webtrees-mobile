@@ -71,6 +71,33 @@ void main() {
     expect(button.onPressed, isNull);
   });
 
+  testWidgets('a password without a number shows the rule once the field is left', (tester) async {
+    await pumpScreen(tester);
+
+    await tester.tap(find.byType(TextField).at(3));
+    await tester.enterText(find.byType(TextField).at(3), 'longenough');
+    await tester.pump();
+    // The rule doubles as the placeholder, so check the field's error, not just any text.
+    String? passwordError() => tester.widget<TextField>(find.byType(TextField).at(3)).decoration!.errorText;
+    expect(passwordError(), isNull, reason: 'no error while still typing');
+
+    await tester.tap(find.byType(TextField).at(4));
+    await tester.pump();
+
+    expect(passwordError(), 'Mind. 8 Zeichen, 1 Zahl');
+  });
+
+  testWidgets('an invalid email shows an error once the field is left', (tester) async {
+    await pumpScreen(tester);
+
+    await tester.tap(find.byType(TextField).at(1));
+    await tester.enterText(find.byType(TextField).at(1), 'anna@example');
+    await tester.tap(find.byType(TextField).at(2));
+    await tester.pump();
+
+    expect(find.text('Bitte eine gültige E-Mail-Adresse eingeben.'), findsOneWidget);
+  });
+
   testWidgets('a successful request shows the confirmation view with a way back to login', (tester) async {
     when(
       () => client.register(

@@ -249,5 +249,10 @@
   "welcomeHowToTitle": "How to connect the app",
   "welcomeHowToLink": "Easiest: sign in to your webtrees site in the browser, open its “App” page and tap the connect link – or scan the QR code with the camera. The app is then signed in without a password.",
   "welcomeHowToAddress": "Or enter the address of the webtrees site below and sign in afterwards.",
-  "welcomeRequirement": "The server needs the api4webtrees module. If it's missing, ask whoever runs the site."
+  "welcomeRequirement": "The server needs the api4webtrees module. If it's missing, ask whoever runs the site.",
+  "fullNameLabel": "Full name",
+  "fullNameHint": "First name Last name",
+  "fieldRequired": "Required.",
+  "invalidEmail": "Please enter a valid email address.",
+  "passwordRules": "At least 8 characters, 1 number"
 }

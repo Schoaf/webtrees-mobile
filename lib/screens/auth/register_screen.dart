@@ -28,8 +28,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _done = false;
   RegisterError? _error;
 
+  // A field shows its error only once left (focus lost) - not while the
+  // person is still typing in it for the first time.
+  late final _focus = {
+    for (final field in _Field.values) field: FocusNode()..addListener(() => _onFocusChange(field)),
+  };
+  final _touched = <_Field>{};
+
+  void _onFocusChange(_Field field) {
+    if (!_focus[field]!.hasFocus && !_touched.contains(field)) {
+      setState(() => _touched.add(field));
+    }
+  }
+
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  String? _validate(_Field field, AppLocalizations l10n) {
+    switch (field) {
+      case _Field.realName:
+        return _realNameController.text.trim().isEmpty ? l10n.fieldRequired : null;
+      case _Field.email:
+        final email = _emailController.text.trim();
+        if (email.isEmpty) return l10n.fieldRequired;
+        return _emailPattern.hasMatch(email) ? null : l10n.invalidEmail;
+      case _Field.username:
+        return _usernameController.text.trim().isEmpty ? l10n.fieldRequired : null;
+      case _Field.password:
+        final password = _passwordController.text;
+        return password.length >= 8 && password.contains(RegExp(r'[0-9]')) ? null : l10n.passwordRules;
+      case _Field.comments:
+        return _commentsController.text.trim().isEmpty ? l10n.fieldRequired : null;
+    }
+  }
+
+  String? _errorFor(_Field field, AppLocalizations l10n) =>
+      _touched.contains(field) ? _validate(field, l10n) : null;
+
   @override
   void dispose() {
+    for (final node in _focus.values) {
+      node.dispose();
+    }
     _realNameController.dispose();
     _emailController.dispose();
     _usernameController.dispose();
@@ -38,12 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
-  bool get _canSubmit =>
-      _realNameController.text.trim().isNotEmpty &&
-      _emailController.text.trim().isNotEmpty &&
-      _usernameController.text.trim().isNotEmpty &&
-      _passwordController.text.length >= 8 &&
-      _commentsController.text.trim().isNotEmpty;
+  bool _canSubmit(AppLocalizations l10n) => _Field.values.every((field) => _validate(field, l10n) == null);
 
   Future<void> _submit() async {
     setState(() {
@@ -122,14 +156,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       children: [
         TextField(
           controller: _realNameController,
-          decoration: InputDecoration(labelText: l10n.nameLabel),
+          focusNode: _focus[_Field.realName],
+          decoration: InputDecoration(
+            labelText: l10n.fullNameLabel,
+            hintText: l10n.fullNameHint,
+            errorText: _errorFor(_Field.realName, l10n),
+          ),
           textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 18),
         TextField(
           controller: _emailController,
-          decoration: InputDecoration(labelText: l10n.emailAddressLabel),
+          focusNode: _focus[_Field.email],
+          decoration: InputDecoration(
+            labelText: l10n.emailAddressLabel,
+            errorText: _errorFor(_Field.email, l10n),
+          ),
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
@@ -137,15 +180,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 18),
         TextField(
           controller: _usernameController,
-          decoration: InputDecoration(labelText: l10n.username),
+          focusNode: _focus[_Field.username],
+          decoration: InputDecoration(
+            labelText: l10n.username,
+            errorText: _errorFor(_Field.username, l10n),
+          ),
           textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 18),
         TextField(
           controller: _passwordController,
+          focusNode: _focus[_Field.password],
           decoration: InputDecoration(
             labelText: l10n.passwordLabel,
+            hintText: l10n.passwordRules,
+            errorText: _errorFor(_Field.password, l10n),
             suffixIcon: IconButton(
               icon: Icon(
                 _passwordVisible
@@ -163,9 +213,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 18),
         TextField(
           controller: _commentsController,
+          focusNode: _focus[_Field.comments],
           decoration: InputDecoration(
             labelText: l10n.registerCommentsLabel,
             hintText: l10n.registerCommentsHint,
+            errorText: _errorFor(_Field.comments, l10n),
           ),
           maxLines: 4,
           onChanged: (_) => setState(() {}),
@@ -179,7 +231,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           const SizedBox(height: 12),
         ],
         FilledButton(
-          onPressed: _loading || !_canSubmit ? null : _submit,
+          onPressed: _loading || !_canSubmit(l10n) ? null : _submit,
           child: _loading
               ? const SizedBox(
                   height: 18,
@@ -195,3 +247,5 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 }
+
+enum _Field { realName, email, username, password, comments }
