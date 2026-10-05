@@ -207,9 +207,7 @@ void main() {
       when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
       when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => personResponse('I2'));
-      when(
-        () => client.updateAccount('Famtree', realName: 'Alice B.', defaultXref: null),
-      ).thenAnswer((_) async => {'ok': true});
+      when(() => client.updateRealName('Alice B.')).thenAnswer((_) async => {'ok': true});
 
       await pumpScreen(tester);
       await tester.pumpAndSettle();
@@ -221,7 +219,8 @@ void main() {
       await tester.tap(find.text('Speichern'));
       await tester.pumpAndSettle();
 
-      verify(() => client.updateAccount('Famtree', realName: 'Alice B.', defaultXref: null)).called(1);
+      verify(() => client.updateRealName('Alice B.')).called(1);
+      verifyNever(() => client.setStartPerson(any(), any()));
       verify(() => client.info('Famtree')).called(2);
       expect(find.text('Änderungen gespeichert.'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
@@ -231,9 +230,7 @@ void main() {
       when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
       when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => personResponse('I2'));
-      when(
-        () => client.updateAccount('Famtree', realName: 'Alice B.', defaultXref: null),
-      ).thenAnswer((_) async => {'ok': false, 'error': 'name taken'});
+      when(() => client.updateRealName('Alice B.')).thenAnswer((_) async => {'ok': false, 'error': 'name taken'});
 
       await pumpScreen(tester);
       await tester.pumpAndSettle();
@@ -263,12 +260,12 @@ void main() {
       await tester.tap(find.byIcon(Icons.close));
       await tester.pumpAndSettle();
 
-      verifyNever(() => client.updateAccount(any(), realName: any(named: 'realName'), defaultXref: any(named: 'defaultXref')));
+      verifyNever(() => client.updateRealName(any()));
       expect(find.text('Alice A.'), findsOneWidget);
       expect(find.text('Discarded Name'), findsNothing);
     });
 
-    testWidgets('changing the Startperson via the picker sends the new defaultXref', (tester) async {
+    testWidgets('changing the Startperson via the picker sends it to StartPerson', (tester) async {
       when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
       when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => personResponse('I2'));
@@ -279,9 +276,7 @@ void main() {
           ],
         },
       );
-      when(
-        () => client.updateAccount('Famtree', realName: null, defaultXref: 'I9'),
-      ).thenAnswer((_) async => {'ok': true});
+      when(() => client.setStartPerson('Famtree', 'I9')).thenAnswer((_) async => {'ok': true});
 
       await pumpScreen(tester);
       await tester.pumpAndSettle();
@@ -307,7 +302,8 @@ void main() {
       await tester.tap(find.text('Speichern'));
       await tester.pumpAndSettle();
 
-      verify(() => client.updateAccount('Famtree', realName: null, defaultXref: 'I9')).called(1);
+      verify(() => client.setStartPerson('Famtree', 'I9')).called(1);
+      verifyNever(() => client.updateRealName(any()));
     });
   });
 

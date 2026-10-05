@@ -144,6 +144,17 @@ class WebtreesClient {
   /// on the wire, same as `_api4webtrees_` (module renamed upstream from
   /// webtreesand-api to api4webtrees as of v1.7.0; we renamed the deployed
   /// folder to match rather than keep the old name for compatibility).
+  /// The JSON body of an API response. Anything else (e.g. webtrees' HTML
+  /// 404 page for a route an older module doesn't have) becomes an
+  /// [UnexpectedResponseException] - a normal, catchable Exception, not a
+  /// TypeError that would escape `on Exception` handlers and leave a
+  /// spinner running forever.
+  Map<String, dynamic> _json(Response<dynamic> response) {
+    final data = response.data;
+    if (data is Map<String, dynamic>) return data;
+    throw UnexpectedResponseException(response.statusCode);
+  }
+
   Uri _moduleUri(
     String action,
     String? tree, [
@@ -177,7 +188,7 @@ class WebtreesClient {
   /// [lang] (e.g. "de") picks the language of the texts in `login`.
   Future<Map<String, dynamic>> info(String? tree, {String? lang}) async {
     final response = await _dio.getUri(_moduleUri('Info', tree, {if (lang != null) 'lang': lang}));
-    final data = response.data as Map<String, dynamic>;
+    final data = _json(response);
     final csrf = data['csrf'];
     if (csrf is String) {
       _csrfToken = csrf;
@@ -268,7 +279,7 @@ class WebtreesClient {
       },
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Redeems a one-time "Verbinden" pairing code (see connect_deep_link.dart)
@@ -292,7 +303,7 @@ class WebtreesClient {
       data: {'code': code},
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   Future<Map<String, dynamic>> individuals(
@@ -306,14 +317,14 @@ class WebtreesClient {
         'page': '$page',
       }),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   Future<Map<String, dynamic>> individual(String tree, String xref) async {
     final response = await _dio.getUri(
       _moduleUri('Individual', tree, {'xref': xref}),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Labelled list of fact types the app can offer to add, e.g. for a quick
@@ -322,27 +333,29 @@ class WebtreesClient {
     final response = await _dio.getUri(
       _moduleUri('Tags', tree, {'type': type}),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
-  /// Updates the logged-in user's own account: display name and/or which
-  /// person is the tree's Startperson. Deliberately doesn't cover which
-  /// person the account is *linked* to — in webtrees itself that's an
-  /// admin-only setting (user management), not self-service.
-  Future<Map<String, dynamic>> updateAccount(
-    String tree, {
-    String? realName,
-    String? defaultXref,
-  }) async {
+  /// Sets the logged-in user's own Startperson for [tree] (api4webtrees
+  /// `StartPerson`, 1.13.0+); an empty [xref] removes it. Which person the
+  /// account is *linked* to stays an admin-only setting in webtrees.
+  Future<Map<String, dynamic>> setStartPerson(String tree, String xref) async {
     final response = await _dio.postUri(
-      _moduleUri('Account', tree),
-      data: {
-        if (realName != null) 'realName': realName,
-        if (defaultXref != null) 'defaultXref': defaultXref,
-      },
+      _moduleUri('StartPerson', tree),
+      data: {'xref': xref},
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
+  }
+
+  /// Changes the logged-in user's display name (api4webtrees `MyAccount`).
+  Future<Map<String, dynamic>> updateRealName(String realName) async {
+    final response = await _dio.postUri(
+      _moduleUri('MyAccount', null),
+      data: {'realName': realName},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
   }
 
   /// Adds or edits a single fact. Omit [factId] to add a new fact.
@@ -366,7 +379,7 @@ class WebtreesClient {
       },
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Uploads a photo and links it to [xref] as its highlighted media.
@@ -385,7 +398,7 @@ class WebtreesClient {
       _moduleUri('Media', tree, {'xref': xref}),
       data: form,
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Creates a new individual, optionally linked to [relativeTo] as their
@@ -426,7 +439,7 @@ class WebtreesClient {
       },
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Upcoming birthdays/anniversaries within [days] days, soonest first.
@@ -437,7 +450,7 @@ class WebtreesClient {
     final response = await _dio.getUri(
       _moduleUri('Anniversaries', tree, {'days': '$days'}),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Place-name suggestions from the tree's own places, up to 20 — the
@@ -450,7 +463,7 @@ class WebtreesClient {
     final response = await _dio.getUri(
       _moduleUri('Places', tree, {'q': query}),
     );
-    final data = (response.data as Map<String, dynamic>?)?['data'];
+    final data = _json(response)['data'];
     if (data is! List) return [];
     return data.whereType<String>().toList();
   }
@@ -469,7 +482,7 @@ class WebtreesClient {
       data: {'xref': xref},
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// The canonical subject/body for the "please help" email, `body`
@@ -482,7 +495,7 @@ class WebtreesClient {
     final response = await _dio.getUri(
       _shareModuleUri('RequestEmailTemplate', tree, {'token': token}),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Sends the request by email — server-rendered, so [personalMessage] is
@@ -505,7 +518,7 @@ class WebtreesClient {
       },
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// `{unread}` — how many share-request answers are waiting for review.
@@ -513,7 +526,7 @@ class WebtreesClient {
     final response = await _dio.getUri(
       _shareModuleUri('RequestNotifications', tree),
     );
-    return (response.data as Map<String, dynamic>)['unread'] as int? ?? 0;
+    return (_json(response))['unread'] as int? ?? 0;
   }
 
   /// `{requests: [{id, xref, name, status, respondedAt}, ...]}` — the
@@ -521,7 +534,7 @@ class WebtreesClient {
   /// "Antworten" review screen.
   Future<List<Map<String, dynamic>>> shareRequestList(String tree) async {
     final response = await _dio.getUri(_shareModuleUri('RequestList', tree));
-    final data = response.data as Map<String, dynamic>;
+    final data = _json(response);
     return (data['requests'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
@@ -536,7 +549,7 @@ class WebtreesClient {
     final response = await _dio.getUri(
       _shareModuleUri('RequestDetail', tree, {'id': '$id'}),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Applies exactly the fields/note/photo in [accept] (a `{key: true}` map
@@ -553,7 +566,7 @@ class WebtreesClient {
       data: {'id': id, 'accept': accept},
       options: Options(contentType: Headers.jsonContentType),
     );
-    return response.data as Map<String, dynamic>;
+    return _json(response);
   }
 
   /// Discards a request entirely (the row and any photo files it's
@@ -568,4 +581,15 @@ class WebtreesClient {
     );
     return response.statusCode == 302;
   }
+}
+
+/// The server answered, but not with the JSON the API returns - typically
+/// an HTML error page because the api4webtrees module lacks the route.
+class UnexpectedResponseException implements Exception {
+  const UnexpectedResponseException(this.statusCode);
+
+  final int? statusCode;
+
+  @override
+  String toString() => 'Unerwartete Antwort vom Server (HTTP ${statusCode ?? '?'})';
 }

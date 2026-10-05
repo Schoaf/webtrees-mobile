@@ -161,15 +161,15 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     final tree = ref.read(treeNameProvider);
     final realName = _realNameController.text.trim();
     try {
-      final result = await client.updateAccount(
-        tree,
-        realName: realName != original.realName ? realName : null,
-        defaultXref: _pendingStartXref != original.startXref
-            ? (_pendingStartXref ?? '')
-            : null,
-      );
-      if (result['ok'] != true) {
-        throw Exception(result['error'] ?? l10n.unknownError);
+      final results = [
+        if (realName != original.realName) await client.updateRealName(realName),
+        if (_pendingStartXref != original.startXref)
+          await client.setStartPerson(tree, _pendingStartXref ?? ''),
+      ];
+      for (final result in results) {
+        if (result['ok'] != true) {
+          throw Exception(result['error'] ?? l10n.unknownError);
+        }
       }
       if (!mounted) return;
       setState(() {

@@ -286,7 +286,7 @@ void main() {
     test('throws when the response body is not a JSON object', () async {
       adapter.enqueue(_CannedResponse(200, '[1,2,3]'));
 
-      expect(() => client.individual('Famtree', 'I5'), throwsA(isA<TypeError>()));
+      expect(() => client.individual('Famtree', 'I5'), throwsA(isA<UnexpectedResponseException>()));
     });
 
     test('a 500 response is surfaced as a DioException (error-path)', () async {
@@ -361,25 +361,26 @@ void main() {
     });
   });
 
-  group('updateAccount()', () {
-    test('only sends the fields that were provided', () async {
+  group('setStartPerson() / updateRealName()', () {
+    test('setStartPerson posts the xref to StartPerson on the tree', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
-      await client.updateAccount('Famtree', realName: 'Alice A.');
+      await client.setStartPerson('Famtree', 'I1');
       final request = adapter.requests.single;
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/StartPerson/Famtree');
+      expect(request.data, {'xref': 'I1'});
+    });
+
+    test('updateRealName posts to MyAccount without a tree', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      await client.updateRealName('Alice A.');
+      final request = adapter.requests.single;
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/MyAccount');
       expect(request.data, {'realName': 'Alice A.'});
-      expect(request.contentType, startsWith('application/json'));
     });
 
-    test('sends both fields when both are provided', () async {
-      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
-      await client.updateAccount('Famtree', realName: 'Alice A.', defaultXref: 'I1');
-      expect(adapter.requests.single.data, {'realName': 'Alice A.', 'defaultXref': 'I1'});
-    });
-
-    test('sends an empty body when nothing was provided', () async {
-      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
-      await client.updateAccount('Famtree');
-      expect(adapter.requests.single.data, <String, dynamic>{});
+    test('an HTML error page becomes a catchable exception, not a TypeError', () async {
+      adapter.enqueue(_CannedResponse(404, '<html>Not found</html>', headers: {'content-type': ['text/html']}));
+      expect(client.updateRealName('Alice A.'), throwsA(isA<UnexpectedResponseException>()));
     });
   });
 
