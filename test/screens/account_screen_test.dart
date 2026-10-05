@@ -221,7 +221,7 @@ void main() {
 
       verify(() => client.updateRealName('Alice B.')).called(1);
       verifyNever(() => client.setStartPerson(any(), any()));
-      verify(() => client.info('Famtree')).called(2);
+      verify(() => client.info('Famtree')).called(greaterThan(1)); // refetched after saving
       expect(find.text('Änderungen gespeichert.'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
     });

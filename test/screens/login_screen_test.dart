@@ -119,6 +119,28 @@ void main() {
     expect(find.text('Registrieren'), findsNothing);
   });
 
+  testWidgets('hides "Datenschutz" when the server says the privacy-policy module is off', (tester) async {
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer(
+      (_) async => {
+        'trees': [
+          {'name': 'Famtree', 'availableModules': <String>['_api4webtrees_']},
+        ],
+      },
+    );
+    when(() => client.info('Famtree')).thenAnswer(
+      (_) async => {
+        'trees': [
+          {'name': 'Famtree', 'availableModules': <String>['_api4webtrees_']},
+        ],
+      },
+    );
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Datenschutz'), findsNothing);
+  });
+
   testWidgets('shows the app version once PackageInfo resolves', (tester) async {
     when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
 

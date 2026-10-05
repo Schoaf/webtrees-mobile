@@ -151,6 +151,35 @@ final webtreesPingProvider = Provider<Future<bool> Function(String serverUrl)>(
   (ref) => (serverUrl) => WebtreesClient(baseUrl: serverUrl).isWebtrees(),
 );
 
+/// webtrees module names, as in api4webtrees' Info `availableModules`.
+const privacyPolicyModule = 'privacy-policy';
+const contributionRequestModule = '_webtrees-contribution-request_';
+
+/// The modules the current user can use in the active tree (Info
+/// `trees[].availableModules`, api4webtrees API level 27) - so links and
+/// buttons for optional modules (privacy policy, "Um Mithilfe bitten") only
+/// show when the module is there. Null while loading, on error, or from a
+/// server too old to say; callers then show the feature as before.
+final availableModulesProvider = FutureProvider<Set<String>?>((ref) async {
+  final client = ref.watch(webtreesClientProvider);
+  final tree = ref.watch(treeNameProvider);
+  ref.watch(authControllerProvider.select((auth) => auth.loggedIn)); // access depends on the user
+  if (tree.isEmpty) return null;
+  try {
+    final info = await client.info(tree);
+    final trees = (info['trees'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    final modules = trees.where((t) => t['name'] == tree).firstOrNull?['availableModules'];
+    return modules is List ? modules.whereType<String>().toSet() : null;
+  } catch (_) {
+    return null; // offline etc. - unknown, not "missing" (and no retry loop)
+  }
+});
+
+/// Whether [module] may be offered: false only when the server says it's
+/// not available - unknown (still loading, older server) counts as yes.
+bool isModuleAvailable(WidgetRef ref, String module) =>
+    ref.watch(availableModulesProvider).value?.contains(module) ?? true;
+
 /// The tree's privacy-policy page - the nearest thing to a legal-notice page
 /// this site has (see the "Datenschutz" link in the account/login screens'
 /// footers). Route format matches webtrees' own module-route convention,

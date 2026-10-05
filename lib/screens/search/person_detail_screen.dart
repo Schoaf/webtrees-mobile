@@ -936,7 +936,10 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                             ? null
                             : () =>
                                   _openShareMenu(person: person, facts: facts),
-                        onAskForHelp: (_editing || !canEdit)
+                        onAskForHelp:
+                            (_editing ||
+                                !canEdit ||
+                                !isModuleAvailable(ref, contributionRequestModule))
                             ? null
                             : () => _openAskForHelp(name),
                       ),

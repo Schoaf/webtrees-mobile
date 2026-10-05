@@ -443,17 +443,18 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             label: Text(l10n.openFullWebsite),
                           ),
                           const SizedBox(height: 4),
-                          TextButton.icon(
-                            onPressed: () => launchUrl(
-                              siteUrl(privacyPolicyUrl(ref), mobile: true),
-                              mode: LaunchMode.externalApplication,
+                          if (isModuleAvailable(ref, privacyPolicyModule))
+                            TextButton.icon(
+                              onPressed: () => launchUrl(
+                                siteUrl(privacyPolicyUrl(ref), mobile: true),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                              icon: const Icon(
+                                Icons.privacy_tip_outlined,
+                                size: 16,
+                              ),
+                              label: Text(l10n.privacyPolicy),
                             ),
-                            icon: const Icon(
-                              Icons.privacy_tip_outlined,
-                              size: 16,
-                            ),
-                            label: Text(l10n.privacyPolicy),
-                          ),
                           if (_appVersion != null) ...[
                             const SizedBox(height: 12),
                             Text(
