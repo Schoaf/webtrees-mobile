@@ -84,6 +84,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   // it can happen well after those have already settled (the app was
   // already sitting on the login screen when the link arrived).
   bool _connecting = false;
+  final _redeemedConnectCodes = <String>{};
   String? _connectError;
 
   @override
@@ -142,9 +143,9 @@ class _AppRootState extends ConsumerState<_AppRoot> {
       }
     }
 
-    _appLinks.getInitialLink().then((uri) {
-      if (uri != null) handle(uri);
-    });
+    // uriLinkStream also delivers the link the app was started with (app_links
+    // 6+) - calling getInitialLink() as well handled it twice, which spent a
+    // "Verbinden" code twice: the second attempt answered pair-invalid.
     _appLinks.uriLinkStream.listen(handle);
   }
 
@@ -155,6 +156,8 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   /// or lets the person pick among several. No password ever typed; see
   /// AppPages::postPairAction on the server for the other half of this.
   Future<void> _handleConnectLink(ConnectParams params) async {
+    // A code can only be redeemed once - never send the same one again.
+    if (!_redeemedConnectCodes.add(params.code)) return;
     setState(() {
       _connecting = true;
       _connectError = null;
