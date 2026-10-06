@@ -37,3 +37,7 @@ Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks t
 ## Development
 
 Flutter, Riverpod, `dio`, `sqflite`. A local dev server is configured in [`lib/state/app_providers.dart`](lib/state/app_providers.dart).
+
+## License
+
+[GPL-3.0](LICENSE). Bundled Roboto font: [OFL-1.1](assets/fonts/OFL.txt).

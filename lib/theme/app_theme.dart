@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Colors and text styles taken from the design mockup
 /// (claude.ai/artifact/9ZLZFPoS9CWJh5JiBb4mpq), not derivable from a plain
 /// Material seed color — kept together so screens/widgets share one source.
+/// The bundled font family (see `fonts:` in pubspec.yaml).
+const appFontFamily = 'Roboto';
+
 class AppColors {
   const AppColors._();
 
@@ -37,7 +39,9 @@ class AppColors {
 }
 
 ThemeData buildAppTheme() {
-  final textTheme = GoogleFonts.robotoTextTheme();
+  // Roboto is bundled (assets/fonts), not fetched from Google at runtime -
+  // no network access for fonts (needed for F-Droid), same look offline.
+  final textTheme = ThemeData.light().textTheme.apply(fontFamily: appFontFamily);
 
   final colorScheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
@@ -60,7 +64,7 @@ ThemeData buildAppTheme() {
       elevation: 0,
       scrolledUnderElevation: 0,
       shadowColor: Colors.black.withValues(alpha: 0.14),
-      titleTextStyle: GoogleFonts.roboto(
+      titleTextStyle: const TextStyle(fontFamily: appFontFamily).copyWith(
         fontSize: 22,
         fontWeight: FontWeight.w500,
         color: AppColors.textPrimary,
@@ -73,7 +77,7 @@ ThemeData buildAppTheme() {
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(56),
         shape: const StadiumBorder(),
-        textStyle: GoogleFonts.roboto(
+        textStyle: const TextStyle(fontFamily: appFontFamily).copyWith(
           fontSize: 15,
           fontWeight: FontWeight.w500,
           letterSpacing: 0.02,
@@ -83,7 +87,7 @@ ThemeData buildAppTheme() {
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.secondary,
-        textStyle: GoogleFonts.roboto(
+        textStyle: const TextStyle(fontFamily: appFontFamily).copyWith(
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
@@ -105,7 +109,7 @@ ThemeData buildAppTheme() {
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
-      labelStyle: GoogleFonts.roboto(
+      labelStyle: const TextStyle(fontFamily: appFontFamily).copyWith(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: AppColors.textTertiary,
@@ -116,7 +120,7 @@ ThemeData buildAppTheme() {
       indicatorColor: AppColors.secondary.withValues(alpha: 0.22),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
-        return GoogleFonts.roboto(
+        return const TextStyle(fontFamily: appFontFamily).copyWith(
           fontSize: 12,
           fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
           color: selected ? AppColors.primary : AppColors.textSecondary,

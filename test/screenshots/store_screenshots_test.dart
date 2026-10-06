@@ -41,7 +41,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
@@ -51,7 +50,7 @@ import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/screens/search/search_screen.dart';
 import 'package:webtrees_mobile/screens/tree_view/tree_view_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
-import 'package:webtrees_mobile/theme/app_theme.dart' show AppColors, buildAppTheme;
+import 'package:webtrees_mobile/theme/app_theme.dart' show AppColors, appFontFamily, buildAppTheme;
 
 const bool _render = bool.fromEnvironment('RENDER_SCREENSHOTS');
 
@@ -189,48 +188,30 @@ Directory get _rawDir => Directory('screenshots/raw');
 
 /// `flutter test`'s headless environment has no fonts registered at all,
 /// so text renders as solid placeholder boxes ("tofu") unless real glyph
-/// data is loaded first - not useful for store screenshots. Fetching a font
-/// over the network isn't an option either (flutter_test blocks all real
-/// HTTP requests, returning 400 for every one, which is also why
-/// `google_fonts` logs a load error below - harmless here, see
-/// `GoogleFonts.config.allowRuntimeFetching` in setUpAll).
+/// data is loaded first - not useful for store screenshots.
 ///
-/// Instead this loads the real Roboto .ttf files every Flutter SDK install
-/// already ships at `$FLUTTER_ROOT/bin/cache/artifacts/material_fonts/` -
-/// the same files a real app build embeds as its default Material font -
-/// directly under the exact per-weight family names `google_fonts` uses
-/// internally (e.g. `Roboto_regular`, `Roboto_500`; see
-/// GoogleFontsFamilyWithVariant.toString() in the google_fonts package).
-/// google_fonts' own `fontFamilyFallback` mechanism turned out not to
-/// resolve in this headless test environment, so this registers the exact
-/// primary family name directly rather than relying on that fallback.
-/// Fully local and reproducible: no download, no asset added to the repo.
+/// Loads the app's own bundled Roboto (assets/fonts, the family the theme
+/// uses) plus the Material icon font every Flutter SDK ships at
+/// `$FLUTTER_ROOT/bin/cache/artifacts/material_fonts/`. Fully local and
+/// reproducible: no download.
 Future<void> _loadRealFonts() async {
+  final roboto = FontLoader(appFontFamily);
+  for (final file in Directory('assets/fonts').listSync().whereType<File>().where((f) => f.path.endsWith('.ttf'))) {
+    roboto.addFont(file.readAsBytes().then((bytes) => ByteData.sublistView(bytes)));
+  }
+  await roboto.load();
+
   final root = Platform.environment['FLUTTER_ROOT'];
   if (root == null) {
     // ignore: avoid_print
-    print('FLUTTER_ROOT not set - screenshots will show placeholder glyph boxes instead of real text.');
+    print('FLUTTER_ROOT not set - icons in screenshots will be placeholder boxes.');
     return;
   }
-  final fontsDir = '$root/bin/cache/artifacts/material_fonts';
-  const weightToFile = {
-    'Roboto_100': 'Roboto-Thin.ttf',
-    'Roboto_300': 'Roboto-Light.ttf',
-    'Roboto_regular': 'Roboto-Regular.ttf',
-    'Roboto_500': 'Roboto-Medium.ttf',
-    'Roboto_700': 'Roboto-Bold.ttf',
-    'Roboto_900': 'Roboto-Black.ttf',
-    // Every Icon widget (search, mail, cake, chevron, ...) paints a glyph
-    // from this font under this exact family name - same "SDK already has
-    // it locally" trick as Roboto above, otherwise every icon in every
-    // screenshot is a placeholder box too.
-    'MaterialIcons': 'MaterialIcons-Regular.otf',
-  };
-  for (final entry in weightToFile.entries) {
-    final file = File('$fontsDir/${entry.value}');
-    if (!file.existsSync()) continue;
-    final loader = FontLoader(entry.key);
-    loader.addFont(file.readAsBytes().then((bytes) => ByteData.sublistView(bytes)));
+  // Every Icon widget paints a glyph from this font under this exact family name.
+  final icons = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+  if (icons.existsSync()) {
+    final loader = FontLoader('MaterialIcons');
+    loader.addFont(icons.readAsBytes().then((bytes) => ByteData.sublistView(bytes)));
     await loader.load();
   }
 }
@@ -261,10 +242,9 @@ InlineSpan _patchSpan(InlineSpan span) {
   if (span is! TextSpan) return span;
   final style = span.style;
   final bare = style == null || (style.fontFamily == null && (style.fontFamilyFallback?.isEmpty ?? true));
-  final family = (style?.fontWeight?.value ?? 400) >= 500 ? 'Roboto_500' : 'Roboto_regular';
   return TextSpan(
     text: span.text,
-    style: bare ? (style ?? const TextStyle()).copyWith(fontFamily: family) : style,
+    style: bare ? (style ?? const TextStyle()).copyWith(fontFamily: appFontFamily) : style,
     children: span.children?.map(_patchSpan).toList(),
   );
 }
@@ -410,11 +390,6 @@ Future<void> _precacheBundledImages(WidgetTester tester, GlobalKey boundaryKey) 
 void main() {
   setUpAll(() async {
     _rawDir.createSync(recursive: true);
-    // Keep this self-contained/reproducible: don't let google_fonts try to
-    // fetch Roboto from fonts.gstatic.com (flutter_test's HttpClient stub
-    // blocks it anyway - every request comes back as a 400); load the SDK's
-    // own bundled Roboto files instead (see _loadRealFonts).
-    GoogleFonts.config.allowRuntimeFetching = false;
     await _loadRealFonts();
   });
 
