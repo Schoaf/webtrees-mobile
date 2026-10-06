@@ -42,7 +42,7 @@ dependencies:
   path: ^1.9.1
   sqflite: ^2.4.4
   image_picker: ^1.2.3
-  url_launcher: ^6.3.2
+  url_launcher: ^6.3.3
   share_plus: ^13.3.0
   app_links: ^7.2.1
   package_info_plus: ^10.2.1
