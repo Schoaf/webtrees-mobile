@@ -18,6 +18,8 @@ class AppColors {
   static const textSecondary = Color(0xFF49454F);
   static const textTertiary = Color(0xFF79747E);
   static const divider = Color(0xFFE7E0EC);
+  // A value whose change still waits for a moderator's approval.
+  static const pending = Color(0xFFB26A00);
 
   static const maleAvatarBg = Color(0xFFDCE9F6);
   static const maleAvatarFg = Color(0xFF17557E);

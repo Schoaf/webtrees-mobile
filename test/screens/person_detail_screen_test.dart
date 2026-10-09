@@ -184,6 +184,25 @@ void main() {
     expect(find.text('Lena Beispiel', findRichText: true), findsOneWidget);
   });
 
+  testWidgets('marks a fact whose change waits for approval', (tester) async {
+    final json = personJson('I1');
+    json['facts'] = [
+      {'tag': 'SEX', 'label': 'Geschlecht', 'value': 'Weiblich', 'pending': true},
+      {
+        'tag': 'BIRT',
+        'label': 'Geburt',
+        'value': '',
+        'date': {'text': '3. Mai 1980', 'gedcom': '3 MAY 1980'},
+        'pending': false,
+      },
+    ];
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+
+    await pumpScreen(tester);
+
+    expect(find.text('Wartet auf Freigabe'), findsOneWidget);
+  });
+
   testWidgets('shows a Geschwister section when the person has siblings', (tester) async {
     final json = personJson('I1');
     json['parentFamilies'] = [
@@ -341,7 +360,7 @@ void main() {
         () => client.postFact('Famtree', 'I1', factId: null, tag: 'TITL', value: 'Prof.', date: null, place: null),
       ).called(1);
       verifyNever(() => client.postFact('Famtree', 'I1', factId: any(named: 'factId'), tag: 'REFN', value: any(named: 'value'), date: any(named: 'date'), place: any(named: 'place')));
-      expect(find.text('Änderungen gespeichert — wartet ggf. auf Freigabe.'), findsOneWidget);
+      expect(find.text('Änderungen gespeichert.'), findsOneWidget);
     },
   );
 

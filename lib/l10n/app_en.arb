@@ -156,8 +156,7 @@
 
   "noAccessError": "No access: {error}",
   "goHomeTooltip": "Go to start",
-  "changesSavedPendingApproval": "Changes saved — may be pending approval.",
-  "factSavedPendingApproval": "Fact saved — may be pending approval.",
+  "factSaved": "Fact saved.",
   "savedLocallyOffline": "Server unreachable — saved locally, sync later.",
   "chooseFromPhotos": "Choose from photos",
   "takePhoto": "Take photo",
@@ -256,5 +255,6 @@
   "invalidEmail": "Please enter a valid email address.",
   "passwordRules": "At least 8 characters",
   "registerApprovalNote": "You'll get an email to confirm your address. An administrator is then notified and has to approve the account before you can sign in.",
-  "serverErrorModuleMissing": "This webtrees site doesn't have the api4webtrees extension module installed or enabled. Please contact the site's administrator."
+  "serverErrorModuleMissing": "This webtrees site doesn't have the api4webtrees extension module installed or enabled. Please contact the site's administrator.",
+  "pendingApprovalLabel": "Awaiting approval"
 }

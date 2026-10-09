@@ -214,7 +214,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          AppLocalizations.of(context)!.changesSavedPendingApproval,
+          AppLocalizations.of(context)!.changesSaved,
         ),
       ),
     );
@@ -316,7 +316,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           _future = _load();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.factSavedPendingApproval)),
+          SnackBar(content: Text(l10n.factSaved)),
         );
       case AddFactResult.savedLocally:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1348,6 +1348,23 @@ class _FactValue extends StatelessWidget {
                 fontSize: 12,
                 color: AppColors.textSecondary,
               ),
+            ),
+          ),
+        // api4webtrees 1.15.0+: true while this value waits for approval
+        // (only sent to users who see pending changes, i.e. editors).
+        if (fact['pending'] == true)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.schedule, size: 12, color: AppColors.pending),
+                const SizedBox(width: 4),
+                Text(
+                  AppLocalizations.of(context)!.pendingApprovalLabel,
+                  style: const TextStyle(fontSize: 11, color: AppColors.pending),
+                ),
+              ],
             ),
           ),
       ],

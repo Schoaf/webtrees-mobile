@@ -257,8 +257,7 @@
     }
   },
   "goHomeTooltip": "Zum Start",
-  "changesSavedPendingApproval": "Änderungen gespeichert — wartet ggf. auf Freigabe.",
-  "factSavedPendingApproval": "Fakt gespeichert — wartet ggf. auf Freigabe.",
+  "factSaved": "Fakt gespeichert.",
   "savedLocallyOffline": "Server nicht erreichbar — lokal gespeichert, später synchronisieren.",
   "chooseFromPhotos": "Aus Fotos wählen",
   "takePhoto": "Foto aufnehmen",
@@ -429,5 +428,6 @@
   "invalidEmail": "Bitte eine gültige E-Mail-Adresse eingeben.",
   "passwordRules": "Mind. 8 Zeichen",
   "registerApprovalNote": "Sie erhalten eine E-Mail, um Ihre Adresse zu bestätigen. Danach wird ein Administrator benachrichtigt; er muss das Konto freigeben, bevor Sie sich anmelden können.",
-  "serverErrorModuleMissing": "Diese webtrees-Seite hat das Erweiterungs-Modul api4webtrees nicht installiert oder nicht aktiviert. Bitte wende dich an den Administrator der Seite."
+  "serverErrorModuleMissing": "Diese webtrees-Seite hat das Erweiterungs-Modul api4webtrees nicht installiert oder nicht aktiviert. Bitte wende dich an den Administrator der Seite.",
+  "pendingApprovalLabel": "Wartet auf Freigabe"
 }
