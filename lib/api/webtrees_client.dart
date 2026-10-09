@@ -135,7 +135,7 @@ class WebtreesClient {
   /// carry the same session — Flutter's image loader doesn't go through
   /// this client's Dio instance (and its cookie interceptor) on its own.
   Map<String, String> get imageHeaders => {
-    if (_cookie != null) 'Cookie': _cookie!,
+    'Cookie': ?_cookie,
   };
 
   /// webtrees names every custom module's route `_<folder-name>_`
@@ -187,7 +187,7 @@ class WebtreesClient {
   ///
   /// [lang] (e.g. "de") picks the language of the texts in `login`.
   Future<Map<String, dynamic>> info(String? tree, {String? lang}) async {
-    final response = await _dio.getUri(_moduleUri('Info', tree, {if (lang != null) 'lang': lang}));
+    final response = await _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
     final data = _json(response);
     final csrf = data['csrf'];
     if (csrf is String) {
@@ -371,11 +371,11 @@ class WebtreesClient {
     final response = await _dio.postUri(
       _moduleUri('Fact', tree, {'xref': xref}),
       data: {
-        if (factId != null) 'factId': factId,
+        'factId': ?factId,
         'tag': tag,
-        if (value != null) 'value': value,
-        if (date != null) 'date': date,
-        if (place != null) 'place': place,
+        'value': ?value,
+        'date': ?date,
+        'place': ?place,
       },
       options: Options(contentType: Headers.jsonContentType),
     );
@@ -391,7 +391,7 @@ class WebtreesClient {
     String? title,
   }) async {
     final form = FormData.fromMap({
-      if (title != null) 'title': title,
+      'title': ?title,
       'file': MultipartFile.fromBytes(bytes, filename: filename),
     });
     final response = await _dio.postUri(
@@ -424,18 +424,18 @@ class WebtreesClient {
       _moduleUri('AddIndividual', tree),
       data: {
         'relation': relation,
-        if (relativeTo != null) 'relativeTo': relativeTo,
-        if (family != null) 'family': family,
+        'relativeTo': ?relativeTo,
+        'family': ?family,
         'given': given,
         'surname': surname,
         'sex': sex,
-        if (birthDate != null) 'birthDate': birthDate,
-        if (birthPlace != null) 'birthPlace': birthPlace,
+        'birthDate': ?birthDate,
+        'birthPlace': ?birthPlace,
         'dead': dead,
-        if (deathDate != null) 'deathDate': deathDate,
-        if (deathPlace != null) 'deathPlace': deathPlace,
-        if (marriageDate != null) 'marriageDate': marriageDate,
-        if (marriagePlace != null) 'marriagePlace': marriagePlace,
+        'deathDate': ?deathDate,
+        'deathPlace': ?deathPlace,
+        'marriageDate': ?marriageDate,
+        'marriagePlace': ?marriagePlace,
       },
       options: Options(contentType: Headers.jsonContentType),
     );
@@ -513,7 +513,7 @@ class WebtreesClient {
       data: {
         'token': token,
         'recipient_email': recipientEmail,
-        if (recipientName != null) 'recipient_name': recipientName,
+        'recipient_name': ?recipientName,
         'personal_message': personalMessage,
       },
       options: Options(contentType: Headers.jsonContentType),

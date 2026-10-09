@@ -27,7 +27,7 @@ void main() {
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('de'),
+          locale: Locale('de'),
           home: ResponsesListScreen(),
         ),
       ),
