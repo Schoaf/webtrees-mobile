@@ -9,9 +9,12 @@ Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks t
 | | Minimum version |
 |---|---|
 | webtrees | 2.2 |
-| api4webtrees – app works | **1.13.0** (API level 24) |
+| api4webtrees – app works (older versions are refused with a hint) | **1.13.0** (API level 24) |
 | api4webtrees – app appears on the "App" page (connect via link/QR code) | **1.13.1** |
-| In-app registration, welcome text/registration settings, changing your name | currently only in the fork [Schoaf/webtreesand-api](https://github.com/Schoaf/webtreesand-api) |
+| api4webtrees – welcome text, registration settings, changing your name | **1.14.0** |
+| api4webtrees – "waiting for approval" marker | **1.15.0** |
+| api4webtrees – hiding links to disabled modules | next release after 1.18.1 |
+| Registering inside the app | only the fork [Schoaf/webtreesand-api](https://github.com/Schoaf/webtreesand-api); elsewhere "Register" opens the site's registration page |
 
 ## Features
 

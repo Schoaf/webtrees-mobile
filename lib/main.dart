@@ -172,7 +172,12 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     try {
       await ref.read(serverUrlProvider.notifier).set(params.serverUrl);
       final client = ref.read(webtreesClientProvider); // fresh - watches serverUrlProvider
-      await client.info(fallbackTree); // establishes a session/CSRF context on the *new* server
+      final serverInfo = await client.info(fallbackTree); // establishes a session/CSRF context on the *new* server
+      if (isApiTooOld(serverInfo)) {
+        // Before redeeming the code: the app couldn't work with this server anyway.
+        setState(() => _connectError = l10n.serverErrorModuleTooOld(minApiVersionName));
+        return;
+      }
 
       final pairResult = await client.pair(params.code);
       if (pairResult['ok'] != true) {

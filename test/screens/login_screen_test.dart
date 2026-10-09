@@ -228,8 +228,69 @@ void main() {
     verify(() => client.login(username: 'alice', password: 'secret')).called(1);
   });
 
+  testWidgets('warns when the server\'s api4webtrees is older than the app supports', (tester) async {
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer(
+      (_) async => {'api': minApiLevel - 1, 'trees': <dynamic>[]},
+    );
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('zu alt', findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('without in-app registration, "Registrieren" stays (browser) but doesn\'t open RegisterScreen', (tester) async {
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer(
+      (_) async => {
+        'api': minApiLevel,
+        'trees': <dynamic>[],
+        'loginForm': {'welcomeMessage': '', 'isSelfRegistrationAllowed': true, 'registrationTerms': null},
+      },
+    );
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Registrieren'), findsOneWidget);
+    // url_launcher has no platform implementation in tests; the tap just must not push RegisterScreen.
+    await tester.tap(find.text('Registrieren'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RegisterScreen), findsNothing);
+  });
+
+  testWidgets('no "Registrieren" when the site doesn\'t allow self-registration', (tester) async {
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer(
+      (_) async => {
+        'api': minApiLevel,
+        'trees': <dynamic>[],
+        'loginForm': {
+          'welcomeMessage': '',
+          'isSelfRegistrationAllowed': false,
+          'isInAppRegistrationSupported': true,
+          'registrationTerms': null,
+        },
+      },
+    );
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Registrieren'), findsNothing);
+  });
+
   testWidgets('"Registrieren" opens RegisterScreen in the app, not an external browser', (tester) async {
-    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer(
+      (_) async => {
+        'api': minApiLevel,
+        'trees': <dynamic>[],
+        'loginForm': {
+          'welcomeMessage': '',
+          'isSelfRegistrationAllowed': true,
+          'isInAppRegistrationSupported': true,
+          'registrationTerms': null,
+        },
+      },
+    );
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();

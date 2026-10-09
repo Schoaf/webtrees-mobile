@@ -429,5 +429,7 @@
   "passwordRules": "Mind. 8 Zeichen",
   "registerApprovalNote": "Sie erhalten eine E-Mail, um Ihre Adresse zu bestätigen. Danach wird ein Administrator benachrichtigt; er muss das Konto freigeben, bevor Sie sich anmelden können.",
   "serverErrorModuleMissing": "Diese webtrees-Seite hat das Erweiterungs-Modul api4webtrees nicht installiert oder nicht aktiviert. Bitte wende dich an den Administrator der Seite.",
-  "pendingApprovalLabel": "Wartet auf Freigabe"
+  "pendingApprovalLabel": "Wartet auf Freigabe",
+  "serverErrorModuleTooOld": "Das Erweiterungs-Modul api4webtrees auf dieser Seite ist zu alt – die App braucht mindestens Version {version}. Bitte wende dich an den Administrator der Seite.",
+  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}}
 }

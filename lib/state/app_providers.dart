@@ -151,6 +151,17 @@ final webtreesPingProvider = Provider<Future<bool> Function(String serverUrl)>(
   (ref) => (serverUrl) => WebtreesClient(baseUrl: serverUrl).isWebtrees(),
 );
 
+/// The oldest api4webtrees the app works with: API level 24 (1.13.0) brought
+/// Info `startXref`, which Home and the Stammbaum tab rely on. Newer features
+/// are checked one by one (e.g. [registerMinApiLevel] on the login screen)
+/// and simply not offered by older servers - only below this level does the
+/// app refuse a server. Raise it rarely and on purpose.
+const minApiLevel = 24;
+const minApiVersionName = '1.13.0';
+
+/// Whether an Info response comes from an api4webtrees older than [minApiLevel].
+bool isApiTooOld(Map<String, dynamic> info) => (info['api'] as int? ?? 0) < minApiLevel;
+
 /// webtrees module names, as in api4webtrees' Info `availableModules`.
 const privacyPolicyModule = 'privacy-policy';
 const contributionRequestModule = '_webtrees-contribution-request_';
@@ -213,6 +224,16 @@ Uri siteUrl(String url, {required bool mobile}) {
 
 /// The webtrees "forgot password" page. Same route-building convention as
 /// [privacyPolicyUrl].
+/// webtrees' own "Request a new user account" page - for servers without
+/// in-app registration (see LoginScreen).
+String registerPageUrl(WidgetRef ref) {
+  final server = ref.read(serverUrlProvider);
+  final base = server.endsWith('/') ? server : '$server/';
+  final tree = ref.read(treeNameProvider);
+  final route = Uri.encodeComponent('/register/$tree');
+  return '${base}index.php?route=$route';
+}
+
 String passwordRequestUrl(WidgetRef ref) {
   final server = ref.read(serverUrlProvider);
   final base = server.endsWith('/') ? server : '$server/';

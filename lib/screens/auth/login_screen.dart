@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/html_text.dart';
+import '../../widgets/linked_text.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import 'register_screen.dart';
 import 'server_screen.dart';
@@ -26,10 +27,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   AuthError? _error;
   String? _treeTitle;
   // From Info `loginForm` - webtrees' own sign-in page settings. Until known (or
-  // if Info fails), registration stays offered; the server still refuses
-  // it if disabled.
+  // if Info fails), registration isn't offered.
   String? _welcomeMessage;
-  bool _isSelfRegistrationAllowed = true;
+  bool _isSelfRegistrationAllowed = false;
+  bool _isInAppRegistrationSupported = false;
+  // The connected server's api4webtrees is older than the app supports.
+  bool _isApiTooOld = false;
   String? _registrationTerms;
   String? _appVersion;
 
@@ -53,13 +56,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final info = await client.info(tree, lang: lang);
+      if (mounted) setState(() => _isApiTooOld = isApiTooOld(info));
       final loginForm = info['loginForm'] as Map<String, dynamic>?;
       if (mounted && loginForm != null) {
         final welcome = htmlToPlainText(loginForm['welcomeMessage'] as String? ?? '');
         final terms = loginForm['registrationTerms'] as String?;
         setState(() {
           _welcomeMessage = welcome.isEmpty ? null : welcome;
-          _isSelfRegistrationAllowed = loginForm['isSelfRegistrationAllowed'] as bool? ?? true;
+          _isSelfRegistrationAllowed = loginForm['isSelfRegistrationAllowed'] as bool? ?? false;
+          // Only servers with the Register route (so far our fork of
+          // api4webtrees) say so; elsewhere "Registrieren" opens the site's
+          // own registration page in the browser.
+          _isInAppRegistrationSupported = loginForm['isInAppRegistrationSupported'] as bool? ?? false;
           _registrationTerms = terms == null ? null : htmlToPlainText(terms);
         });
       }
@@ -145,6 +153,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textTertiary,
+                          ),
+                        ),
+                      ],
+                      if (_isApiTooOld) ...[
+                        const SizedBox(height: 16),
+                        SelectionArea(
+                          child: LinkedText(
+                            l10n.serverErrorModuleTooOld(minApiVersionName),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
                           ),
                         ),
                       ],
@@ -245,12 +264,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 8),
                       if (_isSelfRegistrationAllowed)
                         TextButton(
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  RegisterScreen(registrationTerms: _registrationTerms),
-                            ),
-                          ),
+                          onPressed: _isInAppRegistrationSupported
+                              ? () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        RegisterScreen(registrationTerms: _registrationTerms),
+                                  ),
+                                )
+                              : () => launchUrl(
+                                  siteUrl(registerPageUrl(ref), mobile: true),
+                                  mode: LaunchMode.externalApplication,
+                                ),
                           child: Text(
                             l10n.registerLink,
                             style: const TextStyle(fontSize: 16),

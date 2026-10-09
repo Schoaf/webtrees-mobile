@@ -59,6 +59,13 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
     try {
       final info = await ref.read(serverProbeProvider)(serverUrl);
       if (info['api'] is int) {
+        if (isApiTooOld(info)) {
+          setState(() {
+            _checking = false;
+            _error = _ServerError.moduleTooOld;
+          });
+          return;
+        }
         trees = (info['trees'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       }
     } on DioException catch (e) {
@@ -186,6 +193,7 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
     _ServerError.unreachable => l10n.authErrorServerUnreachable,
     _ServerError.notWebtrees => l10n.serverErrorNoApi,
     _ServerError.moduleMissing => l10n.serverErrorModuleMissing,
+    _ServerError.moduleTooOld => l10n.serverErrorModuleTooOld(minApiVersionName),
     _ServerError.noTrees => l10n.serverErrorNoTrees,
   };
 
@@ -222,4 +230,4 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
   }
 }
 
-enum _ServerError { invalidUrl, unreachable, notWebtrees, moduleMissing, noTrees }
+enum _ServerError { invalidUrl, unreachable, notWebtrees, moduleMissing, moduleTooOld, noTrees }

@@ -256,5 +256,7 @@
   "passwordRules": "At least 8 characters",
   "registerApprovalNote": "You'll get an email to confirm your address. An administrator is then notified and has to approve the account before you can sign in.",
   "serverErrorModuleMissing": "This webtrees site doesn't have the api4webtrees extension module installed or enabled. Please contact the site's administrator.",
-  "pendingApprovalLabel": "Awaiting approval"
+  "pendingApprovalLabel": "Awaiting approval",
+  "serverErrorModuleTooOld": "The api4webtrees extension module on this site is too old – the app needs at least version {version}. Please contact the site's administrator.",
+  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}}
 }

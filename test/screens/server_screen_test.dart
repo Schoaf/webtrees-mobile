@@ -81,7 +81,7 @@ void main() {
     final container = await pumpScreen(
       tester,
       (_) async => {
-        'api': 20,
+        'api': minApiLevel,
         'trees': [
           {'name': 'Ahnen', 'title': 'Unsere Ahnen', 'individuals': 12},
         ],
@@ -100,7 +100,7 @@ void main() {
     final container = await pumpScreen(
       tester,
       (_) async => {
-        'api': 20,
+        'api': minApiLevel,
         'trees': [
           {'name': 'A', 'title': 'Baum A', 'individuals': 1},
           {'name': 'B', 'title': 'Baum B', 'individuals': 2},
@@ -165,8 +165,25 @@ void main() {
     expect(find.textContaining('Server nicht erreichbar'), findsOneWidget);
   });
 
+  testWidgets('an api4webtrees older than the app supports is refused with a hint', (tester) async {
+    final container = await pumpScreen(
+      tester,
+      (_) async => {
+        'api': minApiLevel - 1,
+        'trees': [
+          {'name': 'Ahnen'},
+        ],
+      },
+    );
+
+    await enterAndSubmit(tester, 'example.org');
+
+    expect(find.textContaining('zu alt', findRichText: true), findsOneWidget);
+    expect(container.read(serverUrlProvider), productionServerUrl);
+  });
+
   testWidgets('a server without trees for the app is rejected', (tester) async {
-    final container = await pumpScreen(tester, (_) async => {'api': 20, 'trees': <dynamic>[]});
+    final container = await pumpScreen(tester, (_) async => {'api': minApiLevel, 'trees': <dynamic>[]});
 
     await enterAndSubmit(tester, 'example.org');
 
@@ -181,7 +198,7 @@ void main() {
         webtreesPingProvider.overrideWithValue((_) async => false),
         serverProbeProvider.overrideWithValue(
           (_) async => {
-            'api': 20,
+            'api': minApiLevel,
             'trees': [
               {'name': 'Ahnen', 'title': 'Unsere Ahnen', 'individuals': 12},
             ],
