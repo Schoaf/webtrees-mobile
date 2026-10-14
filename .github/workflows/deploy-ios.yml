@@ -35,7 +35,7 @@ jobs:
 
       - name: Download provisioning profile
         id: profiles
-        uses: apple-actions/download-provisioning-profiles@v6
+        uses: apple-actions/download-provisioning-profiles@v7
         with:
           bundle-id: net.webtrees.webtreesmobile
           profile-type: IOS_APP_STORE
