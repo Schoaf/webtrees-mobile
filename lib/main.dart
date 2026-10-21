@@ -14,6 +14,7 @@ import 'screens/search/search_screen.dart';
 import 'screens/tree_picker/tree_picker_screen.dart';
 import 'screens/tree_view/my_tree_view_screen.dart';
 import 'state/app_providers.dart';
+import 'state/language.dart';
 import 'theme/app_theme.dart';
 import 'utils/connect_deep_link.dart';
 import 'utils/device_size.dart';
@@ -32,11 +33,13 @@ Future<void> main() async {
   // here (before runApp) rather than lazily inside the providers, since
   // Notifier.build() can't be async. See loadActiveConnection.
   final active = await loadActiveConnection();
+  final language = await loadLanguagePreference();
   runApp(
     ProviderScope(
       overrides: [
         serverUrlProvider.overrideWith(() => ServerUrlNotifier(initial: active.serverUrl)),
         treeNameProvider.overrideWith(() => TreeNameNotifier(initial: active.treeName)),
+        languageProvider.overrideWith(() => LanguageNotifier(initial: language)),
       ],
       child: const StammbaumApp(),
     ),
@@ -48,17 +51,21 @@ Future<void> main() async {
 /// Navigator from anywhere.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-class StammbaumApp extends StatelessWidget {
+class StammbaumApp extends ConsumerWidget {
   const StammbaumApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(languageProvider);
     return MaterialApp(
       title: 'Stammbaum',
       theme: buildAppTheme(),
       navigatorKey: rootNavigatorKey,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // Picked in "Mein Konto", else like the device - English unless German.
+      locale: language == null ? null : Locale(language),
+      localeListResolutionCallback: (deviceLocales, _) => resolveAppLocale(deviceLocales),
       home: const _AppRoot(),
     );
   }

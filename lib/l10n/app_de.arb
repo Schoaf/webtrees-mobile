@@ -431,5 +431,7 @@
   "serverErrorModuleMissing": "Diese webtrees-Seite hat das Erweiterungs-Modul api4webtrees nicht installiert oder nicht aktiviert. Bitte wende dich an den Administrator der Seite.",
   "pendingApprovalLabel": "Wartet auf Freigabe",
   "serverErrorModuleTooOld": "Das Erweiterungs-Modul api4webtrees auf dieser Seite ist zu alt – die App braucht mindestens Version {version}. Bitte wende dich an den Administrator der Seite.",
-  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}}
+  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}},
+  "languageSetting": "Sprache",
+  "languageDevice": "Wie Gerät"
 }
