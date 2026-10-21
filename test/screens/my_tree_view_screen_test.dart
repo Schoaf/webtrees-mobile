@@ -22,6 +22,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     when(() => client.imageHeaders).thenReturn(<String, String>{});
     when(() => client.individual(any(), any())).thenAnswer(
       (_) async => {

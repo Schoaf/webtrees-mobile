@@ -17,6 +17,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     // PlaceAutocompleteField debounces onChanged and calls this - stub it
     // for every test that types into a place field, even ones not
     // specifically asserting on suggestions, so the fire-and-forget Timer

@@ -15,6 +15,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     when(() => client.info('Famtree')).thenAnswer((_) async => <String, dynamic>{});
     container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
     addTearDown(container.dispose);

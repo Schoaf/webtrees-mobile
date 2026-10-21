@@ -273,6 +273,26 @@ void main() {
     });
   });
 
+  group('pretty URLs', () {
+    test('a redirected Info switches to the pretty form and asks again', () async {
+      adapter.enqueue(_CannedResponse(308, '', headers: {'location': ['https://elsewhere/'], 'content-type': ['text/html']}));
+      adapter.enqueue(_CannedResponse(200, '{"csrf":"t","rewriteUrls":true}'));
+      await client.info(null);
+      expect(client.usePrettyUrls, isTrue);
+      expect(adapter.requests.last.uri.path, endsWith('/module/_api4webtrees_/Info'));
+      expect(adapter.requests.last.uri.queryParameters.containsKey('route'), isFalse);
+    });
+  });
+
+  group('language', () {
+    test('sends the app language as lang with every request', () async {
+      client.language = 'en';
+      adapter.enqueue(_CannedResponse(200, '{"person":{}}'));
+      await client.individual('Famtree', 'I1');
+      expect(adapter.requests.single.uri.queryParameters['lang'], 'en');
+    });
+  });
+
   group('individual()', () {
     test('passes xref as a query parameter and returns the parsed body', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true,"person":{"xref":"I5"}}'));

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
+import '../../state/language.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../utils/device_size.dart';
@@ -406,6 +407,36 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             ),
                             icon: const Icon(Icons.swap_horiz, size: 16),
                             label: Text(l10n.switchTreeMenuItem),
+                          ),
+                          const SizedBox(height: 12),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              l10n.languageSetting,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            trailing: DropdownButton<String?>(
+                              value: ref.watch(languageProvider),
+                              underline: const SizedBox.shrink(),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textPrimary),
+                              items: [
+                                DropdownMenuItem(
+                                  value: null,
+                                  child: Text(l10n.languageDevice),
+                                ),
+                                const DropdownMenuItem(
+                                  value: 'de',
+                                  child: Text('Deutsch'),
+                                ),
+                                const DropdownMenuItem(
+                                  value: 'en',
+                                  child: Text('English'),
+                                ),
+                              ],
+                              onChanged: (code) =>
+                                  ref.read(languageProvider.notifier).set(code),
+                            ),
                           ),
                           if (_biometricSupported) ...[
                             const SizedBox(height: 12),

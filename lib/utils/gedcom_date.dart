@@ -5,6 +5,8 @@
 /// free text rather than discarded.
 library;
 
+import 'package:intl/intl.dart';
+
 const Map<String, int> gedcomMonths = {
   'JAN': 1,
   'FEB': 2,
@@ -19,21 +21,6 @@ const Map<String, int> gedcomMonths = {
   'NOV': 11,
   'DEC': 12,
 };
-
-const List<String> _germanMonthNames = [
-  'Januar',
-  'Februar',
-  'März',
-  'April',
-  'Mai',
-  'Juni',
-  'Juli',
-  'August',
-  'September',
-  'Oktober',
-  'November',
-  'Dezember',
-];
 
 DateTime? gedcomDateToDateTime(String gedcom) {
   final pattern = RegExp(
@@ -64,10 +51,9 @@ String dateTimeToGedcom(DateTime date) {
   return '${date.day} $month ${date.year}';
 }
 
-/// German long-form display text for a parsed date, e.g. "25. Mai 1983".
-String formatGermanDate(DateTime date) {
-  return '${date.day}. ${_germanMonthNames[date.month - 1]} ${date.year}';
-}
+/// Long-form display text for a parsed date in the app's language, e.g.
+/// "25. Mai 1983" (de) or "May 25, 1983" (en).
+String formatLongDate(DateTime date, String locale) => DateFormat.yMMMMd(locale).format(date);
 
 DateTime? germanDdMmYyyyToDateTime(String text) {
   final match = RegExp(

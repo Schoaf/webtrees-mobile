@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/webtrees_url.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../utils/device_size.dart';
 import '../../utils/gedcom.dart';
@@ -604,11 +605,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   /// they have the app installed, Universal/App Links open it there instead
   /// of a browser (see AASA/assetlinks.json).
   Uri _personUrl() {
-    final server = ref.read(serverUrlProvider);
     final tree = ref.read(treeNameProvider);
-    return Uri.parse(server).replace(
-      path: '/index.php',
-      queryParameters: {'route': '/tree/$tree/individual/${widget.xref}'},
+    return webtreesUrl(
+      ref.read(serverUrlProvider),
+      '/tree/$tree/individual/${widget.xref}',
+      usePrettyUrls: ref.read(webtreesClientProvider).usePrettyUrls,
     );
   }
 

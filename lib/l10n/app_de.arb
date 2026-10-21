@@ -431,5 +431,16 @@
   "serverErrorModuleMissing": "Diese webtrees-Seite hat das Erweiterungs-Modul api4webtrees nicht installiert oder nicht aktiviert. Bitte wende dich an den Administrator der Seite.",
   "pendingApprovalLabel": "Wartet auf Freigabe",
   "serverErrorModuleTooOld": "Das Erweiterungs-Modul api4webtrees auf dieser Seite ist zu alt – die App braucht mindestens Version {version}. Bitte wende dich an den Administrator der Seite.",
-  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}}
+  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}},
+  "languageSetting": "Sprache",
+  "languageDevice": "Wie Gerät",
+  "askForHelpNoPersonalMessage": "(keine persönliche Nachricht)",
+  "askForHelpEmailTitle": "Per E-Mail senden",
+  "askForHelpEmailHint": "oma@beispiel.at",
+  "askForHelpRecipientName": "Name (optional)",
+  "askForHelpPersonalMessage": "Persönliche Nachricht (optional)",
+  "askForHelpPreview": "Vorschau",
+  "askForHelpSend": "Senden",
+  "askForHelpSendFailed": "Senden fehlgeschlagen: {error}",
+  "@askForHelpSendFailed": {"placeholders": {"error": {"type": "String"}}}
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
@@ -15,6 +16,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
     addTearDown(container.dispose);
   });
@@ -30,6 +32,9 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: buildAppTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
           home: const AskForHelpEmailScreen(
             tree: 'Famtree',
             token: 'tok',
