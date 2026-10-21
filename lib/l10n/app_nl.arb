@@ -258,5 +258,15 @@
   "serverErrorModuleMissing": "Op deze webtrees-site is de uitbreidingsmodule api4webtrees niet geïnstalleerd of niet ingeschakeld. Neem contact op met de beheerder van de site.",
   "pendingApprovalLabel": "Wacht op goedkeuring",
   "serverErrorModuleTooOld": "De uitbreidingsmodule api4webtrees op deze site is te oud. De app vereist minimaal versie {version}. Neem contact op met de beheerder van de site.",
-  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}}
+  "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}},
+  "askForHelpNoPersonalMessage": "(geen persoonlijk bericht)",
+  "askForHelpEmailTitle": "Per e-mail versturen",
+  "askForHelpEmailHint": "oma@voorbeeld.nl",
+  "askForHelpRecipientName": "Naam (optioneel)",
+  "askForHelpPersonalMessage": "Persoonlijk bericht (optioneel)",
+  "askForHelpPreview": "Voorbeeld",
+  "askForHelpSend": "Versturen",
+  "askForHelpSendFailed": "Versturen mislukt: {error}",
+  "languageSetting": "Taal",
+  "languageDevice": "Taal van het apparaat"
 }
