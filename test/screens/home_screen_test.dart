@@ -45,6 +45,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     noteStore = MockQuickNoteStore();
     when(() => client.imageHeaders).thenReturn(<String, String>{});
     when(() => noteStore.unsynced()).thenAnswer((_) async => <QuickNote>[]);

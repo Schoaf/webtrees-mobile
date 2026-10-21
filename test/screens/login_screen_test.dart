@@ -44,6 +44,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
     addTearDown(container.dispose);
   });

@@ -68,6 +68,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     biometrics = MockBiometricAuthService();
     when(() => client.imageHeaders).thenReturn(<String, String>{});
     when(() => biometrics.isDeviceSupported()).thenAnswer((_) async => false);

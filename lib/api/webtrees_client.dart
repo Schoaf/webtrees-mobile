@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../utils/webtrees_url.dart';
+
 /// [RequestOptions.extra] key marking a request as already having gone
 /// through one stale-connection retry - see the `onError` interceptor
 /// below.
@@ -153,6 +155,16 @@ class WebtreesClient {
   /// on the wire, same as `_api4webtrees_` (module renamed upstream from
   /// webtreesand-api to api4webtrees as of v1.7.0; we renamed the deployed
   /// folder to match rather than keep the old name for compatibility).
+  /// Whether the site uses webtrees' "pretty URLs" (`{base}/tree/...` instead
+  /// of `index.php?route=...`) - learnt from the first Info (a redirect, then
+  /// `rewriteUrls`). Website links the app opens use it too.
+  bool usePrettyUrls = false;
+
+  static bool _isRedirect(Response<dynamic> response) {
+    final status = response.statusCode ?? 0;
+    return status >= 300 && status < 400;
+  }
+
   /// The JSON body of an API response. Anything else (e.g. webtrees' HTML
   /// 404 page for a route an older module doesn't have) becomes an
   /// [UnexpectedResponseException] - a normal, catchable Exception, not a
@@ -174,12 +186,11 @@ class WebtreesClient {
     // tree segment at all in their route - not an empty one. Mirrors the
     // PHP side's own actionUrl($action, tree: null).
     final route = tree == null || tree.isEmpty ? '/module/$moduleSlug/$action' : '/module/$moduleSlug/$action/$tree';
-    return Uri.parse(_baseUrl).replace(
-      path: '${Uri.parse(_baseUrl).path}index.php',
-      queryParameters: {
-        'route': route,
-        ...?query,
-      },
+    return webtreesUrl(
+      _baseUrl,
+      route,
+      usePrettyUrls: usePrettyUrls,
+      query: {for (final e in (query ?? const {}).entries) e.key: '${e.value}'},
     );
   }
 
@@ -196,8 +207,15 @@ class WebtreesClient {
   ///
   /// [lang] (e.g. "de") picks the language of the texts in `login`.
   Future<Map<String, dynamic>> info(String? tree, {String? lang}) async {
-    final response = await _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
+    var response = await _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
+    if (_isRedirect(response) && !usePrettyUrls) {
+      // A server with "pretty URLs" redirects the index.php form - ask again
+      // in its own form instead of following (its redirect may be wrong).
+      usePrettyUrls = true;
+      response = await _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
+    }
     final data = _json(response);
+    if (data['rewriteUrls'] is bool) usePrettyUrls = data['rewriteUrls'] as bool;
     final csrf = data['csrf'];
     if (csrf is String) {
       _csrfToken = csrf;
@@ -215,11 +233,15 @@ class WebtreesClient {
   /// "not webtrees".
   Future<bool> isWebtrees() async {
     try {
-      final response = await _dio.get<String>(
-        'index.php',
-        queryParameters: {'route': '/ping'},
+      Future<Response<String>> ping() => _dio.getUri<String>(
+        webtreesUrl(_baseUrl, '/ping', usePrettyUrls: usePrettyUrls),
         options: Options(responseType: ResponseType.plain),
       );
+      var response = await ping();
+      if (_isRedirect(response) && !usePrettyUrls) {
+        usePrettyUrls = true;
+        response = await ping();
+      }
       return const {'OK', 'WARNING', 'ERROR'}.contains(response.data?.trim());
     } on DioException catch (e) {
       // ERROR comes as 503, which this client's validateStatus treats as an error.
@@ -243,9 +265,8 @@ class WebtreesClient {
     // rejected with "The parameter 'url' is invalid" before it even reaches
     // the credential check.
     final loginUrl = _serverBaseUrl ?? _baseUrl;
-    final response = await _dio.post(
-      'index.php',
-      queryParameters: {'route': '/login'},
+    final response = await _dio.postUri(
+      webtreesUrl(_baseUrl, '/login', usePrettyUrls: usePrettyUrls),
       data: {
         'username': username,
         'password': password,

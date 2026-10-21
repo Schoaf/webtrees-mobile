@@ -65,6 +65,7 @@ void main() {
 
   setUp(() {
     client = MockWebtreesClient();
+    when(() => client.usePrettyUrls).thenReturn(false);
     when(() => client.imageHeaders).thenReturn(<String, String>{});
     when(() => client.individual('Famtree', 'I1')).thenAnswer(
       (_) async => {

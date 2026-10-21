@@ -11,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import '../repositories/quick_note_store.dart';
 import '../services/biometric_auth_service.dart';
 import 'language.dart';
+import '../utils/webtrees_url.dart';
 
 const _secureStorage = FlutterSecureStorage();
 
@@ -203,11 +204,12 @@ bool isModuleAvailable(WidgetRef ref, String module) =>
 /// footers). Route format matches webtrees' own module-route convention,
 /// same as [WebtreesClient]'s own URL building.
 String privacyPolicyUrl(WidgetRef ref) {
-  final server = ref.read(serverUrlProvider);
-  final base = server.endsWith('/') ? server : '$server/';
   final tree = ref.read(treeNameProvider);
-  final route = Uri.encodeComponent('/module/privacy-policy/Page/$tree');
-  return '${base}index.php?route=$route';
+  return webtreesUrl(
+    ref.read(serverUrlProvider),
+    '/module/privacy-policy/Page/$tree',
+    usePrettyUrls: ref.read(webtreesClientProvider).usePrettyUrls,
+  ).toString();
 }
 
 /// A website URL opened from this device. `mobile=1` makes webtrees show its
@@ -220,9 +222,10 @@ String privacyPolicyUrl(WidgetRef ref) {
 /// any query string (`/?mobile=1` -> `/?mobile=1/index.php?route=0`).
 Uri siteUrl(String url, {required bool mobile}) {
   final uri = Uri.parse(url);
-  final path = uri.path.isEmpty || uri.path.endsWith('/')
-      ? '${uri.path.isEmpty ? '/' : uri.path}index.php'
-      : uri.path;
+  final hasRoute = uri.queryParameters.containsKey('route') || uri.path.endsWith('index.php');
+  final path = hasRoute || uri.path.endsWith('.php')
+      ? uri.path
+      : '${uri.path.endsWith('/') ? uri.path : '${uri.path}/'}index.php';
   return uri.replace(
     path: path,
     queryParameters: {...uri.queryParameters, 'mobile': mobile ? '1' : '0'},
@@ -234,19 +237,21 @@ Uri siteUrl(String url, {required bool mobile}) {
 /// webtrees' own "Request a new user account" page - for servers without
 /// in-app registration (see LoginScreen).
 String registerPageUrl(WidgetRef ref) {
-  final server = ref.read(serverUrlProvider);
-  final base = server.endsWith('/') ? server : '$server/';
   final tree = ref.read(treeNameProvider);
-  final route = Uri.encodeComponent('/register/$tree');
-  return '${base}index.php?route=$route';
+  return webtreesUrl(
+    ref.read(serverUrlProvider),
+    '/register/$tree',
+    usePrettyUrls: ref.read(webtreesClientProvider).usePrettyUrls,
+  ).toString();
 }
 
 String passwordRequestUrl(WidgetRef ref) {
-  final server = ref.read(serverUrlProvider);
-  final base = server.endsWith('/') ? server : '$server/';
   final tree = ref.read(treeNameProvider);
-  final route = Uri.encodeComponent('/password-request/$tree');
-  return '${base}index.php?route=$route';
+  return webtreesUrl(
+    ref.read(serverUrlProvider),
+    '/password-request/$tree',
+    usePrettyUrls: ref.read(webtreesClientProvider).usePrettyUrls,
+  ).toString();
 }
 
 final quickNoteStoreProvider = Provider<QuickNoteStore>(
@@ -370,7 +375,10 @@ class AuthController extends Notifier<AuthState> {
       final info = await client.info(tree);
       final user = info['user'] as Map<String, dynamic>;
       if (user['loggedIn'] != true) {
-        return AuthError.loginDidNotWork;
+        // With pretty URLs webtrees answers a wrong password with a redirect
+        // too, so only Info can tell - and then a wrong password is by far
+        // the likeliest reason.
+        return client.usePrettyUrls ? AuthError.invalidCredentials : AuthError.loginDidNotWork;
       }
 
       await _saveSession(client);
