@@ -57,7 +57,7 @@ class _GedcomDateFieldState extends State<GedcomDateField> {
   Widget build(BuildContext context) {
     final raw = widget.controller.text;
     final parsed = gedcomDateToDateTime(raw);
-    final display = parsed != null ? formatGermanDate(parsed) : raw;
+    final display = parsed != null ? formatLongDate(parsed, Localizations.localeOf(context).toString()) : raw;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

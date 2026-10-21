@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/app_providers.dart';
@@ -60,14 +62,14 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
   String get _previewBody => widget.bodyTemplate.replaceAll(
     '{{PERSONAL_MESSAGE}}',
     _messageController.text.trim().isEmpty
-        ? '(keine persönliche Nachricht)'
+        ? AppLocalizations.of(context)!.askForHelpNoPersonalMessage
         : _messageController.text.trim(),
   );
 
   Future<void> _send() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      setState(() => _error = 'Bitte eine gültige E-Mail-Adresse angeben.');
+      setState(() => _error = AppLocalizations.of(context)!.invalidEmail);
       return;
     }
 
@@ -96,7 +98,7 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _error = 'Senden fehlgeschlagen: $e';
+        _error = AppLocalizations.of(context)!.askForHelpSendFailed('$e');
       });
     }
   }
@@ -125,8 +127,8 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const Text(
-                      'Per E-Mail senden',
+                    Text(
+                      AppLocalizations.of(context)!.askForHelpEmailTitle,
                       style: TextStyle(
                         fontSize: 18,
                         color: AppColors.textPrimary,
@@ -143,9 +145,9 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
                       child: TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'E-Mail-Adresse',
-                          hintText: 'oma@beispiel.at',
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.emailAddressLabel,
+                          hintText: AppLocalizations.of(context)!.askForHelpEmailHint,
                         ),
                       ),
                     ),
@@ -153,8 +155,8 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
                     _NarrowField(
                       child: TextField(
                         controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Name (optional)',
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!.askForHelpRecipientName,
                         ),
                       ),
                     ),
@@ -162,8 +164,8 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
                     TextField(
                       controller: _messageController,
                       maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Persönliche Nachricht (optional)',
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context)!.askForHelpPersonalMessage,
                         alignLabelWithHint: true,
                       ),
                       onChanged: (_) => setState(() {}),
@@ -178,8 +180,8 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
                       ),
                     ],
                     const SizedBox(height: 24),
-                    const Text(
-                      'Vorschau',
+                    Text(
+                      AppLocalizations.of(context)!.askForHelpPreview,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -229,7 +231,7 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('Senden'),
+                            : Text(AppLocalizations.of(context)!.askForHelpSend),
                       ),
                     ),
                   ],

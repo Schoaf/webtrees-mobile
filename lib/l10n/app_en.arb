@@ -260,5 +260,13 @@
   "serverErrorModuleTooOld": "The api4webtrees extension module on this site is too old – the app needs at least version {version}. Please contact the site's administrator.",
   "@serverErrorModuleTooOld": {"placeholders": {"version": {"type": "String"}}},
   "languageSetting": "Language",
-  "languageDevice": "Device language"
+  "languageDevice": "Device language",
+  "askForHelpNoPersonalMessage": "(no personal message)",
+  "askForHelpEmailTitle": "Send by email",
+  "askForHelpEmailHint": "grandma@example.com",
+  "askForHelpRecipientName": "Name (optional)",
+  "askForHelpPersonalMessage": "Personal message (optional)",
+  "askForHelpPreview": "Preview",
+  "askForHelpSend": "Send",
+  "askForHelpSendFailed": "Sending failed: {error}"
 }

@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../api/webtrees_client.dart';
 import '../l10n/app_localizations.dart';
 import '../repositories/quick_note_store.dart';
 import '../services/biometric_auth_service.dart';
+import 'language.dart';
 
 const _secureStorage = FlutterSecureStorage();
 
@@ -133,7 +135,12 @@ final selectedTabProvider = NotifierProvider<SelectedTabNotifier, int>(
 
 final webtreesClientProvider = Provider<WebtreesClient>((ref) {
   final url = ref.watch(serverUrlProvider);
-  return WebtreesClient(baseUrl: url);
+  String effective(String? picked) =>
+      picked ?? resolveAppLocale(PlatformDispatcher.instance.locales).languageCode;
+  final client = WebtreesClient(baseUrl: url)..language = effective(ref.read(languageProvider));
+  // Listen rather than watch: a new client would lose the session cookie.
+  ref.listen(languageProvider, (_, picked) => client.language = effective(picked));
+  return client;
 });
 
 /// `GET Info` against a server that isn't the active one yet - lets

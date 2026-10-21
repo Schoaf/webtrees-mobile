@@ -46,6 +46,11 @@ class WebtreesClient {
           if (_cookie != null) {
             options.headers['Cookie'] = _cookie;
           }
+          // api4webtrees answers labels and values (fact names, "Female",
+          // dates ...) in this language - the app's, not the server's.
+          if (language != null && !options.uri.queryParameters.containsKey('lang')) {
+            options.queryParameters = {...options.queryParameters, 'lang': language};
+          }
           if (_csrfToken != null) {
             options.headers['X-CSRF-TOKEN'] = _csrfToken;
           }
@@ -93,6 +98,10 @@ class WebtreesClient {
   static bool _isStaleConnectionError(DioException error) =>
       error.type == DioExceptionType.connectionError ||
       (error.type == DioExceptionType.unknown && error.error.toString().contains('Connection closed'));
+
+  /// The app's language code ('de', 'en'), sent as `lang` with every
+  /// request - set by webtreesClientProvider, null in tests.
+  String? language;
 
   final String _baseUrl;
   final Dio _dio;

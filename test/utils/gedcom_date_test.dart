@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:webtrees_mobile/utils/gedcom_date.dart';
 
 void main() {
@@ -43,13 +44,16 @@ void main() {
     });
   });
 
-  group('formatGermanDate', () {
-    test('formats a date as German long-form text', () {
-      expect(formatGermanDate(DateTime(1983, 5, 25)), '25. Mai 1983');
+  group('formatLongDate', () {
+    setUpAll(() => initializeDateFormatting());
+
+    test('German long-form text', () {
+      expect(formatLongDate(DateTime(1983, 5, 25), 'de'), '25. Mai 1983');
+      expect(formatLongDate(DateTime(2000, 12, 1), 'de'), '1. Dezember 2000');
     });
 
-    test('uses the correct German month name for December', () {
-      expect(formatGermanDate(DateTime(2000, 12, 1)), '1. Dezember 2000');
+    test('English long-form text', () {
+      expect(formatLongDate(DateTime(1983, 5, 25), 'en'), 'May 25, 1983');
     });
   });
 
