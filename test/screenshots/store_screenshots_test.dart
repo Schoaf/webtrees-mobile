@@ -13,7 +13,7 @@
 // Run it explicitly with:
 //   flutter test test/screenshots/store_screenshots_test.dart --dart-define=RENDER_SCREENSHOTS=true
 //
-// Output lands in screenshots/raw/{ios,android}/*.png (gitignored). Feed
+// Output lands in screenshots/raw/{de,en}/{platform}/*.png (gitignored). Feed
 // that into `tool/compose_store_screenshots.py` (stage 2) to get final,
 // phone-framed, store-ready images in screenshots/store/{ios,android}/.
 //
@@ -186,6 +186,18 @@ const _kNotchSafeAreaFraction = 0.09;
 
 Directory get _rawDir => Directory('screenshots/raw');
 
+/// Store screenshots are made per store language: the app's own texts follow
+/// [_lang] (locale), the mocked server data via [_t].
+const _languages = ['de', 'en'];
+var _lang = 'de';
+String _t(String de, String en) => _lang == 'en' ? en : de;
+
+/// Every language x every target size.
+final _allTargets = [
+  for (final lang in _languages)
+    for (final target in _targets) (lang, target),
+];
+
 /// `flutter test`'s headless environment has no fonts registered at all,
 /// so text renders as solid placeholder boxes ("tofu") unless real glyph
 /// data is loaded first - not useful for store screenshots.
@@ -322,7 +334,7 @@ Future<void> _renderAndSave(
       theme: buildAppTheme(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: const Locale('de'),
+      locale: Locale(_lang),
       home: screen,
     ),
   );
@@ -359,7 +371,7 @@ Future<void> _renderAndSave(
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
 
-    final dir = Directory('${_rawDir.path}/${target.platformDir}')..createSync(recursive: true);
+    final dir = Directory('${_rawDir.path}/$_lang/${target.platformDir}')..createSync(recursive: true);
     final file = File('${dir.path}/$name.png');
     file.writeAsBytesSync(byteData!.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
   });
@@ -412,10 +424,11 @@ void main() {
           'trees': [
             {
               'name': 'Famtree',
-              'title': 'Familie Bergmann',
+              'title': _t('Familie Bergmann', 'Bergmann Family'),
               'individuals': 187,
               'userXref': 'I1',
               'defaultXref': 'I1',
+              'startXref': 'I1',
             },
           ],
         },
@@ -459,7 +472,8 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      for (final target in _targets) {
+      for (final (lang, target) in _allTargets) {
+        _lang = lang;
         await _renderAndSave(
           tester,
           container: container,
@@ -496,7 +510,8 @@ void main() {
         await tester.pump();
       }
 
-      for (final target in _targets) {
+      for (final (lang, target) in _allTargets) {
+        _lang = lang;
         await _renderAndSave(
           tester,
           container: container,
@@ -509,7 +524,7 @@ void main() {
     }, skip: !_render);
 
     testWidgets('PersonDetailScreen, filled out', (tester) async {
-      final personJson = {
+      Map<String, dynamic> personJson() => {
         'ok': true,
         'person': {
           'xref': 'I1',
@@ -521,28 +536,28 @@ void main() {
         'facts': [
           {
             'tag': 'BIRT',
-            'label': 'Geburt',
+            'label': _t('Geburt', 'Birth'),
             'value': '',
-            'date': {'text': '14. März 1985', 'gedcom': '14 MAR 1985'},
-            'place': {'short': 'Graz, Steiermark, Österreich'},
+            'date': {'text': _t('14. März 1985', '14 March 1985'), 'gedcom': '14 MAR 1985'},
+            'place': {'short': _t('Graz, Steiermark, Österreich', 'Graz, Styria, Austria')},
           },
-          {'tag': 'SEX', 'label': 'Geschlecht', 'value': 'Weiblich'},
+          {'tag': 'SEX', 'label': _t('Geschlecht', 'Sex'), 'value': _t('Weiblich', 'Female')},
           {
             'tag': 'OCCU',
-            'label': 'Beruf',
-            'value': 'Kinderärztin',
+            'label': _t('Beruf', 'Occupation'),
+            'value': _t('Kinderärztin', 'Paediatrician'),
             'date': null,
             'place': null,
           },
           {
             'tag': 'RESI',
-            'label': 'Wohnort',
+            'label': _t('Wohnort', 'Residence'),
             'value': '',
-            'date': {'text': 'seit 2012', 'gedcom': ''},
-            'place': {'short': 'Klagenfurt, Kärnten, Österreich'},
+            'date': {'text': _t('seit 2012', 'from 2012'), 'gedcom': ''},
+            'place': {'short': _t('Klagenfurt, Kärnten, Österreich', 'Klagenfurt, Carinthia, Austria')},
           },
-          {'tag': 'TITL', 'label': 'Titel', 'value': 'Dr.'},
-          {'tag': 'REFN', 'label': 'Referenz', 'value': 'BER-1985-04'},
+          {'tag': 'TITL', 'label': _t('Titel', 'Title'), 'value': 'Dr.'},
+          {'tag': 'REFN', 'label': _t('Referenz', 'Reference'), 'value': 'BER-1985-04'},
         ],
         'parentFamilies': [
           {
@@ -568,12 +583,13 @@ void main() {
         'media': <dynamic>[],
         'canEdit': false,
       };
-      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson);
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson());
 
       final container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
       addTearDown(container.dispose);
 
-      for (final target in _targets) {
+      for (final (lang, target) in _allTargets) {
+        _lang = lang;
         await _renderAndSave(
           tester,
           container: container,
@@ -585,7 +601,7 @@ void main() {
     }, skip: !_render);
 
     testWidgets('TreeViewScreen, filled out', (tester) async {
-      final individualJson = {
+      Map<String, dynamic> individualJson() => {
         'ok': true,
         'person': {
           'xref': 'I1',
@@ -602,10 +618,10 @@ void main() {
         'facts': [
           {
             'tag': 'BIRT',
-            'date': {'text': '14. März 1985'},
+            'date': {'text': _t('14. März 1985', '14 March 1985')},
             'place': {'short': 'Graz'},
           },
-          {'tag': 'OCCU', 'value': 'Kinderärztin'},
+          {'tag': 'OCCU', 'value': _t('Kinderärztin', 'Paediatrician')},
         ],
         'parentFamilies': [
           {
@@ -736,12 +752,13 @@ void main() {
         ],
         'stepFamilies': <dynamic>[],
       };
-      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson);
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());
 
       final container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
       addTearDown(container.dispose);
 
-      for (final target in _targets) {
+      for (final (lang, target) in _allTargets) {
+        _lang = lang;
         await _renderAndSave(
           tester,
           container: container,

@@ -9,7 +9,7 @@ screens to raw PNGs at exact store pixel dimensions:
         --dart-define=RENDER_SCREENSHOTS=true
 
 This script then takes every PNG under
-screenshots/raw/{ios,ios-ipad13,android,android-tablet7,android-tablet10}/
+screenshots/raw/{de,en}/{ios,ios-ipad13,android,android-tablet7,android-tablet10}/
 and writes a composited version to the matching screenshots/store/*/ dir -
 a dark device frame (drawn programmatically, no bundled bezel asset, no
 network) around a rounded-corner clip of the screenshot, on the app's own
@@ -76,10 +76,18 @@ CAPTION_FONT_VARIATION = [32, 600]  # [optical size, weight] - semibold, tuned f
 # "\n" marks a deliberate, hand-picked line break (at a natural phrase
 # boundary) rather than leaving it to auto-wrap.
 CAPTIONS = {
-    "home": "Übersichtlich und aufgeräumt",
-    "search": "Schnell Nachschlagen?\nKein Problem!",
-    "person_detail": "Detaillierte Einzelansichten",
-    "tree_view": "Interaktiver Stammbaum\n> mobile friendly <",
+    "de": {
+        "home": "Übersichtlich und aufgeräumt",
+        "search": "Schnell Nachschlagen?\nKein Problem!",
+        "person_detail": "Detaillierte Einzelansichten",
+        "tree_view": "Interaktiver Stammbaum\n> mobile friendly <",
+    },
+    "en": {
+        "home": "Clear and tidy",
+        "search": "Need to look something up?\nNo problem!",
+        "person_detail": "Detailed individual views",
+        "tree_view": "Interactive family tree\n> mobile friendly <",
+    },
 }
 
 # How much of the device's own height is deliberately pushed below the
@@ -206,7 +214,11 @@ def _gap_height(canvas_h: float, is_tablet: bool) -> float:
 
 
 def compose(
-    raw_path: pathlib.Path, canvas_size: tuple[int, int], is_tablet: bool, caption_font: ImageFont.FreeTypeFont
+    raw_path: pathlib.Path,
+    canvas_size: tuple[int, int],
+    is_tablet: bool,
+    caption_font: ImageFont.FreeTypeFont,
+    captions: dict[str, str],
 ) -> Image.Image:
     """Composite one raw screenshot into a framed mockup at `canvas_size`
     (the same pixel dimensions the store expects for the upload). Draws the
@@ -311,7 +323,7 @@ def compose(
         )
     canvas = Image.alpha_composite(canvas, decoration)
 
-    caption = CAPTIONS.get(raw_path.stem)
+    caption = captions.get(raw_path.stem)
     if caption:
         canvas = draw_caption(canvas, caption, canvas_size, gap_height=phone_y, font=caption_font)
 
@@ -329,36 +341,34 @@ def main() -> None:
         )
 
     count = 0
-    for platform_dir in sorted(p for p in RAW_DIR.iterdir() if p.is_dir()):
-        is_tablet = platform_dir.name in TABLET_PLATFORM_DIRS
-        out_dir = STORE_DIR / platform_dir.name
-        out_dir.mkdir(parents=True, exist_ok=True)
+    # screenshots/raw/<lang>/<platform>/ -> screenshots/store/<lang>/<platform>/
+    for lang_dir in sorted(p for p in RAW_DIR.iterdir() if p.is_dir() and p.name in CAPTIONS):
+        captions = CAPTIONS[lang_dir.name]
+        for platform_dir in sorted(p for p in lang_dir.iterdir() if p.is_dir()):
+            is_tablet = platform_dir.name in TABLET_PLATFORM_DIRS
+            out_dir = STORE_DIR / lang_dir.name / platform_dir.name
+            out_dir.mkdir(parents=True, exist_ok=True)
 
-        raw_paths = sorted(platform_dir.glob("*.png"))
-        if not raw_paths:
-            continue
-        # Every raw screenshot in a platform dir shares the same canvas
-        # size (stage 1 renders them all to the exact store target
-        # dimensions), so the caption band is the same height for all of
-        # them too - one shared, maximized font size fits them all.
-        with Image.open(raw_paths[0]) as im:
-            canvas_size = im.size
-        gap_height = _gap_height(canvas_size[1], is_tablet)
-        caption_font = fit_shared_caption_font(list(CAPTIONS.values()), max_width=canvas_size[0] * 0.86, max_height=gap_height * 0.5)
+            raw_paths = sorted(platform_dir.glob("*.png"))
+            if not raw_paths:
+                continue
+            # Every raw screenshot in a platform dir shares the same canvas
+            # size, so one shared, maximized caption font fits them all.
+            with Image.open(raw_paths[0]) as im:
+                canvas_size = im.size
+            gap_height = _gap_height(canvas_size[1], is_tablet)
+            caption_font = fit_shared_caption_font(list(captions.values()), max_width=canvas_size[0] * 0.86, max_height=gap_height * 0.5)
 
-        for raw_path in raw_paths:
-            with Image.open(raw_path) as im:
-                size = im.size
-            composed = compose(raw_path, size, is_tablet=is_tablet, caption_font=caption_font)
-            # Prefixed with the platform dir name (e.g. "ios-6.9_home.png"):
-            # every store's upload picker shows only the bare filename, not
-            # which folder it came from, and "home.png" repeated across
-            # five differently-sized platform dirs is impossible to tell
-            # apart once they're all sitting in one flat OS file picker.
-            out_path = out_dir / f"{platform_dir.name}_{raw_path.name}"
-            composed.save(out_path, "PNG")
-            print(f"{raw_path.relative_to(REPO_ROOT)} -> {out_path.relative_to(REPO_ROOT)} ({size[0]}x{size[1]})")
-            count += 1
+            for raw_path in raw_paths:
+                with Image.open(raw_path) as im:
+                    size = im.size
+                composed = compose(raw_path, size, is_tablet=is_tablet, caption_font=caption_font, captions=captions)
+                # Language and platform in the name: store upload pickers show
+                # only the bare filename, not the folder it came from.
+                out_path = out_dir / f"{lang_dir.name}_{platform_dir.name}_{raw_path.name}"
+                composed.save(out_path, "PNG")
+                print(f"{raw_path.relative_to(REPO_ROOT)} -> {out_path.relative_to(REPO_ROOT)} ({size[0]}x{size[1]})")
+                count += 1
 
     if count == 0:
         raise SystemExit(f"No PNGs found under {RAW_DIR} - run stage 1 first.")
