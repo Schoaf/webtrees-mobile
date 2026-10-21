@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""App Store header / search-result banners ("product page" artwork).
-
-Wide images in the two sizes App Store Connect accepts (5244x2950 and
-3840x1646): app icon, name and a one-line pitch on the left, three phones
+"""Store banners: App Store header / search-result artwork (5244x2950 and
+3840x1646, the two sizes App Store Connect accepts) and the Google Play
+feature graphic (1024x500): app icon, name and a one-line pitch on the left, three phones
 with real app screens on the right - per store language.
 
 Uses the raw iPhone screenshots from stage 1 of the screenshot pipeline:
@@ -28,7 +27,7 @@ from compose_store_screenshots import (
     rounded_mask,
 )
 
-SIZES = [(5244, 2950), (3840, 1646)]
+SIZES = [(5244, 2950), (3840, 1646), (1024, 500)]  # App Store header x2, Google Play feature graphic
 ICON = REPO_ROOT / "ios" / "Runner" / "Assets.xcassets" / "AppIcon.appiconset" / "Icon-App-1024x1024@1x.png"
 SCREENS = ["home", "person_detail", "tree_view"]  # left to right, the middle one in front
 TEXT = {
