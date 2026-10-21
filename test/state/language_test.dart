@@ -7,8 +7,12 @@ void main() {
     expect(resolveAppLocale(const [Locale('de', 'AT')]), const Locale('de'));
   });
 
+  test('a Dutch device gets Dutch', () {
+    expect(resolveAppLocale(const [Locale('nl', 'BE')]), const Locale('nl'));
+  });
+
   test('every other device language falls back to English', () {
-    expect(resolveAppLocale(const [Locale('nl', 'NL')]), const Locale('en'));
+    expect(resolveAppLocale(const [Locale('fr', 'FR')]), const Locale('en'));
     expect(resolveAppLocale(const [Locale('en', 'US')]), const Locale('en'));
     expect(resolveAppLocale(null), const Locale('en'));
   });

@@ -425,14 +425,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                                   value: null,
                                   child: Text(l10n.languageDevice),
                                 ),
-                                const DropdownMenuItem(
-                                  value: 'de',
-                                  child: Text('Deutsch'),
-                                ),
-                                const DropdownMenuItem(
-                                  value: 'en',
-                                  child: Text('English'),
-                                ),
+                                for (final MapEntry(key: code, value: name) in appLanguages.entries)
+                                  DropdownMenuItem(value: code, child: Text(name)),
                               ],
                               onChanged: (code) =>
                                   ref.read(languageProvider.notifier).set(code),
