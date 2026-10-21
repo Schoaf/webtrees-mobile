@@ -1,0 +1,88 @@
+name: Release
+
+# Push a tag like v1.4.0 when that version goes to the stores (see docs/RELEASING.md):
+# builds a signed Android APK, publishes a GitHub release with the closed issues of the
+# milestone "1.4.0" as notes and the APK as download, then closes the milestone.
+# For a tag that already exists, run it manually with that tag.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag, e.g. v1.3.0
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Version
+        id: version
+        run: echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Decode keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Write key.properties
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=upload-keystore.jks
+          EOF
+
+      - name: Build APK
+        run: |
+          flutter build apk --release --obfuscate --split-debug-info=build/symbols --build-number=${{ github.run_number }}
+          cp build/app/outputs/flutter-apk/app-release.apk "webtrees-mobile-${{ steps.version.outputs.version }}.apk"
+
+      # Release notes: the closed issues of the milestone named like the version.
+      - name: Release notes
+        id: notes
+        run: |
+          MILESTONE=$(gh api "repos/${{ github.repository }}/milestones?state=all&per_page=100" \
+            --jq '.[] | select(.title == "${{ steps.version.outputs.version }}") | .number')
+          echo "milestone=$MILESTONE" >> "$GITHUB_OUTPUT"
+          {
+            if [ -n "$MILESTONE" ]; then
+              echo "## Fixed"
+              gh issue list --repo "${{ github.repository }}" --milestone "${{ steps.version.outputs.version }}" \
+                --state closed --limit 200 --json number,title --jq '.[] | "- #\(.number) \(.title)"'
+              echo
+            fi
+            echo "The APK is for installing without Google Play. It is signed with a different key than the Play version, so the two can't be updated into each other."
+          } > notes.md
+          cat notes.md
+
+      - name: Create release
+        run: |
+          gh release create "$TAG" "webtrees-mobile-${{ steps.version.outputs.version }}.apk" \
+            --title "webtrees mobile ${{ steps.version.outputs.version }}" --notes-file notes.md
+
+      - name: Close milestone
+        if: steps.notes.outputs.milestone != ''
+        run: gh api -X PATCH "repos/${{ github.repository }}/milestones/${{ steps.notes.outputs.milestone }}" -f state=closed

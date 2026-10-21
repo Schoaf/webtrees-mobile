@@ -1,9 +1,13 @@
 # Releasing
 
-1. Bump `version` in `pubspec.yaml`: the version name **and** the build number after `+` (e.g. `1.2.0+5` → `1.3.0+6`). The build number must increase with every release — F-Droid uses it as the version code.
-2. Commit, then tag the release commit: `git tag v1.3.0 && git push origin v1.3.0`. F-Droid builds from these tags.
-3. Submit the build from TestFlight / Play internal testing to the stores.
+While developing: assign every fixed issue to the milestone of the next version (e.g. `1.4.0`), so it's clear which version brings the fix even though the issue is already closed.
 
-The App Store and Play builds from CI use the GitHub run number as build number instead (`--build-number`), so they always increase on their own; only the version name comes from `pubspec.yaml`. F-Droid signs with its own key, so its builds are independent of the store builds.
+When a version goes to the stores:
+
+1. Submit the build from TestFlight / Play internal testing to the stores.
+2. Tag the commit of that build and push the tag: `git tag v1.4.0 <commit> && git push origin v1.4.0`. The release workflow then builds a signed APK, publishes a GitHub release with the milestone's closed issues as notes and the APK as download, and closes the milestone. (For an existing tag: run the workflow manually with the tag.)
+3. Bump `version` in `pubspec.yaml` for the next version — the version name **and** the build number after `+` (e.g. `1.4.0+7` → `1.5.0+8`) — and create the next milestone.
+
+The App Store and Play builds from CI use the GitHub run number as build number (`--build-number`), so they always increase on their own; only the version name comes from `pubspec.yaml`. The release APK is signed with the upload key, not Google's app signing key, so it can't be updated into the Play version or vice versa.
 
 The iOS deploy fails early if the version name is already released in the App Store (`tool/check_ios_version_train.py`) — bump it after each App Store release.
