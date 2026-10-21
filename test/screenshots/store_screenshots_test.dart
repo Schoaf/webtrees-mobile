@@ -81,14 +81,11 @@ class _Target {
   final double safeAreaFraction;
 }
 
-// iOS: 6.5" iPhone display (iPhone 12/13/14 Pro Max class) - verified
-// directly against Andreas's own App Store Connect upload screen on
-// 2026-09-24 (supersedes an earlier, wrongly-researched 6.9"/1320x2868
-// assumption): that slot accepts 1242x2688, 2688x1242, 1284x2778 or
-// 2778x1284. Portrait 1284x2778 is the higher-resolution option of the
-// two portrait choices, and is exactly 428x926 logical points at a 3.0
-// devicePixelRatio (matches the real device's ratio).
-const _iosTarget = _Target('ios', Size(1284, 2778), 3.0);
+// iOS: 6.3" iPhone display (iPhone 16/17 Pro class). App Store Connect's upload screen
+// (2026-10-21) asks for 6.1"/6.3" content and accepts 1179x2556, 2556x1179, 1206x2622
+// or 2622x1206 - the old 6.5" 1284x2778 is refused there. Portrait 1206x2622 is
+// 402x874 logical points at a 3.0 devicePixelRatio (the real device's ratio).
+const _iosTarget = _Target('ios', Size(1206, 2622), 3.0);
 
 // iOS: 6.9" iPhone display (iPhone 16 Pro Max class) - a separate,
 // independently-required upload slot from the 6.5" one above, confirmed
