@@ -40,8 +40,11 @@ Future<String?> loadLanguagePreference() async {
   }
 }
 
-/// "Like the device": German on a German device, English everywhere else.
+/// Languages the app is translated into, with their own names for the picker.
+const appLanguages = {'de': 'Deutsch', 'en': 'English', 'nl': 'Nederlands'};
+
+/// "Like the device": the device language if the app has it, English otherwise.
 Locale resolveAppLocale(Iterable<Locale>? deviceLocales) {
-  final first = deviceLocales?.firstOrNull;
-  return first?.languageCode == 'de' ? const Locale('de') : const Locale('en');
+  final code = deviceLocales?.firstOrNull?.languageCode;
+  return Locale(appLanguages.containsKey(code) ? code! : 'en');
 }
