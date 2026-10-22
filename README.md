@@ -3,6 +3,7 @@
 Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks to the server through the [api4webtrees](https://github.com/thobgg/api4webtrees) module.
 
 <a href="https://apps.apple.com/app/id6815108154"><img src="docs/app-store-badge.svg" height="40" alt="Download on the App Store"></a>
+<a href="https://play.google.com/store/apps/details?id=net.webtrees.webtreesmobile"><img src="docs/google-play-badge.png" height="58" alt="Get it on Google Play"></a>
 
 ## Server requirements
 
