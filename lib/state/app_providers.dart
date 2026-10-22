@@ -289,6 +289,7 @@ class AuthState {
 enum AuthError {
   invalidCredentials,
   loginDidNotWork,
+  noTrees,
   serverUnreachable,
   insecureConnection,
   loginFailedGeneric,
@@ -298,6 +299,7 @@ extension AuthErrorL10n on AuthError {
   String message(AppLocalizations l10n) => switch (this) {
     AuthError.invalidCredentials => l10n.authErrorInvalidCredentials,
     AuthError.loginDidNotWork => l10n.authErrorLoginDidNotWork,
+    AuthError.noTrees => l10n.serverErrorNoTrees,
     AuthError.serverUnreachable => l10n.authErrorServerUnreachable,
     AuthError.insecureConnection => l10n.authErrorInsecureConnection,
     AuthError.loginFailedGeneric => l10n.authErrorLoginFailedGeneric,
@@ -358,27 +360,30 @@ class AuthController extends Notifier<AuthState> {
     var tree = ref.read(treeNameProvider);
 
     try {
-      // Establishes session cookie + CSRF token. Without a known tree (an
-      // install where only the server got saved), take the first one.
-      final firstInfo = await client.info(tree.isEmpty ? null : tree);
-      if (tree.isEmpty) {
-        final trees = (firstInfo['trees'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-        if (trees.isEmpty) return AuthError.loginFailedGeneric;
-        tree = trees.first['name'] as String;
-        await ref.read(treeNameProvider.notifier).set(tree);
-      }
+      // Establishes session cookie + CSRF token.
+      await client.info(tree.isEmpty ? null : tree);
       final ok = await client.login(username: username, password: password);
       if (!ok) {
         return AuthError.invalidCredentials;
       }
 
-      final info = await client.info(tree);
+      final info = await client.info(tree.isEmpty ? null : tree);
       final user = info['user'] as Map<String, dynamic>;
       if (user['loggedIn'] != true) {
         // With pretty URLs webtrees answers a wrong password with a redirect
         // too, so only Info can tell - and then a wrong password is by far
         // the likeliest reason.
         return client.usePrettyUrls ? AuthError.invalidCredentials : AuthError.loginDidNotWork;
+      }
+
+      // No tree known yet (e.g. a site whose trees only signed-in users see,
+      // so choosing the server found none): take the first one the account
+      // can see now.
+      if (tree.isEmpty) {
+        final trees = (info['trees'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+        if (trees.isEmpty) return AuthError.noTrees;
+        tree = trees.first['name'] as String;
+        await ref.read(treeNameProvider.notifier).set(tree);
       }
 
       await _saveSession(client);

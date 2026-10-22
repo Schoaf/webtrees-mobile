@@ -147,7 +147,37 @@ void main() {
   });
 
   group('AuthController.login', () {
-    test('without a saved tree, uses and saves the server\'s first tree', () async {
+    test('without a saved tree, picks the first tree the account sees after signing in', () async {
+      final c = ProviderContainer(
+        overrides: [
+          webtreesClientProvider.overrideWithValue(client),
+          treeNameProvider.overrideWith(() => TreeNameNotifier(initial: '')),
+        ],
+      );
+      addTearDown(c.dispose);
+      // Guests see no tree on this site - only the signed-in account does.
+      var calls = 0;
+      when(() => client.info(null)).thenAnswer((_) async {
+        calls++;
+        return calls == 1
+            ? {'csrf': 'tok', 'trees': <dynamic>[]}
+            : {
+                'user': {'loggedIn': true, 'userName': 'alice'},
+                'trees': [
+                  {'name': 'Ahnen'},
+                ],
+              };
+      });
+      when(() => client.login(username: 'alice', password: 'pw')).thenAnswer((_) async => true);
+      when(() => client.sessionCookie).thenReturn('c');
+
+      final error = await c.read(authControllerProvider.notifier).login('alice', 'pw');
+
+      expect(error, isNull);
+      expect(c.read(treeNameProvider), 'Ahnen');
+    });
+
+    test('an account that sees no tree at all gets a clear error', () async {
       final c = ProviderContainer(
         overrides: [
           webtreesClientProvider.overrideWithValue(client),
@@ -158,23 +188,13 @@ void main() {
       when(() => client.info(null)).thenAnswer(
         (_) async => {
           'csrf': 'tok',
-          'trees': [
-            {'name': 'Ahnen'},
-          ],
-        },
-      );
-      when(() => client.info('Ahnen')).thenAnswer(
-        (_) async => {
-          'user': {'loggedIn': true, 'userName': 'alice'},
+          'user': {'loggedIn': true},
+          'trees': <dynamic>[],
         },
       );
       when(() => client.login(username: 'alice', password: 'pw')).thenAnswer((_) async => true);
-      when(() => client.sessionCookie).thenReturn('c');
 
-      final error = await c.read(authControllerProvider.notifier).login('alice', 'pw');
-
-      expect(error, isNull);
-      expect(c.read(treeNameProvider), 'Ahnen');
+      expect(await c.read(authControllerProvider.notifier).login('alice', 'pw'), AuthError.noTrees);
     });
 
     test('an unexpected response (e.g. an HTML error page) ends with an error, not a stuck spinner', () async {

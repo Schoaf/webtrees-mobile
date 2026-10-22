@@ -85,9 +85,9 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
           : reachable
           ? _ServerError.notWebtrees
           : _ServerError.unreachable;
-    } else if (trees.isEmpty) {
-      error = _ServerError.noTrees;
     }
+    // No trees for guests is fine: many sites show their trees only to
+    // signed-in users. The tree is then picked after login.
 
     if (!mounted) return;
     if (error != null) {
@@ -105,6 +105,12 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
     // is set even when there are several, so the login screen is
     // consistent even if the picker is backed out of.
     final navigator = Navigator.of(context);
+    if (foundTrees.isEmpty) {
+      await ref.read(treeNameProvider.notifier).set('');
+      await ref.read(serverUrlProvider.notifier).set(serverUrl);
+      if (navigator.canPop()) navigator.pop();
+      return;
+    }
     await ref.read(treeNameProvider.notifier).set(foundTrees.first['name'] as String);
     await ref.read(serverUrlProvider.notifier).set(serverUrl);
 
@@ -194,7 +200,6 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
     _ServerError.notWebtrees => l10n.serverErrorNoApi,
     _ServerError.moduleMissing => l10n.serverErrorModuleMissing,
     _ServerError.moduleTooOld => l10n.serverErrorModuleTooOld(minApiVersionName),
-    _ServerError.noTrees => l10n.serverErrorNoTrees,
   };
 
   // Selectable (copy the module name, the instructions ...), and every
@@ -230,4 +235,4 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
   }
 }
 
-enum _ServerError { invalidUrl, unreachable, notWebtrees, moduleMissing, moduleTooOld, noTrees }
+enum _ServerError { invalidUrl, unreachable, notWebtrees, moduleMissing, moduleTooOld }

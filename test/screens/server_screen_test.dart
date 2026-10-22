@@ -182,13 +182,13 @@ void main() {
     expect(container.read(serverUrlProvider), productionServerUrl);
   });
 
-  testWidgets('a server without trees for the app is rejected', (tester) async {
+  testWidgets('a server that shows guests no tree is still accepted (tree picked after login)', (tester) async {
     final container = await pumpScreen(tester, (_) async => {'api': minApiLevel, 'trees': <dynamic>[]});
 
-    await enterAndSubmit(tester, 'example.org');
+    await enterAndSubmit(tester, 'example.org/familytree');
 
-    expect(find.text('Dieser Server stellt keinen Stammbaum für die App bereit.'), findsOneWidget);
-    expect(container.read(serverUrlProvider), productionServerUrl);
+    expect(container.read(serverUrlProvider), 'https://example.org/familytree');
+    expect(container.read(treeNameProvider), '');
   });
 
   testWidgets('as the first screen: shows the welcome text, then gives way to login', (tester) async {
