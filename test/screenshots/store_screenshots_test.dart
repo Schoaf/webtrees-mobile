@@ -185,9 +185,13 @@ Directory get _rawDir => Directory('screenshots/raw');
 
 /// Store screenshots are made per store language: the app's own texts follow
 /// [_lang] (locale), the mocked server data via [_t].
-const _languages = ['de', 'en'];
+const _languages = ['de', 'en', 'nl'];
 var _lang = 'de';
-String _t(String de, String en) => _lang == 'en' ? en : de;
+String _t(String de, String en, String nl) => switch (_lang) {
+  'en' => en,
+  'nl' => nl,
+  _ => de,
+};
 
 /// Every language x every target size.
 final _allTargets = [
@@ -421,7 +425,7 @@ void main() {
           'trees': [
             {
               'name': 'Famtree',
-              'title': _t('Familie Bergmann', 'Bergmann Family'),
+              'title': _t('Familie Bergmann', 'Bergmann Family', 'Familie Bergmann'),
               'individuals': 187,
               'userXref': 'I1',
               'defaultXref': 'I1',
@@ -533,28 +537,28 @@ void main() {
         'facts': [
           {
             'tag': 'BIRT',
-            'label': _t('Geburt', 'Birth'),
+            'label': _t('Geburt', 'Birth', 'Geboorte'),
             'value': '',
-            'date': {'text': _t('14. März 1985', '14 March 1985'), 'gedcom': '14 MAR 1985'},
-            'place': {'short': _t('Graz, Steiermark, Österreich', 'Graz, Styria, Austria')},
+            'date': {'text': _t('14. März 1985', '14 March 1985', '14 maart 1985'), 'gedcom': '14 MAR 1985'},
+            'place': {'short': _t('Graz, Steiermark, Österreich', 'Graz, Styria, Austria', 'Graz, Stiermarken, Oostenrijk')},
           },
-          {'tag': 'SEX', 'label': _t('Geschlecht', 'Sex'), 'value': _t('Weiblich', 'Female')},
+          {'tag': 'SEX', 'label': _t('Geschlecht', 'Sex', 'Geslacht'), 'value': _t('Weiblich', 'Female', 'Vrouwelijk')},
           {
             'tag': 'OCCU',
-            'label': _t('Beruf', 'Occupation'),
-            'value': _t('Kinderärztin', 'Paediatrician'),
+            'label': _t('Beruf', 'Occupation', 'Beroep'),
+            'value': _t('Kinderärztin', 'Paediatrician', 'Kinderarts'),
             'date': null,
             'place': null,
           },
           {
             'tag': 'RESI',
-            'label': _t('Wohnort', 'Residence'),
+            'label': _t('Wohnort', 'Residence', 'Woonplaats'),
             'value': '',
-            'date': {'text': _t('seit 2012', 'from 2012'), 'gedcom': ''},
-            'place': {'short': _t('Klagenfurt, Kärnten, Österreich', 'Klagenfurt, Carinthia, Austria')},
+            'date': {'text': _t('seit 2012', 'from 2012', 'sinds 2012'), 'gedcom': ''},
+            'place': {'short': _t('Klagenfurt, Kärnten, Österreich', 'Klagenfurt, Carinthia, Austria', 'Klagenfurt, Karinthië, Oostenrijk')},
           },
-          {'tag': 'TITL', 'label': _t('Titel', 'Title'), 'value': 'Dr.'},
-          {'tag': 'REFN', 'label': _t('Referenz', 'Reference'), 'value': 'BER-1985-04'},
+          {'tag': 'TITL', 'label': _t('Titel', 'Title', 'Titel'), 'value': 'Dr.'},
+          {'tag': 'REFN', 'label': _t('Referenz', 'Reference', 'Referentie'), 'value': 'BER-1985-04'},
         ],
         'parentFamilies': [
           {
@@ -615,10 +619,10 @@ void main() {
         'facts': [
           {
             'tag': 'BIRT',
-            'date': {'text': _t('14. März 1985', '14 March 1985')},
+            'date': {'text': _t('14. März 1985', '14 March 1985', '14 maart 1985')},
             'place': {'short': 'Graz'},
           },
-          {'tag': 'OCCU', 'value': _t('Kinderärztin', 'Paediatrician')},
+          {'tag': 'OCCU', 'value': _t('Kinderärztin', 'Paediatrician', 'Kinderarts')},
         ],
         'parentFamilies': [
           {

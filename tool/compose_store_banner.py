@@ -33,6 +33,7 @@ SCREENS = ["home", "person_detail", "tree_view"]  # left to right, the middle on
 TEXT = {
     "de": ("webtrees mobile", "Dein Stammbaum\nfür unterwegs"),
     "en": ("webtrees mobile", "Your family tree\non the go"),
+    "nl": ("webtrees mobile", "Uw stamboom\nonderweg"),
 }
 PRIMARY = (0x2F, 0x6F, 0xB0)  # AppColors.primary
 

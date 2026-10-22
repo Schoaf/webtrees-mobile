@@ -88,6 +88,12 @@ CAPTIONS = {
         "person_detail": "Detailed individual views",
         "tree_view": "Interactive family tree\n> mobile friendly <",
     },
+    "nl": {
+        "home": "Overzichtelijk en opgeruimd",
+        "search": "Snel iets opzoeken?\nGeen probleem!",
+        "person_detail": "Gedetailleerde persoonsweergave",
+        "tree_view": "Interactieve stamboom\n> mobile friendly <",
+    },
 }
 
 # How much of the device's own height is deliberately pushed below the
