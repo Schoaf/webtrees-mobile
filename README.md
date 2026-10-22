@@ -14,12 +14,12 @@ Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks t
 | api4webtrees – app appears on the "App" page (connect via link/QR code) | **1.13.1** |
 | api4webtrees – welcome text, registration settings, changing your name | **1.14.0** |
 | api4webtrees – "waiting for approval" marker | **1.15.0** |
-| api4webtrees – hiding links to disabled modules | next release after 1.18.1 |
+| api4webtrees – hiding links to disabled modules | **1.18.2** |
 | Registering inside the app | only the fork [Schoaf/webtreesand-api](https://github.com/Schoaf/webtreesand-api); elsewhere "Register" opens the site's registration page |
 
 ## Features
 
-- **Connect to any webtrees site** – by entering its address or via the connect link from the site's "App" page (no password needed); switch between trees
+- **Connect to any webtrees site** – by entering its address or via the connect link from the site's "App" page (no password needed), also in a subfolder or with pretty URLs; switch between trees
 - **Sign in and register** – welcome text and registration settings as configured on the site; optional biometric lock
 - **Home** – start person, birthdays this week, responses to "Ask for help"
 - **Search** – live search with photos, lifespans and markers for deceased individuals
@@ -28,7 +28,7 @@ Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks t
 - **Edit** – edit facts and photos, add individuals and facts with place autocompletion; changes go through webtrees moderation
 - **Offline notes** – facts recorded without a connection are kept and synchronised later
 - **My account** – name, linked individual, start person
-- **German and English**
+- **English, German and Dutch** – follows the device language or can be picked in My account
 
 <p>
 <img src="docs/screenshots/home.png" width="150" alt="Home">
