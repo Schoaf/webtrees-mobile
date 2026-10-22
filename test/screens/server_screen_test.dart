@@ -231,4 +231,31 @@ void main() {
     expect(find.text('login'), findsOneWidget);
     expect(container.read(treeNameProvider), 'Ahnen');
   });
+
+  testWidgets('changing the server pre-fills host and subfolder, not just the host', (tester) async {
+    final container = ProviderContainer(
+      overrides: [serverUrlProvider.overrideWith(() => ServerUrlNotifier(initial: 'https://example.com/familytree'))],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ServerScreen())),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, 'example.com/familytree');
+  });
 }

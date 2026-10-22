@@ -32,7 +32,9 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
     super.initState();
     final current = ref.read(serverUrlProvider);
     _urlController = TextEditingController(
-      text: current.isEmpty ? '' : Uri.parse(current).host,
+      // Host plus subfolder (e.g. example.com/familytree) - the host alone
+      // would point somewhere else when saved unchanged.
+      text: current.isEmpty ? '' : current.replaceFirst(RegExp(r'^https://'), ''),
     );
   }
 
