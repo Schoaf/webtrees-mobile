@@ -56,16 +56,20 @@ class StammbaumApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final language = ref.watch(languageProvider);
+    // Picked in "Mein Konto", else like the device (see resolveAppLocale).
+    final locale = resolveAppLocale(
+      WidgetsBinding.instance.platformDispatcher.locales,
+      picked: ref.watch(languageProvider),
+    );
     return MaterialApp(
       title: 'Stammbaum',
       theme: buildAppTheme(),
       navigatorKey: rootNavigatorKey,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      // Picked in "Mein Konto", else like the device - English unless German.
-      locale: language == null ? null : Locale(language),
-      localeListResolutionCallback: (deviceLocales, _) => resolveAppLocale(deviceLocales),
+      // Listed with its country too, or Flutter would match it to the bare
+      // language and lose the region (en_GB -> en = US date formats).
+      supportedLocales: {...AppLocalizations.supportedLocales, locale}.toList(),
+      locale: locale,
       home: const _AppRoot(),
     );
   }

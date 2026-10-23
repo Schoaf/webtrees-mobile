@@ -43,8 +43,13 @@ Future<String?> loadLanguagePreference() async {
 /// Languages the app is translated into, with their own names for the picker.
 const appLanguages = {'de': 'Deutsch', 'en': 'English', 'nl': 'Nederlands'};
 
-/// "Like the device": the device language if the app has it, English otherwise.
-Locale resolveAppLocale(Iterable<Locale>? deviceLocales) {
-  final code = deviceLocales?.firstOrNull?.languageCode;
-  return Locale(appLanguages.containsKey(code) ? code! : 'en');
+/// The app's locale: the [picked] language, or "like the device" - the device
+/// language if the app has it, English otherwise. Keeps the device's country
+/// when the language matches (en_GB, nl_BE ...), so dates, the date picker's
+/// typed input (dd/mm/yyyy vs mm/dd/yyyy) etc. follow the device's region -
+/// plain "en" would mean US formats.
+Locale resolveAppLocale(Iterable<Locale>? deviceLocales, {String? picked}) {
+  final device = deviceLocales?.firstOrNull;
+  final code = picked ?? (appLanguages.containsKey(device?.languageCode) ? device!.languageCode : 'en');
+  return Locale(code, device?.languageCode == code ? device?.countryCode : null);
 }
