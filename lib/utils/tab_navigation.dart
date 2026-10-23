@@ -39,9 +39,9 @@ final treeNavigatorKey = GlobalKey<NavigatorState>();
 /// WidgetRef, so call sites that are plain StatelessWidgets - not every
 /// screen/row that opens a person is a ConsumerWidget - don't need
 /// converting just to call this.
-void openPerson(BuildContext context, String xref, {int depth = 0}) {
+void openPerson(BuildContext context, String xref) {
   final route = MaterialPageRoute(
-    builder: (_) => PersonDetailScreen(xref: xref, depth: depth),
+    builder: (_) => PersonDetailScreen(xref: xref),
   );
   if (isTabletDevice(context) && homeNavigatorKey.currentState != null) {
     ProviderScope.containerOf(

@@ -7,6 +7,7 @@ import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/state/person_history.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -77,7 +78,14 @@ void main() {
     addTearDown(container.dispose);
   });
 
-  Future<void> pumpScreen(WidgetTester tester, {int depth = 0}) async {
+  // Edit is in the ⋮ menu (#31).
+  Future<void> openEditMode(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('personMenu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bearbeiten'));
+  }
+
+  Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -85,7 +93,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('de'),
-          home: PersonDetailScreen(xref: 'I1', depth: depth),
+          home: const PersonDetailScreen(xref: 'I1'),
         ),
       ),
     );
@@ -127,19 +135,16 @@ void main() {
     expect(clipboardText, '3. Mai 1980 · Wien');
   });
 
-  testWidgets('shows the "Person hinzufügen" FAB only when canEdit is true', (tester) async {
-    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: true));
-    await pumpScreen(tester);
-    expect(find.text('Person hinzufügen'), findsOneWidget);
-  });
-
-  testWidgets('hides the "Person hinzufügen" FAB and the edit-mode toggle when canEdit is false', (tester) async {
+  testWidgets('without edit rights the ⋮ menu has no "Bearbeiten" and no "Person hinzufügen"', (tester) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: false));
 
     await pumpScreen(tester);
+    await tester.tap(find.byKey(const Key('personMenu')));
+    await tester.pumpAndSettle();
 
+    expect(find.text('Teilen'), findsOneWidget);
     expect(find.text('Person hinzufügen'), findsNothing);
-    expect(find.byTooltip('Bearbeiten'), findsNothing);
+    expect(find.text('Bearbeiten'), findsNothing);
   });
 
   testWidgets('the "Fakt hinzufügen" chip appears in the facts card once expanded, and is hidden when canEdit is false', (
@@ -152,16 +157,18 @@ void main() {
     expect(find.text('Fakt hinzufügen'), findsOneWidget);
   });
 
-  testWidgets('the Home shortcut FAB appears once nested one Person screen deep (after the 2nd navigation)', (
-    tester,
-  ) async {
-    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+  testWidgets('no Home button any more; the ⋮ menu holds share, edit and add person (#31)', (tester) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: true));
 
-    await pumpScreen(tester, depth: 0);
+    await pumpScreen(tester);
     expect(find.byTooltip('Zum Start'), findsNothing);
+    expect(find.byKey(const Key('treeViewButton')), findsOneWidget);
 
-    await pumpScreen(tester, depth: 1);
-    expect(find.byTooltip('Zum Start'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('personMenu')));
+    await tester.pumpAndSettle();
+    expect(find.text('Teilen'), findsOneWidget);
+    expect(find.text('Bearbeiten'), findsOneWidget);
+    expect(find.text('Person hinzufügen'), findsOneWidget);
   });
 
   testWidgets('shows Eltern and a "Familie mit X" group with the partner and children', (tester) async {
@@ -224,7 +231,7 @@ void main() {
     expect(find.text('Peter Muster', findRichText: true), findsOneWidget);
   });
 
-  testWidgets('tapping a child pushes another PersonDetailScreen one level deeper', (tester) async {
+  testWidgets('tapping a child switches this page to them, and undo goes back (#31)', (tester) async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
     when(() => client.individual('Famtree', 'I5')).thenAnswer((_) async => personJson('I5', name: 'Lena Beispiel'));
 
@@ -234,8 +241,13 @@ void main() {
     await tester.tap(find.text('Lena Beispiel', findRichText: true));
     await tester.pumpAndSettle();
 
-    final screens = tester.widgetList<PersonDetailScreen>(find.byType(PersonDetailScreen));
-    expect(screens.map((s) => (s.xref, s.depth)), contains(('I5', 1)));
+    expect(find.byType(PersonDetailScreen), findsOneWidget, reason: 'no new page per person any more');
+    expect(container.read(personHistoryProvider).history, ['I1', 'I5']);
+    verify(() => client.individual('Famtree', 'I5')).called(1);
+
+    await tester.tap(find.byIcon(Icons.undo));
+    await tester.pumpAndSettle();
+    expect(container.read(personHistoryProvider).activeXref, 'I1');
   });
 
   testWidgets('shows "Kein Zugriff" when the server denies access', (tester) async {
@@ -261,7 +273,7 @@ void main() {
 
     await pumpScreen(tester);
 
-    await tester.tap(find.byTooltip('Bearbeiten'));
+    await openEditMode(tester);
     await tester.pumpAndSettle();
 
     // Regression test: the bottomNavigationBar's width-capping Center, when
@@ -321,7 +333,7 @@ void main() {
 
       await pumpScreen(tester);
 
-      await tester.tap(find.byTooltip('Bearbeiten'));
+      await openEditMode(tester);
       await tester.pumpAndSettle();
 
       // BIRT's date: always picker-driven (GedcomDateField never accepts
@@ -382,7 +394,7 @@ void main() {
     expect(find.text('Datensatz-ID'), findsOneWidget, reason: 'still shown read-only');
     expect(find.text('Quellenangabe'), findsOneWidget, reason: 'still shown read-only');
 
-    await tester.tap(find.byTooltip('Bearbeiten'));
+    await openEditMode(tester);
     await tester.pumpAndSettle();
     expect(find.text('Datensatz-ID'), findsNothing);
     expect(find.text('Quellenangabe'), findsNothing);
@@ -408,7 +420,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Aktualisiert am'), findsNothing, reason: 'not even in the read-only card');
 
-      await tester.tap(find.byTooltip('Bearbeiten'));
+      await openEditMode(tester);
       await tester.pumpAndSettle();
       expect(find.text('Aktualisiert am'), findsNothing, reason: 'nor in the edit form');
     },
@@ -425,7 +437,7 @@ void main() {
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', sex: 'F'));
 
       await pumpScreen(tester);
-      await tester.tap(find.byTooltip('Bearbeiten'));
+      await openEditMode(tester);
       await tester.pumpAndSettle();
 
       final femaleChip = tester.widget<ChoiceChip>(

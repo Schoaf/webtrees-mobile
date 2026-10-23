@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
+import '../../state/person_history.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/webtrees_url.dart';
 import '../../utils/copy_to_clipboard.dart';
@@ -140,17 +141,13 @@ bool _useTwoColumnLayout(BuildContext context) => isWideLandscapeTablet(context)
 /// project plan — plus the fast fact-capture entry point (priority-1),
 /// since every fact needs a person anyway.
 class PersonDetailScreen extends ConsumerStatefulWidget {
-  const PersonDetailScreen({super.key, required this.xref, this.depth = 0});
+  const PersonDetailScreen({super.key, required this.xref});
 
+  /// The person this page was opened for - entered into the app's one
+  /// person history (see personHistoryProvider) when the page opens. The
+  /// page then shows whoever is active in that history: tapping a relative
+  /// switches person in place, undo/redo step back and forth.
   final String xref;
-
-  /// How many Person Detail screens deep this one is, counting from the
-  /// last non-Person screen (Home/Suche). Person -> Person navigation via
-  /// parents/spouse/children pushes another screen each time, so the back
-  /// stack grows; once it's deep enough that "back to Home" stops being a
-  /// single tap, we show a floating Home shortcut instead of making people
-  /// hunt for the back button.
-  final int depth;
 
   @override
   ConsumerState<PersonDetailScreen> createState() => _PersonDetailScreenState();
@@ -158,6 +155,8 @@ class PersonDetailScreen extends ConsumerStatefulWidget {
 
 class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   late Future<Map<String, dynamic>> _future;
+  /// The person currently shown (the active one of the person history).
+  late String _xref = widget.xref;
   bool _editing = false;
   GlobalKey<_EditFactsSectionState> _editKey =
       GlobalKey<_EditFactsSectionState>();
@@ -173,7 +172,14 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   void initState() {
     super.initState();
     _future = _load();
+    // After this frame: changing a provider while widgets build is not allowed.
+    Future.microtask(() {
+      if (mounted) ref.read(personHistoryProvider.notifier).show(widget.xref);
+    });
   }
+
+  /// A relative tapped on this page: switch to them, as one history step.
+  void _showPerson(String xref) => ref.read(personHistoryProvider.notifier).show(xref);
 
   @override
   void dispose() {
@@ -197,7 +203,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   Future<Map<String, dynamic>> _load() {
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
-    return client.individual(tree, widget.xref);
+    return client.individual(tree, _xref);
   }
 
   void _toggleEditing() {
@@ -221,65 +227,34 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     );
   }
 
-  void _goHome() {
-    ref.read(selectedTabProvider.notifier).select(0);
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
-  /// Both FABs live in the same Positioned row (in the body, sized to the
-  /// available width minus its side insets) so they always sit at the same
-  /// height. This is a plain Stack child, not Scaffold's floatingActionButton
-  /// slot — that slot runs its own built-in appear/disappear animation
-  /// (a fade+scale on top of whatever floatingActionButtonAnimator does,
-  /// not something that can be turned off through it) which is exactly the
-  /// "fly in" every fact/home button did; a Stack child has no such
-  /// animation, so it's simply there or not.
-  Widget? _buildFabs({required bool canEdit, required String name}) {
-    // depth 0 is the first person screen reached from outside (search,
-    // a tree-view tap, ...) - still one back-navigation away from home, so
-    // no shortcut needed yet. depth 1 is already two navigations deep (the
-    // screen that opened it, plus this one), where a direct way back saves
-    // more than one back-tap.
-    final showHome = widget.depth >= 1;
-    final showAddPerson = canEdit;
-    if (!showHome && !showAddPerson) return null;
+  /// The "Stammbaum" button, where "Person hinzufügen" used to be (that moved
+  /// into the ⋮ menu): icon and label, only the icon while scrolling. A plain
+  /// Stack child, not Scaffold's floatingActionButton slot - that slot runs
+  /// its own appear/disappear animation.
+  Widget _buildTreeButton() {
     final l10n = AppLocalizations.of(context)!;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        if (showHome)
-          FloatingActionButton(
-            heroTag: 'homeFab_${widget.xref}',
-            backgroundColor: AppColors.secondary,
-            foregroundColor: Colors.white,
-            onPressed: _goHome,
-            tooltip: l10n.goHomeTooltip,
-            child: const Icon(Icons.home),
-          )
-        else
-          const SizedBox.shrink(),
-        if (showAddPerson)
-          _fabExpanded
-              ? FloatingActionButton.extended(
-                  heroTag: 'addPersonFab_${widget.xref}',
-                  onPressed: () => _openAddPerson(name),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  icon: const Icon(Icons.person_add),
-                  label: Text(l10n.addPersonTitle),
-                )
-              : FloatingActionButton(
-                  heroTag: 'addPersonFab_${widget.xref}',
-                  onPressed: () => _openAddPerson(name),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  tooltip: l10n.addPersonTitle,
-                  child: const Icon(Icons.person_add),
-                )
-        else
-          const SizedBox.shrink(),
-      ],
+    const icon = GenealogyTreeIcon(color: Colors.white, size: 26);
+    return Align(
+      alignment: Alignment.centerRight,
+      child: _fabExpanded
+          ? FloatingActionButton.extended(
+              key: const Key('treeViewButton'),
+              heroTag: 'treeFab',
+              onPressed: () => openTreeView(context, _xref),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: icon,
+              label: Text(l10n.navTree),
+            )
+          : FloatingActionButton(
+              key: const Key('treeViewButton'),
+              heroTag: 'treeFab',
+              onPressed: () => openTreeView(context, _xref),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              tooltip: l10n.navTree,
+              child: icon,
+            ),
     );
   }
 
@@ -287,7 +262,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
-            AddPersonScreen(linkedXref: widget.xref, linkedName: name),
+            AddPersonScreen(linkedXref: _xref, linkedName: name),
       ),
     );
   }
@@ -300,7 +275,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => AddFactSheet(xref: widget.xref, personName: name),
+      builder: (_) => AddFactSheet(xref: _xref, personName: name),
     );
     if (!mounted || result == null) return;
 
@@ -387,7 +362,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     try {
       final result = await client.postMedia(
         tree,
-        widget.xref,
+        _xref,
         bytes: bytes,
         filename: file.name,
       );
@@ -490,7 +465,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
 
     final Map<String, dynamic> request;
     try {
-      request = await client.createShareRequest(tree, widget.xref);
+      request = await client.createShareRequest(tree, _xref);
     } on Exception catch (e) {
       if (!mounted) return;
       _showServerErrorDialog(describeServerError(e));
@@ -608,7 +583,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     final tree = ref.read(treeNameProvider);
     return webtreesUrl(
       ref.read(serverUrlProvider),
-      '/tree/$tree/individual/${widget.xref}',
+      '/tree/$tree/individual/$_xref',
       usePrettyUrls: ref.read(webtreesClientProvider).usePrettyUrls,
     );
   }
@@ -634,6 +609,14 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final history = ref.watch(personHistoryProvider);
+    final active = history.activeXref;
+    // Another person came into view (a relative tapped, undo/redo): load
+    // them - not while editing, which is about the person being edited.
+    if (active != null && active != _xref && !_editing) {
+      _xref = active;
+      _future = _load();
+    }
     return FutureBuilder<Map<String, dynamic>>(
       future: _future,
       builder: (context, snapshot) {
@@ -690,11 +673,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final canEdit = data['canEdit'] as bool? ?? false;
         final photoUrl = person['thumb'] as String?;
         final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
-        // Was Administrator-only while still rough around the edges;
-        // reopened to everyone now that it's had a full polish pass.
-        final showTreeButton = !_editing;
-
-        final fab = _editing ? null : _buildFabs(canEdit: canEdit, name: name);
+        final fab = _editing ? null : _buildTreeButton();
         final isDead = person['isDead'] as bool? ?? false;
         final useTwoColumn = _useTwoColumnLayout(context);
         // Fixed-ish corner size for the screen-wide banderole, capped so it
@@ -717,14 +696,6 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     const avatarSize = 84.0;
-                    // Matches FloatingActionButton's own default size (the
-                    // home FAB uses it unmodified - no theme override).
-                    const treeButtonSize = 56.0;
-                    final avatarLeft = (constraints.maxWidth - avatarSize) / 2;
-                    // The tree-view button sits centered between the
-                    // content area's left edge and the avatar's left edge.
-                    final buttonCenterX = avatarLeft / 2;
-
                     return SizedBox(
                       height: avatarSize,
                       child: Stack(
@@ -760,15 +731,6 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                                               : null)),
                             ),
                           ),
-                          if (showTreeButton)
-                            Positioned(
-                              left: buttonCenterX - treeButtonSize / 2,
-                              top: avatarSize / 2 - treeButtonSize / 2,
-                              child: _TreeViewButton(
-                                size: treeButtonSize,
-                                onTap: () => openTreeView(context, widget.xref),
-                              ),
-                            ),
                         ],
                       ),
                     );
@@ -807,7 +769,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           if (_editing)
             _EditFactsSection(
               key: _editKey,
-              xref: widget.xref,
+              xref: _xref,
               facts: facts,
               rawSex: person['sex'] as String? ?? 'U',
               savingNotifier: _savingNotifier,
@@ -831,14 +793,14 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                   if (family['wife'] != null)
                     family['wife'] as Map<String, dynamic>,
                 ],
-                depth: widget.depth,
+                onOpenPerson: _showPerson,
               ),
           ],
           if (siblings.isNotEmpty)
             _Section(
               title: l10n.siblingsLabel,
               people: siblings,
-              depth: widget.depth,
+              onOpenPerson: _showPerson,
             ),
           for (final family in spouseFamilies) ...[
             if (family['spouse'] != null ||
@@ -856,7 +818,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                 partner: family['spouse'] as Map<String, dynamic>?,
                 children: (family['children'] as List<dynamic>? ?? [])
                     .cast<Map<String, dynamic>>(),
-                depth: widget.depth,
+                onOpenPerson: _showPerson,
               ),
           ],
         ];
@@ -932,17 +894,16 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                       _Header(
                         name: name,
                         editing: _editing,
+                        canUndo: !_editing && history.canUndo,
+                        canRedo: !_editing && history.canRedo,
+                        onUndo: ref.read(personHistoryProvider.notifier).undo,
+                        onRedo: ref.read(personHistoryProvider.notifier).redo,
                         onEditToggle: canEdit ? _toggleEditing : null,
-                        onShare: _editing
-                            ? null
-                            : () =>
-                                  _openShareMenu(person: person, facts: facts),
-                        onAskForHelp:
-                            (_editing ||
-                                !canEdit ||
-                                !isModuleAvailable(ref, contributionRequestModule))
+                        onShare: () => _openShareMenu(person: person, facts: facts),
+                        onAskForHelp: !canEdit || !isModuleAvailable(ref, contributionRequestModule)
                             ? null
                             : () => _openAskForHelp(name),
+                        onAddPerson: canEdit ? () => _openAddPerson(name) : null,
                       ),
                       Expanded(
                         // The floating add-person/home FABs sit on top of
@@ -1049,61 +1010,39 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   }
 }
 
-/// Opens the family-tree view, centered on this person — styled and sized
-/// like the home FAB ([AppColors.secondary] background, white icon, no
-/// text, same 56x56 default FAB size and rounded-square shape).
-class _TreeViewButton extends StatelessWidget {
-  const _TreeViewButton({required this.onTap, required this.size});
-
-  final VoidCallback onTap;
-  final double size;
-
-  // Matches FloatingActionButton's own Material 3 default shape (there's
-  // no ThemeData.floatingActionButtonTheme override in app_theme.dart to
-  // read it from, so this is the plain framework default).
-  static const _shape = RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16)));
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Material(
-        color: AppColors.secondary,
-        shape: _shape,
-        child: InkWell(
-          key: const Key('treeViewButton'),
-          onTap: onTap,
-          customBorder: _shape,
-          child: Center(child: GenealogyTreeIcon(color: Colors.white, size: size * 0.68)),
-        ),
-      ),
-    );
-  }
-}
-
+/// Back (leave this page) | name | undo | redo | ⋮ (everything that isn't
+/// navigation). While editing: ✕ to cancel instead of the menu.
 class _Header extends StatelessWidget {
   const _Header({
     required this.name,
+    required this.canUndo,
+    required this.canRedo,
+    required this.onUndo,
+    required this.onRedo,
+    required this.onShare,
     this.editing = false,
     this.onEditToggle,
-    this.onShare,
     this.onAskForHelp,
+    this.onAddPerson,
   });
 
   final String name;
   final bool editing;
+  final bool canUndo;
+  final bool canRedo;
+  final VoidCallback onUndo;
+  final VoidCallback onRedo;
+  final VoidCallback onShare;
   final VoidCallback? onEditToggle;
-  final VoidCallback? onShare;
 
-  /// "Um Mithilfe bitten" (webtrees-contribution-request) — deliberately not folded into
-  /// [onShare]'s menu: it starts a stateful request/response flow with a
-  /// relative, not a one-off system share action, and is a separate,
-  /// optional server module besides.
+  /// "Um Mithilfe bitten" (webtrees-contribution-request) - null when the
+  /// module is missing or the user can't edit.
   final VoidCallback? onAskForHelp;
+  final VoidCallback? onAddPerson;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
@@ -1127,39 +1066,63 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (onAskForHelp != null)
-            IconButton(
-              onPressed: onAskForHelp,
-              icon: const Icon(
-                Icons.volunteer_activism_outlined,
-                color: AppColors.textPrimary,
-              ),
-              tooltip: AppLocalizations.of(context)!.askForHelpTooltip,
-            ),
-          if (onShare != null)
-            IconButton(
-              onPressed: onShare,
-              icon: const Icon(
-                Icons.share_outlined,
-                color: AppColors.textPrimary,
-              ),
-              tooltip: AppLocalizations.of(context)!.share,
-            ),
-          if (onEditToggle != null)
+          IconButton(
+            icon: const Icon(Icons.undo, size: 20),
+            color: AppColors.textPrimary,
+            tooltip: l10n.previousPersonTooltip,
+            onPressed: canUndo ? onUndo : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.redo, size: 20),
+            color: AppColors.textPrimary,
+            tooltip: l10n.nextPersonTooltip,
+            onPressed: canRedo ? onRedo : null,
+          ),
+          if (editing)
             IconButton(
               onPressed: onEditToggle,
-              icon: Icon(
-                editing ? Icons.close : Icons.edit_outlined,
-                color: AppColors.textPrimary,
-              ),
-              tooltip: editing
-                  ? AppLocalizations.of(context)!.cancelEditing
-                  : AppLocalizations.of(context)!.edit,
+              icon: const Icon(Icons.close, color: AppColors.textPrimary),
+              tooltip: l10n.cancelEditing,
+            )
+          else
+            PopupMenuButton<VoidCallback>(
+              key: const Key('personMenu'),
+              icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+              onSelected: (action) => action(),
+              itemBuilder: (_) => [
+                if (onAskForHelp != null)
+                  PopupMenuItem(
+                    value: onAskForHelp,
+                    child: _MenuEntry(Icons.volunteer_activism_outlined, l10n.askForHelpTooltip),
+                  ),
+                PopupMenuItem(value: onShare, child: _MenuEntry(Icons.share_outlined, l10n.share)),
+                if (onEditToggle != null)
+                  PopupMenuItem(value: onEditToggle, child: _MenuEntry(Icons.edit_outlined, l10n.edit)),
+                if (onAddPerson != null)
+                  PopupMenuItem(value: onAddPerson, child: _MenuEntry(Icons.person_add_outlined, l10n.addPersonTitle)),
+              ],
             ),
         ],
       ),
     );
   }
+}
+
+class _MenuEntry extends StatelessWidget {
+  const _MenuEntry(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 20, color: AppColors.textSecondary),
+      const SizedBox(width: 12),
+      Flexible(child: Text(label)),
+    ],
+  );
 }
 
 class _FactsCard extends StatefulWidget {
@@ -1762,11 +1725,11 @@ class _SexSegment extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.people, this.depth = 0});
+  const _Section({required this.title, required this.people, required this.onOpenPerson});
 
   final String title;
   final List<Map<String, dynamic>> people;
-  final int depth;
+  final ValueChanged<String> onOpenPerson;
 
   @override
   Widget build(BuildContext context) {
@@ -1792,11 +1755,7 @@ class _Section extends StatelessWidget {
                 if (i > 0) const SizedBox(height: 8),
                 PersonCard(
                   person: people[i],
-                  onTap: () => openPerson(
-                    context,
-                    people[i]['xref'] as String,
-                    depth: depth + 1,
-                  ),
+                  onTap: () => onOpenPerson(people[i]['xref'] as String),
                 ),
               ],
             ],
@@ -1817,20 +1776,17 @@ class _FamilySection extends StatelessWidget {
     required this.title,
     required this.partner,
     required this.children,
-    this.depth = 0,
+    required this.onOpenPerson,
   });
 
   final String title;
   final Map<String, dynamic>? partner;
   final List<Map<String, dynamic>> children;
-  final int depth;
+  final ValueChanged<String> onOpenPerson;
 
   @override
   Widget build(BuildContext context) {
-    // Named differently from the top-level openPerson (tab_navigation.dart)
-    // it calls, purely to avoid shadowing it within this scope.
-    void openPersonDetail(Map<String, dynamic> person) =>
-        openPerson(context, person['xref'] as String, depth: depth + 1);
+    void openPersonDetail(Map<String, dynamic> person) => onOpenPerson(person['xref'] as String);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
