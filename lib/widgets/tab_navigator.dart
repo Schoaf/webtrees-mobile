@@ -18,10 +18,11 @@ import 'package:flutter/material.dart';
 /// handles that, with no idea this nested one exists or has its own
 /// routes to pop first.
 class TabNavigator extends StatelessWidget {
-  const TabNavigator({super.key, required this.navigatorKey, required this.child});
+  const TabNavigator({super.key, required this.navigatorKey, required this.child, this.observers = const []});
 
   final GlobalKey<NavigatorState> navigatorKey;
   final Widget child;
+  final List<NavigatorObserver> observers;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +30,7 @@ class TabNavigator extends StatelessWidget {
       onPopWithResult: (Object? result) => navigatorKey.currentState?.maybePop(),
       child: Navigator(
         key: navigatorKey,
+        observers: observers,
         onGenerateRoute: (settings) => MaterialPageRoute(builder: (_) => child),
       ),
     );

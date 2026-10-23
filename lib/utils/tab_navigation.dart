@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../screens/search/person_detail_screen.dart';
 import '../screens/tree_view/tree_view_screen.dart';
-import '../state/app_providers.dart';
-import 'device_size.dart';
 
 /// _HomeShell's bottom-nav destination order (main.dart) - shared so
 /// nothing else has to hardcode a raw tab index (a previous version of
@@ -15,55 +13,59 @@ const kTreeTabIndex = 1;
 const kSearchTabIndex = 2;
 const kAddPersonTabIndex = 3;
 
-/// Home's own nested Navigator (tablet only - see _HomeShellState.build in
-/// main.dart), shared so [openPerson] can push onto it from *outside* that
-/// tab's own subtree (Search, TreeView, ...), not just from within it.
+/// Each bottom-nav tab has its own nested Navigator (see _HomeShellState in
+/// main.dart): pages opened from a tab stay in that tab, and the bottom bar
+/// is a sibling of all of them - shown or hidden via [bottomBarVisibleProvider].
 final homeNavigatorKey = GlobalKey<NavigatorState>();
-
-/// Stammbaum's own nested Navigator (tablet only), shared for the same
-/// reason - [openTreeView] pushing onto it from outside the Stammbaum
-/// tab's own subtree (a Person screen's tree button).
 final treeNavigatorKey = GlobalKey<NavigatorState>();
+final searchNavigatorKey = GlobalKey<NavigatorState>();
+final addPersonNavigatorKey = GlobalKey<NavigatorState>();
 
-/// Opens a person, always ending up on the Home tab regardless of which
-/// tab you actually tapped it from (Search, a Home entry, a relative
-/// within another Person screen, ...) - on a wide landscape tablet, that
-/// means the push goes onto Home's own nested Navigator (via
-/// [homeNavigatorKey]) and Home's bottom-nav destination becomes selected/
-/// highlighted, so the two always agree on what's showing instead of the
-/// tab bar getting stuck on whichever tab you happened to push from. On
-/// phone (no nested navigators at all - see _HomeShellState.build), this
-/// is a plain push on the app's one root Navigator, same as always.
-///
-/// Takes a plain [BuildContext] (via ProviderScope.containerOf), not a
-/// WidgetRef, so call sites that are plain StatelessWidgets - not every
-/// screen/row that opens a person is a ConsumerWidget - don't need
-/// converting just to call this.
-void openPerson(BuildContext context, String xref) {
-  final route = MaterialPageRoute(
-    builder: (_) => PersonDetailScreen(xref: xref),
-  );
-  if (isTabletDevice(context) && homeNavigatorKey.currentState != null) {
-    ProviderScope.containerOf(
-      context,
-    ).read(selectedTabProvider.notifier).select(kHomeTabIndex);
-    homeNavigatorKey.currentState!.push(route);
-  } else {
-    Navigator.of(context).push(route);
-  }
+/// In bottom-nav order (kHomeTabIndex ...).
+final tabNavigatorKeys = [homeNavigatorKey, treeNavigatorKey, searchNavigatorKey, addPersonNavigatorKey];
+
+/// Whether the bottom bar shows (#31): hidden as soon as a page is opened
+/// from a tab, shown again after every Back - even if that lands on an inner
+/// page - so someone who got lost always gets it back with one Back.
+class BottomBarVisibility extends Notifier<bool> {
+  @override
+  bool build() => true;
+
+  void set(bool visible) => state = visible;
 }
 
-/// Same idea as [openPerson], but for the Stammbaum tab and
-/// [treeNavigatorKey] - opening the tree view from anywhere (a Person
-/// screen's tree button) always makes Stammbaum the active tab too.
-void openTreeView(BuildContext context, String xref) {
-  final route = MaterialPageRoute(builder: (_) => TreeViewScreen(xref: xref));
-  if (isTabletDevice(context) && treeNavigatorKey.currentState != null) {
-    ProviderScope.containerOf(
-      context,
-    ).read(selectedTabProvider.notifier).select(kTreeTabIndex);
-    treeNavigatorKey.currentState!.push(route);
-  } else {
-    Navigator.of(context).push(route);
+final bottomBarVisibleProvider = NotifierProvider<BottomBarVisibility, bool>(BottomBarVisibility.new);
+
+/// Drives [bottomBarVisibleProvider] from a tab's own Navigator.
+class BottomBarObserver extends NavigatorObserver {
+  BottomBarObserver(this.container);
+
+  final ProviderContainer container;
+
+  void _set(bool visible) {
+    // Navigator callbacks can run while widgets build - defer the change.
+    Future.microtask(() => container.read(bottomBarVisibleProvider.notifier).set(visible));
   }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    // The tab's own first page is pushed too - that one keeps the bar.
+    if (previousRoute != null) _set(false);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _set(true);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) => _set(true);
+}
+
+/// Opens a person's page on top of the current page, within the current tab.
+void openPerson(BuildContext context, String xref) {
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)));
+}
+
+/// Opens the tree view for [xref] on top of the current page, within the current tab.
+void openTreeView(BuildContext context, String xref) {
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => TreeViewScreen(xref: xref)));
 }

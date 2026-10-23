@@ -17,7 +17,6 @@ import 'state/app_providers.dart';
 import 'state/language.dart';
 import 'theme/app_theme.dart';
 import 'utils/connect_deep_link.dart';
-import 'utils/device_size.dart';
 import 'utils/person_deep_link.dart';
 import 'utils/share_review_deep_link.dart';
 import 'utils/tab_navigation.dart';
@@ -362,45 +361,38 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
     AddPersonScreen(),
   ];
 
+  // One per tab, created once - a NavigatorObserver can only be attached to
+  // one Navigator.
+  late final _observers = [
+    for (var i = 0; i < _screens.length; i++) BottomBarObserver(ProviderScope.containerOf(context, listen: false)),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final index = ref.watch(selectedTabProvider);
     final l10n = AppLocalizations.of(context)!;
-    // Phone: screens render directly, so every push goes to the app's one
-    // root Navigator - full-screen, covering this whole shell including
-    // the bottom nav bar, exactly as before this existed.
-    //
-    // Tablet: only Home and Stammbaum get their own nested Navigator
-    // (homeNavigatorKey/treeNavigatorKey, shared via tab_navigation.dart
-    // so openPerson/openTreeView can push onto them from *outside* their
-    // own subtree - a Search result, a tree button elsewhere, ...) - a
-    // push within either stays inside that tab's own content area, and
-    // the bottom nav bar - a sibling of that content area, not something
-    // any of those pushes can cover - stays on screen the whole time.
-    // Search and Add-Person don't get one at all: they're not places a
-    // person ever browses *into* something else that should keep the
-    // "Search"/"Add Person" tab looking selected - opening a person from
-    // a search result is explicitly the Home tab's job (see openPerson),
-    // and Search's own state (query, results) already survives switching
-    // tabs regardless, since IndexedStack keeps it alive either way.
-    //
-    // See TabNavigator for the back-button wiring a nested Navigator
-    // needs to keep working correctly.
-    final tabbed = isTabletDevice(context);
-    final screens = tabbed
-        ? [
-            TabNavigator(navigatorKey: homeNavigatorKey, child: _screens[kHomeTabIndex]),
-            TabNavigator(navigatorKey: treeNavigatorKey, child: _screens[kTreeTabIndex]),
-            _screens[kSearchTabIndex],
-            _screens[kAddPersonTabIndex],
-          ]
-        : _screens;
+    // Every tab has its own Navigator (phone and tablet alike): pages
+    // opened from a tab stay inside it, and the bottom bar - a sibling, not
+    // something a push can cover - is shown or hidden by
+    // bottomBarVisibleProvider (#31). See TabNavigator for the back-button
+    // wiring a nested Navigator needs.
+    final screens = [
+      for (var i = 0; i < _screens.length; i++)
+        TabNavigator(navigatorKey: tabNavigatorKeys[i], observers: [_observers[i]], child: _screens[i]),
+    ];
+    final isBarVisible = ref.watch(bottomBarVisibleProvider);
     return Scaffold(
       body: IndexedStack(index: index, children: screens),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: !isBarVisible ? null : NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (i) =>
-            ref.read(selectedTabProvider.notifier).select(i),
+        onDestinationSelected: (i) {
+          if (i == index) {
+            // The active tab again: back to its first page.
+            tabNavigatorKeys[i].currentState?.popUntil((route) => route.isFirst);
+          } else {
+            ref.read(selectedTabProvider.notifier).select(i);
+          }
+        },
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.home_outlined),
