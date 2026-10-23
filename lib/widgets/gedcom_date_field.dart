@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../utils/gedcom_date.dart';
 
 /// A date field that's always backed by a picker (never free-text keyboard
@@ -45,8 +46,8 @@ class _GedcomDateFieldState extends State<GedcomDateField> {
       firstDate: DateTime(1500),
       lastDate: DateTime(now.year + 100),
       helpText: widget.labelText,
-      cancelText: 'Abbrechen',
-      confirmText: 'Übernehmen',
+      cancelText: AppLocalizations.of(context)!.cancel,
+      confirmText: AppLocalizations.of(context)!.apply,
     );
     if (picked != null) {
       widget.controller.text = dateTimeToGedcom(picked);
