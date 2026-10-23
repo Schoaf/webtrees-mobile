@@ -58,6 +58,14 @@ void main() {
     expect(screen.xref, 'I5');
   });
 
+  testWidgets('as the tab\'s first page it offers no Back that could close the app (#32)', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(startXref: 'I5'));
+
+    await pumpScreen(tester);
+
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+  });
+
   testWidgets('shows a friendly error without a startXref', (tester) async {
     when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
 

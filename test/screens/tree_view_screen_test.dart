@@ -330,7 +330,7 @@ void main() {
     expect(topBarWidth, greaterThan(1300), reason: 'sanity check: the canvas below stays full-width');
 
     final topBarContainerWidth = tester
-        .getSize(find.ancestor(of: find.byIcon(Icons.arrow_back), matching: find.byType(Container)).first)
+        .getSize(find.ancestor(of: find.byIcon(Icons.undo), matching: find.byType(Container)).first)
         .width;
     expect(topBarContainerWidth, 1100, reason: 'must match tabletBoundedMaxWidth, same as every other screen');
   });

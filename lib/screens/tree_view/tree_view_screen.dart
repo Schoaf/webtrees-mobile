@@ -182,7 +182,9 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
               child: _TopBar(
                 canUndo: treeState.canUndo,
                 canRedo: treeState.canRedo,
-                onBack: () => Navigator.of(context).pop(),
+                // Null on the Stammbaum tab, where the tree is the tab's first
+                // page: popping there removed the app's whole main page (#32).
+                onBack: Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null,
                 onUndo: controller.undo,
                 onRedo: controller.redo,
               ),
@@ -261,7 +263,7 @@ class _TopBar extends StatelessWidget {
 
   final bool canUndo;
   final bool canRedo;
-  final VoidCallback onBack;
+  final VoidCallback? onBack;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
 
@@ -277,11 +279,15 @@ class _TopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF6B7280)),
-            tooltip: l10n.leaveTreeTooltip,
-            onPressed: onBack,
-          ),
+          if (onBack != null)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF6B7280)),
+              tooltip: l10n.leaveTreeTooltip,
+              onPressed: onBack,
+            )
+          else
+            // Keeps the title centered between left and right.
+            const SizedBox(width: 48),
           Expanded(
             child: Text(
               l10n.treeViewTitle,
