@@ -268,5 +268,6 @@
   "askForHelpPersonalMessage": "Personal message (optional)",
   "askForHelpPreview": "Preview",
   "askForHelpSend": "Send",
-  "askForHelpSendFailed": "Sending failed: {error}"
+  "askForHelpSendFailed": "Sending failed: {error}",
+  "treeCenterTooltip": "Back to the starting person"
 }

@@ -78,7 +78,7 @@ class _MyTreeViewScreenState extends ConsumerState<MyTreeViewScreen> {
             ),
           );
         }
-        return TreeViewScreen(xref: xref, visibilitySignal: selectedTab);
+        return TreeViewScreen(xref: xref, visibilitySignal: selectedTab, isEnteringOnlyWhenEmpty: true);
       },
     );
   }

@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tree_neighborhood.dart';
 import 'app_providers.dart';
 
-/// State for one `TreeViewScreen` instance. `history`/`pos` is a browser-
-/// style undo/redo stack of visited xrefs (per the spec: a new click after
-/// undo discards the redo entries); `cache` means revisiting an xref via
-/// undo/redo never re-fetches.
+/// The app's one tree history (#31): every tree view - the Stammbaum tab and
+/// any opened from a person's page - shows and moves the same history, so
+/// undo always leads back to whoever was in focus before, however the tree
+/// was entered. `history`/`pos` is a browser-style undo/redo stack of
+/// visited xrefs (a new step after undo discards the redo entries; the same
+/// person twice in a row is never a step); `cache` means revisiting an xref
+/// via undo/redo never re-fetches.
 class TreeViewState {
   const TreeViewState({
     required this.history,
@@ -24,36 +27,34 @@ class TreeViewState {
   final String? error;
   final String? selectedPartnerXref;
 
-  String get activeXref => history[pos];
+  /// Null until the tree has been entered for the first time.
+  String? get activeXref => history.isEmpty ? null : history[pos];
   bool get canUndo => pos > 0;
   bool get canRedo => pos < history.length - 1;
-  TreeNeighborhood? get activeNeighborhood => cache[activeXref];
+  TreeNeighborhood? get activeNeighborhood => activeXref == null ? null : cache[activeXref];
 }
 
-/// A Riverpod 3 family [Notifier] receives its argument through the
-/// provider's `create` closure (`TreeViewController.new`), not through
-/// `build(arg)` — `build()` takes no parameters, so the xref is stored on
-/// the instance via the constructor instead.
 class TreeViewController extends Notifier<TreeViewState> {
-  TreeViewController(this.startXref);
-
-  final String startXref;
-
   @override
   TreeViewState build() {
-    // Deferred so the fetch's state assignment lands after build() returns,
-    // not synchronously during it.
-    Future.microtask(() => _load(startXref));
-
-    return TreeViewState(
-      history: [startXref],
+    // Another tree or server: a history of people from the old one would
+    // be meaningless - start fresh.
+    ref.watch(treeNameProvider);
+    ref.watch(serverUrlProvider);
+    return const TreeViewState(
+      history: [],
       pos: 0,
-      cache: const {},
-      loading: true,
+      cache: {},
+      loading: false,
       error: null,
       selectedPartnerXref: null,
     );
   }
+
+  /// Entering the tree with [xref] (a person's tree button, the Stammbaum
+  /// tab): it becomes the active person - a new undo step unless it already
+  /// is the active one.
+  Future<void> enter(String xref) => selectPerson(xref);
 
   Future<void> _load(String xref) async {
     if (state.cache.containsKey(xref)) {
@@ -122,9 +123,12 @@ class TreeViewController extends Notifier<TreeViewState> {
   /// after an undo discards the redo entries (browser-history semantics,
   /// per the spec).
   Future<void> selectPerson(String xref) async {
-    if (xref == state.activeXref) return;
+    if (xref == state.activeXref) {
+      if (!state.cache.containsKey(xref)) await _load(xref);
+      return;
+    }
 
-    final newHistory = state.history.sublist(0, state.pos + 1)..add(xref);
+    final newHistory = state.history.isEmpty ? [xref] : (state.history.sublist(0, state.pos + 1)..add(xref));
     state = TreeViewState(
       history: newHistory,
       pos: newHistory.length - 1,
@@ -172,5 +176,4 @@ class TreeViewController extends Notifier<TreeViewState> {
   }
 }
 
-final treeViewControllerProvider =
-    NotifierProvider.autoDispose.family<TreeViewController, TreeViewState, String>(TreeViewController.new);
+final treeViewControllerProvider = NotifierProvider<TreeViewController, TreeViewState>(TreeViewController.new);

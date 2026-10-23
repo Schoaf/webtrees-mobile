@@ -268,5 +268,6 @@
   "askForHelpSend": "Versturen",
   "askForHelpSendFailed": "Versturen mislukt: {error}",
   "languageSetting": "Taal",
-  "languageDevice": "Taal van het apparaat"
+  "languageDevice": "Taal van het apparaat",
+  "treeCenterTooltip": "Terug naar de beginpersoon"
 }

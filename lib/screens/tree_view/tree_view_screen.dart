@@ -51,9 +51,17 @@ const _kFrameLabelTopOffset = -8.0 - _kFrameTopPadding;
 /// `stammbaum-ansicht-spec.md` for the exact layout and suppression rules
 /// this implements.
 class TreeViewScreen extends ConsumerStatefulWidget {
-  const TreeViewScreen({super.key, required this.xref, this.visibilitySignal});
+  const TreeViewScreen({super.key, required this.xref, this.visibilitySignal, this.isEnteringOnlyWhenEmpty = false});
 
+  /// The person this view was opened for: entered into the app's one tree
+  /// history when the view opens (see TreeViewController.enter), and where
+  /// the "center" button jumps back to.
   final String xref;
+
+  /// The Stammbaum tab: only enter [xref] if the tree has never been
+  /// entered yet - otherwise keep showing wherever the history currently
+  /// stands (the tab is expected to look as it was left).
+  final bool isEnteringOnlyWhenEmpty;
 
   /// Set this when the screen can be built while genuinely invisible (e.g.
   /// kept alive offstage inside an `IndexedStack` bottom-nav tab, as
@@ -87,6 +95,14 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   void initState() {
     super.initState();
     _lastVisibilitySignal = widget.visibilitySignal;
+    // After this frame: changing a provider while widgets build is not allowed.
+    Future.microtask(() {
+      if (!mounted) return;
+      final controller = ref.read(treeViewControllerProvider.notifier);
+      if (!widget.isEnteringOnlyWhenEmpty || ref.read(treeViewControllerProvider).history.isEmpty) {
+        controller.enter(widget.xref);
+      }
+    });
   }
 
   // Bug this fixes: an IndexedStack bottom-nav tab never rebuilds its
@@ -160,12 +176,12 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final treeState = ref.watch(treeViewControllerProvider(widget.xref));
-    final controller = ref.read(treeViewControllerProvider(widget.xref).notifier);
+    final treeState = ref.watch(treeViewControllerProvider);
+    final controller = ref.read(treeViewControllerProvider.notifier);
     final neighborhood = treeState.activeNeighborhood;
 
     if (neighborhood != null) {
-      _maybeCenterOnActivePerson(treeState.activeXref);
+      _maybeCenterOnActivePerson(treeState.activeXref!);
     }
 
     return Scaffold(
@@ -187,6 +203,11 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                 onBack: Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null,
                 onUndo: controller.undo,
                 onRedo: controller.redo,
+                // Back to the person this view was opened for - shown only
+                // while someone else is in focus.
+                onCenter: treeState.activeXref == null || treeState.activeXref == widget.xref
+                    ? null
+                    : () => controller.enter(widget.xref),
               ),
             ),
             Expanded(
@@ -259,8 +280,10 @@ class _TopBar extends StatelessWidget {
     required this.onBack,
     required this.onUndo,
     required this.onRedo,
+    required this.onCenter,
   });
 
+  final VoidCallback? onCenter;
   final bool canUndo;
   final bool canRedo;
   final VoidCallback? onBack;
@@ -295,6 +318,14 @@ class _TopBar extends StatelessWidget {
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
             ),
           ),
+          if (onCenter != null)
+            IconButton(
+              key: const Key('treeCenterButton'),
+              icon: const Icon(Icons.gps_fixed, size: 20),
+              color: const Color(0xFF374151),
+              tooltip: l10n.treeCenterTooltip,
+              onPressed: onCenter,
+            ),
           IconButton(
             icon: const Icon(Icons.undo, size: 20),
             color: canUndo ? const Color(0xFF374151) : const Color(0xFFD1D5DB),

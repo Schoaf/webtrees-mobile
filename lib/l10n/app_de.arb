@@ -442,5 +442,6 @@
   "askForHelpPreview": "Vorschau",
   "askForHelpSend": "Senden",
   "askForHelpSendFailed": "Senden fehlgeschlagen: {error}",
-  "@askForHelpSendFailed": {"placeholders": {"error": {"type": "String"}}}
+  "@askForHelpSendFailed": {"placeholders": {"error": {"type": "String"}}},
+  "treeCenterTooltip": "Zur Ausgangsperson"
 }

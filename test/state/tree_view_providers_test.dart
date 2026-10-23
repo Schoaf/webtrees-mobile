@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -17,6 +18,7 @@ Map<String, dynamic> _individualJson(String xref, {String name = 'Test Person'})
 };
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MockWebtreesClient client;
   late ProviderContainer container;
 
@@ -27,38 +29,71 @@ void main() {
     addTearDown(container.dispose);
   });
 
-  // treeViewControllerProvider is autoDispose (screen-scoped by design) - a
-  // bare container.read() has no listener, so the real app's ref.watch
-  // (which keeps it alive for as long as the screen is mounted) has to be
-  // simulated here with an explicit no-op listener, or the provider gets
-  // disposed before the deferred _load() microtask runs.
-  TreeViewController controllerFor(String xref) {
-    container.listen(treeViewControllerProvider(xref), (_, _) {});
-    return container.read(treeViewControllerProvider(xref).notifier);
+  // The app's one tree history: entering with I1 is what a tree view does when it opens.
+  Future<TreeViewController> controllerFor(String xref) async {
+    final notifier = container.read(treeViewControllerProvider.notifier);
+    await notifier.enter(xref);
+    return notifier;
   }
 
-  test('build() starts loading and fetches the start person', () async {
+  test('starts empty; entering loads the person', () async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
+    expect(container.read(treeViewControllerProvider).activeXref, isNull);
 
-    final notifier = controllerFor('I1');
-    expect(container.read(treeViewControllerProvider('I1')).loading, isTrue);
-    expect(notifier.state.activeXref, 'I1');
+    await controllerFor('I1');
 
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
-
-    final state = container.read(treeViewControllerProvider('I1'));
+    final state = container.read(treeViewControllerProvider);
     expect(state.loading, isFalse);
     expect(state.error, isNull);
     expect(state.activeNeighborhood?.person.xref, 'I1');
+  });
+
+  test('entering with the person already in focus adds no undo step (#31)', () async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
+    when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => _individualJson('I2'));
+
+    final notifier = await controllerFor('I1');
+    await notifier.enter('I1');
+    expect(notifier.state.history, ['I1']);
+
+    await notifier.enter('I2');
+    await notifier.enter('I2');
+    expect(notifier.state.history, ['I1', 'I2']);
+  });
+
+  test('a tree opened for another person is a step - undo leads back (#29, #31)', () async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
+    when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => _individualJson('I2'));
+    when(() => client.individual('Famtree', 'I3')).thenAnswer((_) async => _individualJson('I3'));
+
+    final notifier = await controllerFor('I1');
+    await notifier.selectPerson('I2'); // browsing in the tree
+    await notifier.enter('I3'); // tree button on another person's page
+    expect(notifier.state.activeXref, 'I3');
+    await notifier.enter('I1'); // tree button on person A again: shows A, not B
+    expect(notifier.state.activeXref, 'I1');
+    notifier.undo();
+    expect(notifier.state.activeXref, 'I3');
+  });
+
+  test('switching to another tree starts a fresh history', () async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
+    final notifier = await controllerFor('I1');
+    expect(notifier.state.history, ['I1']);
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+      (_) async => null,
+    );
+    await container.read(treeNameProvider.notifier).set('Other');
+    expect(container.read(treeViewControllerProvider).history, isEmpty);
   });
 
   test('selectPerson pushes history and fetches the new person once', () async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
     when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => _individualJson('I2'));
 
-    final notifier = controllerFor('I1');
-    await Future<void>.delayed(Duration.zero);
+    final notifier = await controllerFor('I1');
 
     await notifier.selectPerson('I2');
 
@@ -71,8 +106,7 @@ void main() {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
     when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => _individualJson('I2'));
 
-    final notifier = controllerFor('I1');
-    await Future<void>.delayed(Duration.zero);
+    final notifier = await controllerFor('I1');
     await notifier.selectPerson('I2');
 
     notifier.undo();
@@ -93,8 +127,7 @@ void main() {
     when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => _individualJson('I2'));
     when(() => client.individual('Famtree', 'I3')).thenAnswer((_) async => _individualJson('I3'));
 
-    final notifier = controllerFor('I1');
-    await Future<void>.delayed(Duration.zero);
+    final notifier = await controllerFor('I1');
     await notifier.selectPerson('I2');
     notifier.undo();
 
@@ -107,8 +140,7 @@ void main() {
   test('selectPartner updates selectedPartnerXref', () async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _individualJson('I1'));
 
-    final notifier = controllerFor('I1');
-    await Future<void>.delayed(Duration.zero);
+    final notifier = await controllerFor('I1');
 
     notifier.selectPartner('I9');
     expect(notifier.state.selectedPartnerXref, 'I9');
@@ -117,11 +149,9 @@ void main() {
   test('a server error response is surfaced without crashing', () async {
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => {'ok': false, 'error': 'private'});
 
-    controllerFor('I1');
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
+    await controllerFor('I1');
 
-    final state = container.read(treeViewControllerProvider('I1'));
+    final state = container.read(treeViewControllerProvider);
     expect(state.loading, isFalse);
     expect(state.error, 'private');
   });
@@ -142,11 +172,9 @@ void main() {
       },
     );
 
-    controllerFor('I1');
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
+    await controllerFor('I1');
 
-    final state = container.read(treeViewControllerProvider('I1'));
+    final state = container.read(treeViewControllerProvider);
     expect(state.loading, isFalse);
     expect(state.error, isNotNull);
   });
