@@ -374,6 +374,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         bytes: bytes,
         filename: file.name,
       );
+      if (result['ok'] == true) {
+        // Uploaded photos are linked last; the new one should be the person's photo (#34).
+        final media = result['media'] as String?;
+        if (media != null) await client.postPrimaryMedia(tree, _xref, media: media);
+      }
       if (!mounted) return;
       if (result['ok'] == true) {
         // Braced, not `setState(() => _future = _load())`: an assignment

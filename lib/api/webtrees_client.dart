@@ -412,7 +412,8 @@ class WebtreesClient {
     return _json(response);
   }
 
-  /// Uploads a photo and links it to [xref] as its highlighted media.
+  /// Uploads a photo and links it to [xref] - as its last media link, see
+  /// [postPrimaryMedia].
   Future<Map<String, dynamic>> postMedia(
     String tree,
     String xref, {
@@ -427,6 +428,17 @@ class WebtreesClient {
     final response = await _dio.postUri(
       _moduleUri('Media', tree, {'xref': xref}),
       data: form,
+    );
+    return _json(response);
+  }
+
+  /// Makes the already linked [media] the main photo of [xref] (webtrees
+  /// shows the first linked image).
+  Future<Map<String, dynamic>> postPrimaryMedia(String tree, String xref, {required String media}) async {
+    final response = await _dio.postUri(
+      _moduleUri('PrimaryMedia', tree, {'xref': xref}),
+      data: {'media': media},
+      options: Options(contentType: Headers.jsonContentType),
     );
     return _json(response);
   }
