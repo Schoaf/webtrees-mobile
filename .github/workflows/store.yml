@@ -74,6 +74,19 @@ jobs:
           ruby-version: '4.0'
           bundler-cache: true
 
+      # deliver would otherwise rename a version still in review to this one.
+      - name: Check no App Store version is in review
+        if: env.STORES != 'google'
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          # From this workflow's own commit - older tags don't have the check yet.
+          git show "$GITHUB_SHA:tool/check_app_store_editable.py" > tool/check_app_store_editable.py
+          pip install pyjwt cryptography
+          python tool/check_app_store_editable.py ${{ steps.build.outputs.version }}
+
       - name: App Store
         if: env.STORES != 'google'
         env:
