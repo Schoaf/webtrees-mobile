@@ -319,6 +319,10 @@ Future<void> _renderAndSave(
   required _Target target,
   Future<void> Function(WidgetTester tester)? afterPump,
 }) async {
+  // flutter_test paints elevation as a solid black outline instead of a
+  // shadow (debugDisableShadows) - real shadows for the store images. Set
+  // back before the test ends, which flutter_test checks.
+  debugDisableShadows = false;
   tester.view.physicalSize = target.physicalSize;
   tester.view.devicePixelRatio = target.devicePixelRatio;
   // Reserve blank space at the very top for stage 2's notch/camera-dot -
@@ -376,6 +380,7 @@ Future<void> _renderAndSave(
     final file = File('${dir.path}/$name.png');
     file.writeAsBytesSync(byteData!.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
   });
+  debugDisableShadows = true;
 }
 
 /// Same gotcha as the image-capture step (see file-level comment): decoding
