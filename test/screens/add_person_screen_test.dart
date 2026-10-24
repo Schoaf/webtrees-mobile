@@ -372,13 +372,13 @@ void main() {
   });
 
   group('pre-linked via linkedXref/linkedName (reached from a person\'s own "Person hinzufügen")', () {
-    testWidgets('pre-fills "Verknüpft mit" read-only and blocks Save until a relation is chosen', (tester) async {
+    testWidgets('pre-fills "Verknüpft mit" editable and blocks Save until a relation is chosen', (tester) async {
       await pumpScreen(tester, linkedXref: 'I7', linkedName: 'Anna Muster');
 
       expect(find.text('Anna Muster'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'Anna Muster'), findsOneWidget);
       final field = tester.widget<TextField>(find.widgetWithText(TextField, 'Anna Muster'));
-      expect(field.readOnly, isTrue);
+      expect(field.readOnly, isFalse, reason: 'another person can be searched there (#31)');
 
       // Relation chips show (a relative is already "selected"), but none
       // pre-chosen - unlike the free-form search flow, which defaults to

@@ -70,8 +70,9 @@ class AddPersonScreen extends ConsumerStatefulWidget {
   const AddPersonScreen({super.key, this.linkedXref, this.linkedName});
 
   /// Pre-selects "Verknüpft mit" to a specific person (e.g. reached via
-  /// that person's own "Person hinzufügen" button) instead of the free-form
-  /// search. Both null together, or both set - never just one.
+  /// that person's own "Person hinzufügen" button) - typing there still
+  /// searches for another one. Both null together, or both set - never
+  /// just one.
   final String? linkedXref;
   final String? linkedName;
 
@@ -320,7 +321,6 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
       TextField(
         controller: _relativeQueryController,
         onChanged: _onRelativeQueryChanged,
-        readOnly: widget.linkedXref != null,
         decoration: InputDecoration(hintText: l10n.searchPersonOptionalHint),
       ),
       for (final person in _suggestions)
