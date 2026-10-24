@@ -22,9 +22,10 @@ Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks t
 - **Connect to any webtrees site** – by entering its address or via the connect link from the site's "App" page (no password needed), also in a subfolder or with pretty URLs; switch between trees
 - **Sign in and register** – welcome text and registration settings as configured on the site; optional biometric lock
 - **Home** – start person, birthdays this week, responses to "Ask for help"
-- **Search** – live search with photos, lifespans and markers for deceased individuals
-- **Individuals** – all facts, parents/spouses/children/siblings, copy any value, share as text or link
-- **Family tree view** – pannable view of parents, siblings, partners and children; tap to move through the tree, undo/redo
+- **One tab each for Home, Person, Family tree and Search** – an individual always opens on the Person tab, a tree always on the Family tree tab; both start with the start person
+- **Search** – live search with photos, lifespans and markers for deceased individuals; add a person right from the search
+- **Individuals** – all facts, parents/spouses/children/siblings; relatives open in place with undo/redo; ⋮ menu to ask for help, share as text or link, edit and add a person; copy any value
+- **Family tree view** – pannable view of parents, siblings, partners and children; tap to move through the tree, undo/redo, back to the start person in one tap
 - **Edit** – edit facts and photos, add individuals and facts with place autocompletion; changes go through webtrees moderation
 - **Offline notes** – facts recorded without a connection are kept and synchronised later
 - **My account** – name, linked individual, start person
