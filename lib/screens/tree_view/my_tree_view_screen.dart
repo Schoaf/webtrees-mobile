@@ -1,85 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
-import '../../widgets/load_error_view.dart';
+import '../../widgets/start_person_builder.dart';
 import 'tree_view_screen.dart';
 
-/// The "Stammbaum" bottom-nav tab: resolves which person to center the
-/// tree view on (the account's own linked person, falling back to the
-/// tree's Startperson - the same fallback order [HomeScreen] uses for its
-/// header), then hands off to [TreeViewScreen] for the actual view. A
-/// separate screen instead of doing this inline in [TreeViewScreen] itself
-/// because that one is also pushed directly with an already-known xref
-/// from [PersonDetailScreen]'s tree button, where this resolution step
-/// doesn't apply.
-class MyTreeViewScreen extends ConsumerStatefulWidget {
+/// The "Stammbaum" bottom-nav tab: the app's one tree view, starting with
+/// the start person (see startXrefProvider). Every "show in the tree"
+/// elsewhere switches to this tab (openTreeView).
+class MyTreeViewScreen extends ConsumerWidget {
   const MyTreeViewScreen({super.key});
 
   @override
-  ConsumerState<MyTreeViewScreen> createState() => _MyTreeViewScreenState();
-}
-
-class _MyTreeViewScreenState extends ConsumerState<MyTreeViewScreen> {
-  late Future<String?> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _resolveXref();
-  }
-
-  Future<String?> _resolveXref() async {
-    final client = ref.read(webtreesClientProvider);
-    final tree = ref.read(treeNameProvider);
-    final info = await client.info(tree);
-    final treeInfo = (info['trees'] as List<dynamic>)
-        .cast<Map<String, dynamic>>()
-        .firstWhere((t) => t['name'] == tree, orElse: () => const {});
-
-    // The person webtrees itself would start with for this user (own
-    // Startperson, "this is me", tree default, first individual) - only
-    // if they may see it. api4webtrees 1.13.0+.
-    final startXref = treeInfo['startXref'] as String? ?? '';
-    return startXref.isNotEmpty ? startXref : null;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Drives TreeViewScreen.visibilitySignal - watched (not read) so this
     // widget, and TreeViewScreen below it, rebuild on every tab switch even
     // though both stay alive offstage the rest of the time (this is the
     // Stammbaum tab in an IndexedStack) - see the comment on
     // visibilitySignal for why that rebuild matters.
     final selectedTab = ref.watch(selectedTabProvider);
-
-    return FutureBuilder<String?>(
-      future: _future,
-      builder: (context, snapshot) {
-        final l10n = AppLocalizations.of(context)!;
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: SafeArea(child: Center(child: CircularProgressIndicator())),
-          );
-        }
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: SafeArea(
-              child: LoadErrorView(message: l10n.couldNotLoad('${snapshot.error}')),
-            ),
-          );
-        }
-        final xref = snapshot.data;
-        if (xref == null) {
-          return Scaffold(
-            body: SafeArea(
-              child: LoadErrorView(message: l10n.noLinkedPersonError),
-            ),
-          );
-        }
-        return TreeViewScreen(xref: xref, visibilitySignal: selectedTab, isEnteringOnlyWhenEmpty: true);
-      },
+    return StartPersonBuilder(
+      builder: (xref) => TreeViewScreen(xref: xref, visibilitySignal: selectedTab, isEnteringOnlyWhenEmpty: true),
     );
   }
 }

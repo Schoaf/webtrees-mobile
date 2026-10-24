@@ -120,9 +120,7 @@ final treeNameProvider = NotifierProvider<TreeNameNotifier, String>(
   TreeNameNotifier.new,
 );
 
-/// Which bottom-nav tab is showing. A screen embedded as a tab (e.g.
-/// AddPersonScreen reached via "Neu") has no route of its own to pop — its
-/// "Abbrechen"/success actions switch this back to Start instead.
+/// Which bottom-nav tab is showing (kHomeTabIndex ...).
 class SelectedTabNotifier extends Notifier<int> {
   @override
   int build() => 0;

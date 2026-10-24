@@ -4,12 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
-import 'screens/add_person/add_person_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/server_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/responses/response_detail_screen.dart';
-import 'screens/search/person_detail_screen.dart';
+import 'screens/search/my_person_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/tree_picker/tree_picker_screen.dart';
 import 'screens/tree_view/my_tree_view_screen.dart';
@@ -45,9 +44,9 @@ Future<void> main() async {
   );
 }
 
-/// Lets a shared person link (handled by [_AppRootState], which has no
-/// BuildContext of its own to navigate with) push onto the app's one root
-/// Navigator from anywhere.
+/// Lets a review link or the tree picker (handled by [_AppRootState], which
+/// has no BuildContext of its own to navigate with) push onto the app's one
+/// root Navigator from anywhere.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class StammbaumApp extends ConsumerWidget {
@@ -137,9 +136,7 @@ class _AppRootState extends ConsumerState<_AppRoot> {
 
       final xref = personXrefFromLink(uri);
       if (xref != null) {
-        rootNavigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)),
-        );
+        openPerson(context, xref);
         return;
       }
 
@@ -356,9 +353,9 @@ class _HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<_HomeShell> {
   static const _screens = [
     HomeScreen(),
+    MyPersonScreen(),
     MyTreeViewScreen(),
     SearchScreen(),
-    AddPersonScreen(),
   ];
 
   // One per tab, created once - a NavigatorObserver can only be attached to
@@ -400,6 +397,11 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
             label: l10n.navHome,
           ),
           NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: l10n.navPerson,
+          ),
+          NavigationDestination(
             // Same colors NavigationBarThemeData.iconTheme resolves for
             // Icon-based destinations - GenealogyTreeIcon is a CustomPaint,
             // not an Icon, so it doesn't pick up the ambient IconTheme
@@ -412,7 +414,6 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
             icon: const Icon(Icons.search),
             label: l10n.navSearch,
           ),
-          NavigationDestination(icon: const Icon(Icons.add), label: l10n.navNew),
         ],
       ),
     );

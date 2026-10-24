@@ -7,8 +7,9 @@ import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/repositories/quick_note_store.dart';
 import 'package:webtrees_mobile/screens/home/home_screen.dart';
 import 'package:webtrees_mobile/screens/responses/responses_list_screen.dart';
-import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/utils/tab_navigation.dart';
+import 'package:webtrees_mobile/state/person_history.dart';
 import 'package:webtrees_mobile/widgets/tablet_bounded_body.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
@@ -180,8 +181,8 @@ void main() {
     // SearchScreen route on top of the bottom-nav Scaffold, stranding
     // people on a screen with no way back to the main menu. It must
     // instead switch main.dart's tab index, same as the bottom-nav bar
-    // itself would. Index 2: Home, Stammbaum, Search, New.
-    expect(container.read(selectedTabProvider), 2);
+    // itself would.
+    expect(container.read(selectedTabProvider), kSearchTabIndex);
     expect(find.byType(BackButton), findsNothing);
   });
 
@@ -205,7 +206,7 @@ void main() {
     expect(find.byType(ResponsesListScreen), findsOneWidget);
   });
 
-  testWidgets('birthdays this week: filters to living BIRT events, and tapping one opens PersonDetailScreen', (
+  testWidgets('birthdays this week: filters to living BIRT events, and tapping one shows them on the Person tab', (
     tester,
   ) async {
     when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
@@ -250,9 +251,8 @@ void main() {
     await tester.tap(find.text('Birthday Kid'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(PersonDetailScreen), findsOneWidget);
-    final screen = tester.widget<PersonDetailScreen>(find.byType(PersonDetailScreen));
-    expect(screen.xref, 'I2');
+    expect(container.read(personHistoryProvider).activeXref, 'I2');
+    expect(container.read(selectedTabProvider), kPersonTabIndex);
   });
 
   testWidgets('reuses the Startperson record when it is also the linked person', (tester) async {

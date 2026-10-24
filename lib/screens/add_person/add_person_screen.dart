@@ -257,22 +257,14 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
     }
   }
 
-  /// Both "Abbrechen" and a successful save need to leave this screen —
-  /// but when it's the embedded "Neu" tab (not pushed via Navigator), there's
-  /// nothing to pop, so switch the bottom nav back to Start instead.
+  /// Both "Abbrechen" and a successful save leave this screen.
   void _returnToStart({bool success = false}) {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop(success);
-    } else {
-      ref.read(selectedTabProvider.notifier).select(0);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.personSavedMessage),
-          ),
-        );
-      }
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.personSavedMessage)),
+      );
     }
+    Navigator.of(context).pop(success);
   }
 
   /// Name, sex, birth date/place and the "linked with" relative picker -

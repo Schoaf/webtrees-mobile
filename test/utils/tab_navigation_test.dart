@@ -4,60 +4,87 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
+import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 import 'package:webtrees_mobile/utils/tab_navigation.dart';
 import 'package:webtrees_mobile/widgets/tab_navigator.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
-/// A minimal stand-in for _HomeShell (main.dart) - just enough structure
-/// (an IndexedStack of a Home tab and a Stammbaum tab, each wrapped in a
-/// TabNavigator over the *shared* homeNavigatorKey/treeNavigatorKey, plus
-/// an unwrapped "Search"-like tab with a button that calls openPerson/
-/// openTreeView) to prove those two functions actually reach the right
-/// navigator and select the right tab, without needing the real app's
-/// login/auth-gated shell.
-class _FakeShell extends ConsumerWidget {
+/// A minimal stand-in for _HomeShell (main.dart): the four tabs, each in
+/// its own TabNavigator with a BottomBarObserver, the Person tab with the
+/// real person page, and a Search-like tab that opens a person or another
+/// page - without the real app's login-gated shell.
+class _FakeShell extends ConsumerStatefulWidget {
   const _FakeShell();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FakeShell> createState() => _FakeShellState();
+}
+
+class _FakeShellState extends ConsumerState<_FakeShell> {
+  late final _observers = [
+    for (var i = 0; i < tabNavigatorKeys.length; i++)
+      BottomBarObserver(ProviderScope.containerOf(context, listen: false)),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
     final index = ref.watch(selectedTabProvider);
+    final screens = <Widget>[
+      const Center(child: Text('home tab root')),
+      const PersonDetailScreen(xref: 'I1', isShowingOnlyWhenEmpty: true),
+      const Center(child: Text('tree tab root')),
+      Builder(
+        builder: (context) => Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('search results'),
+            TextButton(onPressed: () => openPerson(context, 'I2'), child: const Text('open person from search')),
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => Scaffold(appBar: AppBar(), body: const Text('other page')),
+                ),
+              ),
+              child: const Text('open other page'),
+            ),
+          ],
+        ),
+      ),
+    ];
     return Scaffold(
       body: IndexedStack(
         index: index,
         children: [
-          TabNavigator(navigatorKey: homeNavigatorKey, child: const Center(child: Text('home tab root'))),
-          TabNavigator(navigatorKey: treeNavigatorKey, child: const Center(child: Text('tree tab root'))),
-          TabNavigator(
-            navigatorKey: searchNavigatorKey,
-            observers: [BottomBarObserver(ProviderScope.containerOf(context, listen: false))],
-            child: Builder(
-              builder: (context) => Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: () => openPerson(context, 'I1'),
-                    child: const Text('open person from search'),
-                  ),
-                ],
-              ),
+          for (var i = 0; i < screens.length; i++)
+            TabNavigator(navigatorKey: tabNavigatorKeys[i], observers: [_observers[i]], child: screens[i]),
+        ],
+      ),
+      bottomNavigationBar: !ref.watch(bottomBarVisibleProvider)
+          ? null
+          : NavigationBar(
+              selectedIndex: index,
+              onDestinationSelected: (i) => ref.read(selectedTabProvider.notifier).select(i),
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
+                NavigationDestination(icon: Icon(Icons.person), label: 'Person'),
+                NavigationDestination(icon: Icon(Icons.account_tree), label: 'Stammbaum'),
+                NavigationDestination(icon: Icon(Icons.search), label: 'Suche'),
+              ],
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: !ref.watch(bottomBarVisibleProvider) ? null : NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => ref.read(selectedTabProvider.notifier).select(i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.account_tree), label: 'Stammbaum'),
-          NavigationDestination(icon: Icon(Icons.search), label: 'Suche'),
-        ],
-      ),
     );
   }
 }
+
+Map<String, dynamic> _person(String xref, String name) => {
+  'person': {'xref': xref, 'name': name, 'sortName': name, 'sex': 'F', 'isDead': false},
+  'canEdit': false,
+  'facts': <dynamic>[],
+  'parentFamilies': <dynamic>[],
+  'spouseFamilies': <dynamic>[],
+  'media': <dynamic>[],
+};
 
 void main() {
   late MockWebtreesClient client;
@@ -67,16 +94,8 @@ void main() {
     client = MockWebtreesClient();
     when(() => client.usePrettyUrls).thenReturn(false);
     when(() => client.imageHeaders).thenReturn(<String, String>{});
-    when(() => client.individual('Famtree', 'I1')).thenAnswer(
-      (_) async => {
-        'person': {'xref': 'I1', 'name': 'Anna Muster', 'sortName': 'Muster,Anna', 'sex': 'F', 'isDead': false},
-        'canEdit': false,
-        'facts': <dynamic>[],
-        'parentFamilies': <dynamic>[],
-        'spouseFamilies': <dynamic>[],
-        'media': <dynamic>[],
-      },
-    );
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => _person('I1', 'Anna Muster'));
+    when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => _person('I2', 'Berta Muster'));
     container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
     addTearDown(container.dispose);
   });
@@ -100,24 +119,39 @@ void main() {
     );
   }
 
-  testWidgets('openPerson opens the page within the current tab and hides the bottom bar; Back shows it again (#31)', (
-    tester,
-  ) async {
+  testWidgets('openPerson shows the person on the Person tab; the search tab keeps its results (#31)', (tester) async {
     await pumpShell(tester, viewSize: const Size(400, 800));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.search));
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('open person from search'));
     await tester.pumpAndSettle();
 
-    expect(container.read(selectedTabProvider), 2, reason: 'stays on the tab it was opened from');
-    expect(find.text('Anna Muster'), findsWidgets);
-    expect(find.byType(NavigationBar), findsNothing, reason: 'hidden while somewhere else');
+    expect(container.read(selectedTabProvider), kPersonTabIndex);
+    expect(find.text('Berta Muster'), findsWidgets);
+    expect(find.byType(NavigationBar), findsOneWidget, reason: 'a tab page, nothing pushed');
+    expect(find.byIcon(Icons.arrow_back), findsNothing, reason: 'nothing to go back to on a tab page');
 
-    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.tap(find.byIcon(Icons.search));
     await tester.pumpAndSettle();
-    expect(find.text('open person from search'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget, reason: 'back after Back');
+    expect(find.text('search results'), findsOneWidget);
+    expect(find.byType(PersonDetailScreen, skipOffstage: false), findsOneWidget, reason: 'only the Person tab has one');
+  });
+
+  testWidgets('a pushed page hides the bottom bar; Back shows it again (#31)', (tester) async {
+    await pumpShell(tester, viewSize: const Size(400, 800));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.search));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open other page'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('search results'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 }

@@ -10,6 +10,7 @@ import '../../utils/device_size.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
+import '../add_person/add_person_screen.dart';
 
 /// Priority-2 screen: find a person and review everything stored about
 /// them. Charts are deliberately out of scope for v1 (hard to use on a
@@ -127,6 +128,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             ),
                           ),
                         ),
+                        if (widget.pickerTitle == null)
+                          IconButton(
+                            key: const Key('addPersonButton'),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: l10n.addPersonTitle,
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const AddPersonScreen()),
+                            ),
+                            icon: const Icon(Icons.person_add_alt_1_outlined, color: AppColors.textPrimary),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 14),

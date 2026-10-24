@@ -4,9 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
+import 'package:webtrees_mobile/screens/add_person/add_person_screen.dart';
 import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/screens/search/search_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/utils/tab_navigation.dart';
+import 'package:webtrees_mobile/state/person_history.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -193,7 +196,7 @@ void main() {
     expect(picked, {'xref': 'I1', 'name': 'Anna Muster', 'sex': 'F', 'isDead': false});
   });
 
-  testWidgets('outside picker mode, tapping a result pushes PersonDetailScreen', (tester) async {
+  testWidgets('outside picker mode, tapping a result shows them on the Person tab', (tester) async {
     when(() => client.individuals('Famtree', query: 'Anna')).thenAnswer(
       (_) async => {
         'data': [
@@ -224,6 +227,17 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(find.byType(PersonDetailScreen), findsOneWidget);
+    expect(find.byType(PersonDetailScreen), findsNothing, reason: 'search only shows results (#31)');
+    expect(container.read(personHistoryProvider).activeXref, 'I1');
+    expect(container.read(selectedTabProvider), kPersonTabIndex);
+  });
+
+  testWidgets('the add-person button opens Person hinzufügen (#31)', (tester) async {
+    await pumpSearchScreen(tester);
+
+    await tester.tap(find.byKey(const Key('addPersonButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AddPersonScreen), findsOneWidget);
   });
 }

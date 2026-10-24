@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../screens/search/person_detail_screen.dart';
-import '../screens/tree_view/tree_view_screen.dart';
+import '../state/app_providers.dart';
+import '../state/person_history.dart';
+import '../state/tree_view_providers.dart';
 
 /// _HomeShell's bottom-nav destination order (main.dart) - shared so
 /// nothing else has to hardcode a raw tab index (a previous version of
 /// this app did exactly that in two different places, and they drifted
 /// out of sync the moment a tab got inserted between them).
 const kHomeTabIndex = 0;
-const kTreeTabIndex = 1;
-const kSearchTabIndex = 2;
-const kAddPersonTabIndex = 3;
+const kPersonTabIndex = 1;
+const kTreeTabIndex = 2;
+const kSearchTabIndex = 3;
 
 /// Each bottom-nav tab has its own nested Navigator (see _HomeShellState in
 /// main.dart): pages opened from a tab stay in that tab, and the bottom bar
 /// is a sibling of all of them - shown or hidden via [bottomBarVisibleProvider].
 final homeNavigatorKey = GlobalKey<NavigatorState>();
+final personNavigatorKey = GlobalKey<NavigatorState>();
 final treeNavigatorKey = GlobalKey<NavigatorState>();
 final searchNavigatorKey = GlobalKey<NavigatorState>();
-final addPersonNavigatorKey = GlobalKey<NavigatorState>();
 
 /// In bottom-nav order (kHomeTabIndex ...).
-final tabNavigatorKeys = [homeNavigatorKey, treeNavigatorKey, searchNavigatorKey, addPersonNavigatorKey];
+final tabNavigatorKeys = [homeNavigatorKey, personNavigatorKey, treeNavigatorKey, searchNavigatorKey];
 
 /// Whether the bottom bar shows (#31): hidden as soon as a page is opened
 /// from a tab, shown again after every Back - even if that lands on an inner
@@ -60,12 +61,22 @@ class BottomBarObserver extends NavigatorObserver {
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) => _set(true);
 }
 
-/// Opens a person's page on top of the current page, within the current tab.
+/// Shows [xref] on the Person tab - the app's one person page (#31).
 void openPerson(BuildContext context, String xref) {
-  Navigator.of(context).push(MaterialPageRoute(builder: (_) => PersonDetailScreen(xref: xref)));
+  final container = ProviderScope.containerOf(context, listen: false);
+  container.read(personHistoryProvider.notifier).show(xref);
+  _switchToTab(container, kPersonTabIndex);
 }
 
-/// Opens the tree view for [xref] on top of the current page, within the current tab.
+/// Shows [xref] on the Stammbaum tab - the app's one tree view (#31).
 void openTreeView(BuildContext context, String xref) {
-  Navigator.of(context).push(MaterialPageRoute(builder: (_) => TreeViewScreen(xref: xref)));
+  final container = ProviderScope.containerOf(context, listen: false);
+  container.read(treeViewControllerProvider.notifier).enter(xref);
+  _switchToTab(container, kTreeTabIndex);
+}
+
+void _switchToTab(ProviderContainer container, int index) {
+  // Its first page is the one showing the person.
+  tabNavigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
+  container.read(selectedTabProvider.notifier).select(index);
 }

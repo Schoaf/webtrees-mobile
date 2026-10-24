@@ -7,10 +7,11 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/account/account_screen.dart';
-import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/screens/search/search_screen.dart';
 import 'package:webtrees_mobile/services/biometric_auth_service.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/utils/tab_navigation.dart';
+import 'package:webtrees_mobile/state/person_history.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -157,7 +158,7 @@ void main() {
     expect(find.text('Keine Startperson festgelegt.'), findsOneWidget);
   });
 
-  testWidgets('tapping the linked person opens PersonDetailScreen for their xref', (tester) async {
+  testWidgets('tapping the linked person shows them on the Person tab', (tester) async {
     when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1', name: 'Linked One'));
     when(() => client.individual('Famtree', 'I2')).thenAnswer((_) async => personResponse('I2', name: 'Start Two'));
@@ -168,8 +169,8 @@ void main() {
     await tester.tap(find.text('Linked One', findRichText: true));
     await tester.pumpAndSettle();
 
-    expect(find.byType(PersonDetailScreen), findsOneWidget);
-    expect(tester.widget<PersonDetailScreen>(find.byType(PersonDetailScreen)).xref, 'I1');
+    expect(container.read(personHistoryProvider).activeXref, 'I1');
+    expect(container.read(selectedTabProvider), kPersonTabIndex);
   });
 
   testWidgets('tapping a field copies its value to the clipboard', (tester) async {

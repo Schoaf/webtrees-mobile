@@ -5,12 +5,13 @@ import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
-import 'package:webtrees_mobile/screens/tree_view/tree_view_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/state/tree_view_providers.dart';
+import 'package:webtrees_mobile/utils/tab_navigation.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
-Future<void> _pumpPersonDetail(WidgetTester tester, {required bool isDead}) async {
+Future<ProviderContainer> _pumpPersonDetail(WidgetTester tester, {required bool isDead}) async {
   final client = MockWebtreesClient();
   when(() => client.imageHeaders).thenReturn(<String, String>{});
   when(() => client.individual('Famtree', 'I1')).thenAnswer(
@@ -47,15 +48,14 @@ Future<void> _pumpPersonDetail(WidgetTester tester, {required bool isDead}) asyn
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
+  return container;
 }
 
 void main() {
-  testWidgets('tapping the tree-view button actually navigates to TreeViewScreen (no admin required)', (
+  testWidgets('tapping the tree-view button shows the person on the Stammbaum tab (no admin required)', (
     tester,
   ) async {
-    await _pumpPersonDetail(tester, isDead: false);
-
-    expect(find.byType(TreeViewScreen), findsNothing);
+    final container = await _pumpPersonDetail(tester, isDead: false);
 
     final treeButton = find.byKey(const Key('treeViewButton'));
     expect(treeButton, findsOneWidget, reason: 'the tree-view button must be present and tappable');
@@ -64,7 +64,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(TreeViewScreen), findsOneWidget);
+    expect(container.read(selectedTabProvider), kTreeTabIndex);
+    expect(container.read(treeViewControllerProvider).activeXref, 'I1');
   });
 
   testWidgets('tapping the tree-view button still works for a deceased person', (tester) async {
@@ -75,9 +76,7 @@ void main() {
     // stops at the first opaque hit in paint order - so the banderole
     // silently swallowed the tap before it ever reached the button
     // underneath, for deceased people only.
-    await _pumpPersonDetail(tester, isDead: true);
-
-    expect(find.byType(TreeViewScreen), findsNothing);
+    final container = await _pumpPersonDetail(tester, isDead: true);
 
     final treeButton = find.byKey(const Key('treeViewButton'));
     expect(treeButton, findsOneWidget, reason: 'the tree-view button must be present and tappable');
@@ -86,6 +85,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(TreeViewScreen), findsOneWidget);
+    expect(container.read(selectedTabProvider), kTreeTabIndex);
+    expect(container.read(treeViewControllerProvider).activeXref, 'I1');
   });
 }

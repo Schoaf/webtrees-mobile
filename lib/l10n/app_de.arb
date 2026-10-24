@@ -8,7 +8,7 @@
   "navHome": "Start",
   "navTree": "Stammbaum",
   "navSearch": "Suche",
-  "navNew": "Neu",
+  "navPerson": "Person",
 
   "noLinkedPersonError": "Für dieses Konto ist keine Person verknüpft.",
 

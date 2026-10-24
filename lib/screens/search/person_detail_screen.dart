@@ -141,13 +141,17 @@ bool _useTwoColumnLayout(BuildContext context) => isWideLandscapeTablet(context)
 /// project plan — plus the fast fact-capture entry point (priority-1),
 /// since every fact needs a person anyway.
 class PersonDetailScreen extends ConsumerStatefulWidget {
-  const PersonDetailScreen({super.key, required this.xref});
+  const PersonDetailScreen({super.key, required this.xref, this.isShowingOnlyWhenEmpty = false});
 
   /// The person this page was opened for - entered into the app's one
   /// person history (see personHistoryProvider) when the page opens. The
   /// page then shows whoever is active in that history: tapping a relative
   /// switches person in place, undo/redo step back and forth.
   final String xref;
+
+  /// The Person tab's page: [xref] only enters an empty history - otherwise
+  /// it continues with the person active there.
+  final bool isShowingOnlyWhenEmpty;
 
   @override
   ConsumerState<PersonDetailScreen> createState() => _PersonDetailScreenState();
@@ -156,7 +160,7 @@ class PersonDetailScreen extends ConsumerStatefulWidget {
 class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   late Future<Map<String, dynamic>> _future;
   /// The person currently shown (the active one of the person history).
-  late String _xref = widget.xref;
+  late String _xref;
   bool _editing = false;
   GlobalKey<_EditFactsSectionState> _editKey =
       GlobalKey<_EditFactsSectionState>();
@@ -171,7 +175,11 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   @override
   void initState() {
     super.initState();
+    final active = ref.read(personHistoryProvider).activeXref;
+    final isContinuing = widget.isShowingOnlyWhenEmpty && active != null;
+    _xref = isContinuing ? active : widget.xref;
     _future = _load();
+    if (isContinuing) return;
     // After this frame: changing a provider while widgets build is not allowed.
     Future.microtask(() {
       if (mounted) ref.read(personHistoryProvider.notifier).show(widget.xref);
@@ -893,6 +901,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                     children: [
                       _Header(
                         name: name,
+                        // None as the Person tab's first page: nothing to go back to.
+                        onBack: Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null,
                         editing: _editing,
                         canUndo: !_editing && history.canUndo,
                         canRedo: !_editing && history.canRedo,
@@ -1015,6 +1025,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
 class _Header extends StatelessWidget {
   const _Header({
     required this.name,
+    required this.onBack,
     required this.canUndo,
     required this.canRedo,
     required this.onUndo,
@@ -1027,6 +1038,7 @@ class _Header extends StatelessWidget {
   });
 
   final String name;
+  final VoidCallback? onBack;
   final bool editing;
   final bool canUndo;
   final bool canRedo;
@@ -1051,10 +1063,13 @@ class _Header extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          ),
+          if (onBack != null)
+            IconButton(
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            )
+          else
+            const SizedBox(width: 12),
           Expanded(
             child: Text(
               stripNameSlashes(name),
