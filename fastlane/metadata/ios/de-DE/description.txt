@@ -1,0 +1,14 @@
+Die Stammbaum App ist der mobile Begleiter zu deiner eigenen webtrees-Genealogie-Website. Durchsuche deinen Familienstammbaum, sieh dir Personen mit allen Fakten, Fotos und Verwandtschaftsbeziehungen an und ergänze unterwegs neue Informationen.
+
+Funktionen:
+• Personen suchen und Details ansehen (Geburt, Tod, Beruf, Fotos u.v.m.)
+• Fakten direkt in der App bearbeiten
+• Neue Personen zum Stammbaum hinzufügen
+• Interaktive Stammbaum-Ansicht mit Vorfahren, Geschwistern und Kindern
+• Fotos für Personen aufnehmen oder auswählen
+• Biometrische Entsperrung (Face ID / Fingerabdruck)
+• Verfügbar auf Deutsch und Englisch
+
+Die App verbindet sich mit einer bestehenden webtrees-Installation (webtrees.net) – deine Familiendaten bleiben auf deinem eigenen Server, nicht bei uns.
+
+Voraussetzung ist das Modul api4webtrees auf dem webtrees-Server: https://github.com/thobgg/api4webtrees

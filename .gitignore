@@ -60,3 +60,10 @@ app.*.map.json
 # commit store screenshot assets.
 /screenshots/raw/
 /screenshots/store/
+
+# Store uploads prepared by tool/prepare_store_uploads.py, and fastlane's own output.
+/fastlane/screenshots/
+/fastlane/metadata/android/*/images/
+/fastlane/metadata/android/*/changelogs/
+/fastlane/report.xml
+/fastlane/README.md

@@ -1,0 +1,14 @@
+The family tree app is the mobile companion to your own webtrees genealogy website. Search your family tree, view people with all their facts, photos and relationships, and add new information on the go.
+
+Features:
+• Search for people and view their details (birth, death, occupation, photos and more)
+• Edit facts directly in the app
+• Add new people to the family tree
+• Interactive family tree view with ancestors, siblings and children
+• Take or choose photos for people
+• Biometric unlock (Face ID / fingerprint)
+• Available in English and German
+
+The app connects to an existing webtrees installation (webtrees.net) – your family data stays on your own server, not with us.
+
+Requires the api4webtrees module on the webtrees server: https://github.com/thobgg/api4webtrees

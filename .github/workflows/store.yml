@@ -1,0 +1,72 @@
+name: Store
+
+# Push a tag like v1.7.0 once its TestFlight and Play internal-testing builds
+# are ready (see docs/RELEASING.md): renders the store screenshots, uploads
+# them with the texts from fastlane/metadata, submits the tagged commit's
+# TestFlight build for App Store review and promotes its internal-testing
+# build to production on Google Play.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  store:
+    runs-on: macos-26
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Version and builds of this commit
+        id: build
+        run: |
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          # CI uses the run number as build number (--build-number).
+          for platform in ios android; do
+            number=$(gh run list --workflow "deploy-$platform.yml" --commit "$GITHUB_SHA" --status success \
+              --json number --jq '.[0].number')
+            if [ -z "$number" ]; then
+              echo "No successful deploy-$platform run for $GITHUB_SHA" >&2
+              exit 1
+            fi
+            echo "$platform=$number" >> "$GITHUB_OUTPUT"
+          done
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Render screenshots
+        run: flutter test test/screenshots/store_screenshots_test.dart --dart-define=RENDER_SCREENSHOTS=true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Compose screenshots
+        run: |
+          pip install pillow
+          python tool/compose_store_screenshots.py
+          python tool/compose_store_banner.py
+          python tool/prepare_store_uploads.py
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+
+      - name: App Store
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: bundle exec fastlane store_ios version:${{ steps.build.outputs.version }} build:${{ steps.build.outputs.ios }}
+
+      - name: Google Play
+        # Also when the App Store step failed - the two stores are independent.
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane store_android build:${{ steps.build.outputs.android }}
