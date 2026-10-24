@@ -269,5 +269,5 @@
   "askForHelpSendFailed": "Versturen mislukt: {error}",
   "languageSetting": "Taal",
   "languageDevice": "Taal van het apparaat",
-  "treeCenterTooltip": "Terug naar de beginpersoon"
+  "treeCenterTooltip": "Terug naar de startpersoon"
 }
