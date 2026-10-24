@@ -269,5 +269,20 @@
   "askForHelpPreview": "Preview",
   "askForHelpSend": "Send",
   "askForHelpSendFailed": "Sending failed: {error}",
-  "treeCenterTooltip": "Back to the starting person"
+  "treeCenterTooltip": "Back to the starting person",
+
+  "addPhotos": "Add photos",
+  "showPhotos": "View photos",
+  "photosUploaded": "{count, plural, =1{Photo uploaded.} other{{count} photos uploaded.}}",
+  "morePhotosTooltip": "More photos",
+  "makePrimaryPhoto": "Make main photo",
+  "isPrimaryPhoto": "Main photo",
+  "primaryPhotoSet": "Main photo set.",
+  "removePhoto": "Remove photo",
+  "removePhotoTitle": "Remove photo from {name}?",
+  "removePhotoExplanation": "The photo stays on the server; only its link to this person is removed.",
+  "removePhotoCommentHint": "Comment (optional)",
+  "removePhotoNote": "Removed from {name} ({xref}): {comment}",
+  "remove": "Remove",
+  "photoRemoved": "Photo removed."
 }

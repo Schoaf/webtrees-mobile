@@ -27,6 +27,7 @@ import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
 import '../add_person/add_person_screen.dart';
+import 'media_viewer_screen.dart';
 
 /// Facts always shown; everything else is collapsed under "Mehr anzeigen"
 /// so the record-metadata clutter (reference numbers, last-changed, ...)
@@ -311,27 +312,34 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     }
   }
 
-  void _openPhotoViewer(String url) {
-    final headers = ref.read(webtreesClientProvider).imageHeaders;
-    Navigator.of(context).push(
+  /// The person's photos (#35), starting with the main one.
+  Future<void> _openMediaViewer({
+    required String name,
+    required List<Map<String, dynamic>> photos,
+    required bool canEdit,
+  }) async {
+    final primaryIndex = photos.indexWhere((photo) => photo['primary'] == true);
+    final hasChanged = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          body: Center(
-            child: InteractiveViewer(
-              child: Image.network(url, headers: headers),
-            ),
-          ),
+        builder: (_) => MediaViewerScreen(
+          personXref: _xref,
+          personName: stripNameSlashes(name),
+          photos: photos,
+          initialIndex: primaryIndex < 0 ? 0 : primaryIndex,
+          canEdit: canEdit,
         ),
       ),
     );
+    if (hasChanged == true && mounted) {
+      setState(() {
+        _future = _load();
+      });
+    }
   }
 
-  Future<void> _pickAndUploadPhoto() async {
+  /// Uploads a photo as the person's main photo (#34), or - [isAdding] -
+  /// one or more further photos from the ⋮ menu (#35).
+  Future<void> _pickAndUploadPhoto({bool isAdding = false}) async {
     final l10n = AppLocalizations.of(context)!;
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -355,29 +363,27 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     );
     if (source == null || !mounted) return;
 
-    final file = await ImagePicker().pickImage(
-      source: source,
-      maxWidth: 2000,
-      imageQuality: 85,
-    );
-    if (file == null || !mounted) return;
-
-    final bytes = await file.readAsBytes();
-    if (!mounted) return;
+    final picker = ImagePicker();
+    final files = isAdding && source == ImageSource.gallery
+        ? await picker.pickMultiImage(maxWidth: 2000, imageQuality: 85)
+        : [?await picker.pickImage(source: source, maxWidth: 2000, imageQuality: 85)];
+    if (files.isEmpty || !mounted) return;
 
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
     try {
-      final result = await client.postMedia(
-        tree,
-        _xref,
-        bytes: bytes,
-        filename: file.name,
-      );
-      if (result['ok'] == true) {
+      var result = <String, dynamic>{};
+      for (final file in files) {
+        result = await client.postMedia(
+          tree,
+          _xref,
+          bytes: await file.readAsBytes(),
+          filename: file.name,
+        );
+        if (result['ok'] != true) break;
         // Uploaded photos are linked last; the new one should be the person's photo (#34).
         final media = result['media'] as String?;
-        if (media != null) await client.postPrimaryMedia(tree, _xref, media: media);
+        if (!isAdding && media != null) await client.postPrimaryMedia(tree, _xref, media: media);
       }
       if (!mounted) return;
       if (result['ok'] == true) {
@@ -392,7 +398,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(l10n.photoUploaded)));
+        ).showSnackBar(SnackBar(content: Text(l10n.photosUploaded(files.length))));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -684,8 +690,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final media = (data['media'] as List<dynamic>? ?? [])
             .cast<Map<String, dynamic>>();
         final canEdit = data['canEdit'] as bool? ?? false;
+        final photos = media.where((m) => m['isImage'] == true).toList();
+        void openPhotos() => _openMediaViewer(name: name, photos: photos, canEdit: canEdit);
         final photoUrl = person['thumb'] as String?;
-        final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
         final fab = _editing ? null : _buildTreeButton();
         final isDead = person['isDead'] as bool? ?? false;
         final useTwoColumn = _useTwoColumnLayout(context);
@@ -716,32 +723,52 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                         children: [
                           Align(
                             alignment: Alignment.center,
-                            child: PersonAvatar(
-                              sex: person['sex'] as String? ?? 'U',
-                              isDead: isDead,
-                              size: avatarSize,
-                              photoUrl: photoUrl,
-                              photoHeaders: ref
-                                  .read(webtreesClientProvider)
-                                  .imageHeaders,
-                              editable: _editing && canEdit,
-                              // The whole screen carries its own corner
-                              // banderole below, spanning further than
-                              // this small header avatar.
-                              showBanderole: false,
-                              onTap: _editing
-                                  ? (canEdit ? _pickAndUploadPhoto : null)
-                                  : (hasPhoto
-                                        ? () => _openPhotoViewer(
-                                            media.isNotEmpty
-                                                ? (media.first['file']
-                                                          as String? ??
-                                                      photoUrl)
-                                                : photoUrl,
-                                          )
-                                        : (canEdit
-                                              ? _pickAndUploadPhoto
-                                              : null)),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                PersonAvatar(
+                                  sex: person['sex'] as String? ?? 'U',
+                                  isDead: isDead,
+                                  size: avatarSize,
+                                  photoUrl: photoUrl,
+                                  photoHeaders: ref
+                                      .read(webtreesClientProvider)
+                                      .imageHeaders,
+                                  editable: _editing && canEdit,
+                                  // The whole screen carries its own corner
+                                  // banderole below, spanning further than
+                                  // this small header avatar.
+                                  showBanderole: false,
+                                  onTap: _editing
+                                      ? (canEdit ? _pickAndUploadPhoto : null)
+                                      : (photos.isNotEmpty
+                                            ? openPhotos
+                                            : (canEdit
+                                                  ? _pickAndUploadPhoto
+                                                  : null)),
+                                ),
+                                // More than one photo: a hint that tapping shows them all (#35).
+                                if (!_editing && photos.length > 1)
+                                  Positioned(
+                                    right: -4,
+                                    bottom: -4,
+                                    child: IgnorePointer(
+                                      child: Tooltip(
+                                        message: l10n.morePhotosTooltip,
+                                        child: Container(
+                                          key: const Key('morePhotosBadge'),
+                                          padding: const EdgeInsets.all(5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.6),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Colors.white, width: 2),
+                                          ),
+                                          child: const Icon(Icons.photo_library, size: 16, color: Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ],
@@ -919,6 +946,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                             ? null
                             : () => _openAskForHelp(name),
                         onAddPerson: canEdit ? () => _openAddPerson(name) : null,
+                        onShowPhotos: photos.isEmpty ? null : openPhotos,
+                        onAddPhotos: canEdit ? () => _pickAndUploadPhoto(isAdding: true) : null,
                       ),
                       Expanded(
                         // The floating add-person/home FABs sit on top of
@@ -1040,6 +1069,8 @@ class _Header extends StatelessWidget {
     this.onEditToggle,
     this.onAskForHelp,
     this.onAddPerson,
+    this.onShowPhotos,
+    this.onAddPhotos,
   });
 
   final String name;
@@ -1056,6 +1087,8 @@ class _Header extends StatelessWidget {
   /// module is missing or the user can't edit.
   final VoidCallback? onAskForHelp;
   final VoidCallback? onAddPerson;
+  final VoidCallback? onShowPhotos;
+  final VoidCallback? onAddPhotos;
 
   @override
   Widget build(BuildContext context) {
@@ -1120,6 +1153,10 @@ class _Header extends StatelessWidget {
                   PopupMenuItem(value: onEditToggle, child: _MenuEntry(Icons.edit_outlined, l10n.edit)),
                 if (onAddPerson != null)
                   PopupMenuItem(value: onAddPerson, child: _MenuEntry(Icons.person_add_outlined, l10n.addPersonTitle)),
+                if (onShowPhotos != null)
+                  PopupMenuItem(value: onShowPhotos, child: _MenuEntry(Icons.photo_library_outlined, l10n.showPhotos)),
+                if (onAddPhotos != null)
+                  PopupMenuItem(value: onAddPhotos, child: _MenuEntry(Icons.add_photo_alternate_outlined, l10n.addPhotos)),
               ],
             ),
         ],

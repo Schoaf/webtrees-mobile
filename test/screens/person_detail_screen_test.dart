@@ -5,9 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
+import 'package:webtrees_mobile/screens/search/media_viewer_screen.dart';
 import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 import 'package:webtrees_mobile/state/person_history.dart';
+import 'package:webtrees_mobile/widgets/person_avatar.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -169,6 +171,55 @@ void main() {
     expect(find.text('Teilen'), findsOneWidget);
     expect(find.text('Bearbeiten'), findsOneWidget);
     expect(find.text('Person hinzufügen'), findsOneWidget);
+  });
+
+  group('photos (#35)', () {
+    Map<String, dynamic> photo(String xref, {bool isPrimary = false}) => {
+      'xref': xref,
+      'isImage': true,
+      'thumb': 'https://example.org/$xref-thumb.jpg',
+      'file': 'https://example.org/$xref.jpg',
+      'primary': isPrimary,
+    };
+
+    testWidgets('more than one photo: a badge on the photo, and the menu shows them and adds more', (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer(
+        (_) async => personJson('I1')..['media'] = [photo('M1', isPrimary: true), photo('M2')],
+      );
+      await pumpScreen(tester);
+      expect(find.byKey(const Key('morePhotosBadge')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('personMenu')));
+      await tester.pumpAndSettle();
+      expect(find.text('Fotos hinzufügen'), findsOneWidget);
+      await tester.tap(find.text('Fotos ansehen'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MediaViewerScreen), findsOneWidget);
+      expect(find.text('1 / 2'), findsOneWidget);
+    });
+
+    testWidgets('one photo: no badge; tapping it opens the photo view', (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer(
+        (_) async => personJson('I1')..['media'] = [photo('M1', isPrimary: true)],
+      );
+      await pumpScreen(tester);
+      expect(find.byKey(const Key('morePhotosBadge')), findsNothing);
+
+      await tester.tap(find.byType(PersonAvatar).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(MediaViewerScreen), findsOneWidget);
+    });
+
+    testWidgets('no photos and no edit rights: neither menu entry', (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1', canEdit: false));
+      await pumpScreen(tester);
+
+      await tester.tap(find.byKey(const Key('personMenu')));
+      await tester.pumpAndSettle();
+      expect(find.text('Fotos ansehen'), findsNothing);
+      expect(find.text('Fotos hinzufügen'), findsNothing);
+    });
   });
 
   testWidgets('shows Eltern and a "Familie mit X" group with the partner and children', (tester) async {

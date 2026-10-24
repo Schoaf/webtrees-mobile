@@ -443,5 +443,23 @@
   "askForHelpSend": "Senden",
   "askForHelpSendFailed": "Senden fehlgeschlagen: {error}",
   "@askForHelpSendFailed": {"placeholders": {"error": {"type": "String"}}},
-  "treeCenterTooltip": "Zur Ausgangsperson"
+  "treeCenterTooltip": "Zur Ausgangsperson",
+
+  "addPhotos": "Fotos hinzufügen",
+  "showPhotos": "Fotos ansehen",
+  "photosUploaded": "{count, plural, =1{Foto hochgeladen.} other{{count} Fotos hochgeladen.}}",
+  "@photosUploaded": {"placeholders": {"count": {"type": "int"}}},
+  "morePhotosTooltip": "Weitere Fotos",
+  "makePrimaryPhoto": "Als Hauptfoto festlegen",
+  "isPrimaryPhoto": "Hauptfoto",
+  "primaryPhotoSet": "Hauptfoto festgelegt.",
+  "removePhoto": "Foto entfernen",
+  "removePhotoTitle": "Foto von {name} entfernen?",
+  "@removePhotoTitle": {"placeholders": {"name": {"type": "String"}}},
+  "removePhotoExplanation": "Das Foto bleibt auf dem Server, nur die Verknüpfung zu dieser Person wird gelöst.",
+  "removePhotoCommentHint": "Kommentar (optional)",
+  "removePhotoNote": "Von {name} ({xref}) entfernt: {comment}",
+  "@removePhotoNote": {"description": "Note written to the media object when it is removed from a person.", "placeholders": {"name": {"type": "String"}, "xref": {"type": "String"}, "comment": {"type": "String"}}},
+  "remove": "Entfernen",
+  "photoRemoved": "Foto entfernt."
 }

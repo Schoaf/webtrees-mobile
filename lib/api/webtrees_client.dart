@@ -443,6 +443,17 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// Removes the link from [xref] to [media]; the media object and its file
+  /// stay on the server.
+  Future<Map<String, dynamic>> postUnlinkMedia(String tree, String xref, {required String media}) async {
+    final response = await _dio.postUri(
+      _moduleUri('UnlinkMedia', tree, {'xref': xref}),
+      data: {'media': media},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
   /// Creates a new individual, optionally linked to [relativeTo] as their
   /// child, spouse, father or mother. `relation: 'none'` (the default)
   /// creates an unlinked individual.

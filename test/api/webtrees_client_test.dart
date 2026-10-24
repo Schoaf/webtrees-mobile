@@ -507,6 +507,19 @@ void main() {
     });
   });
 
+  group('postUnlinkMedia()', () {
+    test('posts the media xref to remove from the person (#35)', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+
+      await client.postUnlinkMedia('Famtree', 'I1', media: 'M5');
+
+      final request = adapter.requests.single;
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/UnlinkMedia/Famtree');
+      expect(request.uri.queryParameters['xref'], 'I1');
+      expect(request.data, {'media': 'M5'});
+    });
+  });
+
   group('postAddIndividual()', () {
     test('sends the full default body for an unlinked individual', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true,"xref":"I9"}'));

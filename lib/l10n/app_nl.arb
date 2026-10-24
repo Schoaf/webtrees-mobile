@@ -269,5 +269,20 @@
   "askForHelpSendFailed": "Versturen mislukt: {error}",
   "languageSetting": "Taal",
   "languageDevice": "Taal van het apparaat",
-  "treeCenterTooltip": "Terug naar de startpersoon"
+  "treeCenterTooltip": "Terug naar de startpersoon",
+
+  "addPhotos": "Foto's toevoegen",
+  "showPhotos": "Foto's bekijken",
+  "photosUploaded": "{count, plural, =1{Foto geüpload.} other{{count} foto's geüpload.}}",
+  "morePhotosTooltip": "Meer foto's",
+  "makePrimaryPhoto": "Als hoofdfoto instellen",
+  "isPrimaryPhoto": "Hoofdfoto",
+  "primaryPhotoSet": "Hoofdfoto ingesteld.",
+  "removePhoto": "Foto verwijderen",
+  "removePhotoTitle": "Foto bij {name} verwijderen?",
+  "removePhotoExplanation": "De foto blijft op de server; alleen de koppeling met deze persoon wordt verwijderd.",
+  "removePhotoCommentHint": "Opmerking (optioneel)",
+  "removePhotoNote": "Verwijderd bij {name} ({xref}): {comment}",
+  "remove": "Verwijderen",
+  "photoRemoved": "Foto verwijderd."
 }
