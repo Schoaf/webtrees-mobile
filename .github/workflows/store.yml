@@ -4,29 +4,46 @@ name: Store
 # are ready (see docs/RELEASING.md): renders the store screenshots, uploads
 # them with the texts from fastlane/metadata, submits the tagged commit's
 # TestFlight build for App Store review and promotes its internal-testing
-# build to production on Google Play.
+# build to production on Google Play. Manually: an existing tag, and which
+# stores (e.g. only one, when the other already went through).
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag, e.g. v1.7.0
+        required: true
+      stores:
+        description: Stores
+        type: choice
+        options: [both, apple, google]
+        default: both
 
 jobs:
   store:
     runs-on: macos-26
     env:
       GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || github.ref_name }}
+      STORES: ${{ inputs.stores || 'both' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
 
       - name: Version and builds of this commit
         id: build
         run: |
-          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          sha=$(git rev-parse HEAD)
           # CI uses the run number as build number (--build-number).
           for platform in ios android; do
-            number=$(gh run list --workflow "deploy-$platform.yml" --commit "$GITHUB_SHA" --status success \
+            number=$(gh run list --workflow "deploy-$platform.yml" --commit "$sha" --status success \
               --json number --jq '.[0].number')
             if [ -z "$number" ]; then
-              echo "No successful deploy-$platform run for $GITHUB_SHA" >&2
+              echo "No successful deploy-$platform run for $sha" >&2
               exit 1
             fi
             echo "$platform=$number" >> "$GITHUB_OUTPUT"
@@ -58,6 +75,7 @@ jobs:
           bundler-cache: true
 
       - name: App Store
+        if: env.STORES != 'google'
         env:
           ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -66,7 +84,7 @@ jobs:
 
       - name: Google Play
         # Also when the App Store step failed - the two stores are independent.
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && env.STORES != 'apple' }}
         env:
           PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: bundle exec fastlane store_android build:${{ steps.build.outputs.android }}
