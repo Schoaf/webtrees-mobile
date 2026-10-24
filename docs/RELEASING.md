@@ -8,7 +8,7 @@ When a version goes to the stores:
 2. Tag the commit whose TestFlight / Play internal-testing build should go out, and push the tag: `git tag v1.4.0 <commit> && git push origin v1.4.0`. Two workflows then run:
    - **Store** renders the store screenshots, uploads them with the texts, submits that commit's TestFlight build for App Store review and promotes its internal-testing build to production on Google Play.
    - **Release** builds a signed APK, publishes a GitHub release with the milestone's closed issues as notes and the APK as download, and closes the milestone. (For an existing tag: run it manually with the tag.)
-3. Bump `version` in `pubspec.yaml` for the next version — the version name **and** the build number after `+` (e.g. `1.4.0+7` → `1.5.0+8`) — and create the next milestone.
+3. Once the Store workflow is through, bump `version` in `pubspec.yaml` for the next version — the version name **and** the build number after `+` (e.g. `1.4.0+7` → `1.5.0+8`) — and create the next milestone. Not earlier: every push to master uploads a new internal-testing build, and the Store workflow can only promote the tagged one while it is still there.
 
 The App Store review contact and demo account stay as they are in App Store Connect; they never go into `fastlane/metadata` (public repo). To try the store screenshots locally: the screenshot test, both `tool/compose_store_*.py` scripts and `tool/prepare_store_uploads.py`.
 
