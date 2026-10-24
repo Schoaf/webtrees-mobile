@@ -1,2 +1,3 @@
-- Navigation rework
-- Bugfixes
+- View all photos of a person: swipe, thumbnail strip, choose the main photo, remove photos
+- Add several photos at once
+- Bug fixes

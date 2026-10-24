@@ -1,2 +1,3 @@
-- Navigation rework
-- Bugfixes
+- Alle Fotos einer Person ansehen: wischen, Vorschaubild-Leiste, Hauptfoto festlegen, Fotos entfernen
+- Mehrere Fotos auf einmal hinzufügen
+- Fehlerbehebungen

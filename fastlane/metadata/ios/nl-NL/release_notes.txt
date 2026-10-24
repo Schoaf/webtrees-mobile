@@ -1,2 +1,3 @@
-- Navigation rework
-- Bugfixes
+- Alle foto's van een persoon bekijken: vegen, miniatuurbalk, hoofdfoto kiezen, foto's verwijderen
+- Meerdere foto's tegelijk toevoegen
+- Foutoplossingen
