@@ -154,4 +154,32 @@ void main() {
     expect(find.text('search results'), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
   });
+
+  testWidgets('the Person tab keeps no Back button after a page on top was closed (white screen)', (tester) async {
+    await pumpShell(tester, viewSize: const Size(400, 800));
+    // An iPhone's home indicator: hiding the bar changes the person page's
+    // bottom padding, so it rebuilds while the other page is on top.
+    tester.view.padding = const FakeViewPadding(bottom: 34);
+    addTearDown(tester.view.resetPadding);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.person));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+
+    // Like "Person hinzufügen" from the ⋮ menu: the bar hides, the person page rebuilds below.
+    personNavigatorKey.currentState!.push(
+      MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(), body: const Text('other page'))),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byIcon(Icons.arrow_back, skipOffstage: false),
+      findsOneWidget,
+      reason: 'only the page on top - a Back on the person page below outlived it and removed the tab\'s only page',
+    );
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Anna Muster'), findsWidgets);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+  });
 }

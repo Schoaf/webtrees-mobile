@@ -907,7 +907,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                       _Header(
                         name: name,
                         // None as the Person tab's first page: nothing to go back to.
-                        onBack: Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null,
+                        onBack: isFirstPage(context) ? null : () => Navigator.of(context).maybePop(),
                         editing: _editing,
                         canUndo: !_editing && history.canUndo,
                         canRedo: !_editing && history.canRedo,

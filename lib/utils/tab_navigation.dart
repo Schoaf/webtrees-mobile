@@ -61,6 +61,13 @@ class BottomBarObserver extends NavigatorObserver {
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) => _set(true);
 }
 
+/// Whether the page at [context] is the first page of its Navigator - a
+/// tab's own page, which Back must never remove. Not Navigator.canPop():
+/// that is also true while another page lies on top, and a rebuild in that
+/// moment (the bottom bar hiding) left a Back button that later popped the
+/// tab's only page - a white screen.
+bool isFirstPage(BuildContext context) => ModalRoute.of(context)?.isFirst ?? true;
+
 /// Shows [xref] on the Person tab - the app's one person page (#31).
 void openPerson(BuildContext context, String xref) {
   final container = ProviderScope.containerOf(context, listen: false);

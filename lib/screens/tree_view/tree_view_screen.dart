@@ -200,7 +200,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                 canRedo: treeState.canRedo,
                 // Null on the Stammbaum tab, where the tree is the tab's first
                 // page: popping there removed the app's whole main page (#32).
-                onBack: Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null,
+                onBack: isFirstPage(context) ? null : () => Navigator.of(context).maybePop(),
                 onUndo: controller.undo,
                 onRedo: controller.redo,
                 // Back to the person this view was opened for - shown only
