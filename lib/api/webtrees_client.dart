@@ -443,6 +443,30 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// One media object with its files and everyone linked to it, each with
+  /// the crop of their link (api4webtrees level 40).
+  Future<Map<String, dynamic>> mediaObject(String tree, String xref) async {
+    final response = await _dio.getUri(_moduleUri('MediaObject', tree, {'xref': xref}));
+    return _json(response);
+  }
+
+  /// Sets the crop of the link from [xref] to [media] - the part of the photo
+  /// that shows them - linking it first if needed; null removes it
+  /// (api4webtrees level 38).
+  Future<Map<String, dynamic>> postMediaCrop(
+    String tree,
+    String xref, {
+    required String media,
+    required Map<String, int>? crop,
+  }) async {
+    final response = await _dio.postUri(
+      _moduleUri('MediaCrop', tree, {'xref': xref}),
+      data: {'media': media, 'crop': crop},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
   /// Removes the link from [xref] to [media]; the media object and its file
   /// stay on the server.
   Future<Map<String, dynamic>> postUnlinkMedia(String tree, String xref, {required String media}) async {

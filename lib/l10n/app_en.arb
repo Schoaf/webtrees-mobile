@@ -284,5 +284,20 @@
   "removePhotoCommentHint": "Comment (optional)",
   "removePhotoNote": "Removed from {name} ({xref}): {comment}",
   "remove": "Remove",
-  "photoRemoved": "Photo removed."
+  "photoRemoved": "Photo removed.",
+
+  "showMarks": "Show marked people",
+  "hideMarks": "Hide marks",
+  "markPerson": "Mark a person",
+  "adjustCrop": "Adjust crop",
+  "markPersonFrameTitle": "Frame the person",
+  "whoIsThis": "Who is this?",
+  "useAsMainPhotoTitle": "Use as main photo of {name}?",
+  "currentPhoto": "Current",
+  "newPhoto": "New",
+  "keepCurrentPhoto": "Keep current",
+  "useNewPhoto": "Use new",
+  "personMarked": "{name} marked.",
+  "cropSaved": "Crop saved.",
+  "goToPerson": "Go to person"
 }

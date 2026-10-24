@@ -461,5 +461,22 @@
   "removePhotoNote": "Von {name} ({xref}) entfernt: {comment}",
   "@removePhotoNote": {"description": "Note written to the media object when it is removed from a person.", "placeholders": {"name": {"type": "String"}, "xref": {"type": "String"}, "comment": {"type": "String"}}},
   "remove": "Entfernen",
-  "photoRemoved": "Foto entfernt."
+  "photoRemoved": "Foto entfernt.",
+
+  "showMarks": "Markierte Personen zeigen",
+  "hideMarks": "Markierungen ausblenden",
+  "markPerson": "Person markieren",
+  "adjustCrop": "Ausschnitt anpassen",
+  "markPersonFrameTitle": "Rahmen um die Person",
+  "whoIsThis": "Wer ist das?",
+  "useAsMainPhotoTitle": "Als Hauptfoto von {name} verwenden?",
+  "@useAsMainPhotoTitle": {"placeholders": {"name": {"type": "String"}}},
+  "currentPhoto": "Bisher",
+  "newPhoto": "Neu",
+  "keepCurrentPhoto": "Bisheriges behalten",
+  "useNewPhoto": "Neues verwenden",
+  "personMarked": "{name} markiert.",
+  "@personMarked": {"placeholders": {"name": {"type": "String"}}},
+  "cropSaved": "Ausschnitt gespeichert.",
+  "goToPerson": "Zur Person"
 }

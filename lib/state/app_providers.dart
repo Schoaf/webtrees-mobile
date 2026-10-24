@@ -192,6 +192,26 @@ final availableModulesProvider = FutureProvider<Set<String>?>((ref) async {
   }
 });
 
+/// The api4webtrees API level of the server, null while loading or offline.
+final apiLevelProvider = FutureProvider<int?>((ref) async {
+  final client = ref.watch(webtreesClientProvider);
+  final tree = ref.watch(treeNameProvider);
+  if (tree.isEmpty) return null;
+  try {
+    return (await client.info(tree))['api'] as int?;
+  } catch (_) {
+    return null;
+  }
+});
+
+/// Marking people on photos: crop per link, who is on a photo (api4webtrees
+/// levels 38-40).
+const photoMarkingApiLevel = 40;
+
+/// Whether the server has at least API [level] - unknown counts as no, as
+/// these are new routes the server would not answer.
+bool isApiAtLeast(WidgetRef ref, int level) => (ref.watch(apiLevelProvider).value ?? 0) >= level;
+
 /// Whether [module] may be offered: false only when the server says it's
 /// not available - unknown (still loading, older server) counts as yes.
 bool isModuleAvailable(WidgetRef ref, String module) =>

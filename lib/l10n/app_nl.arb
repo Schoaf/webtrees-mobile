@@ -284,5 +284,20 @@
   "removePhotoCommentHint": "Opmerking (optioneel)",
   "removePhotoNote": "Verwijderd bij {name} ({xref}): {comment}",
   "remove": "Verwijderen",
-  "photoRemoved": "Foto verwijderd."
+  "photoRemoved": "Foto verwijderd.",
+
+  "showMarks": "Gemarkeerde personen tonen",
+  "hideMarks": "Markeringen verbergen",
+  "markPerson": "Persoon markeren",
+  "adjustCrop": "Uitsnede aanpassen",
+  "markPersonFrameTitle": "Kader rond de persoon",
+  "whoIsThis": "Wie is dit?",
+  "useAsMainPhotoTitle": "Als hoofdfoto van {name} gebruiken?",
+  "currentPhoto": "Huidig",
+  "newPhoto": "Nieuw",
+  "keepCurrentPhoto": "Huidige behouden",
+  "useNewPhoto": "Nieuwe gebruiken",
+  "personMarked": "{name} gemarkeerd.",
+  "cropSaved": "Uitsnede opgeslagen.",
+  "goToPerson": "Naar persoon"
 }

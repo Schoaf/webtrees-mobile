@@ -520,6 +520,35 @@ void main() {
     });
   });
 
+  group('photo marking (#37)', () {
+    test('mediaObject() gets who is on a photo', () async {
+      adapter.enqueue(_CannedResponse(200, '{"xref":"M5","people":[]}'));
+
+      final result = await client.mediaObject('Famtree', 'M5');
+
+      final request = adapter.requests.single;
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/MediaObject/Famtree');
+      expect(request.uri.queryParameters['xref'], 'M5');
+      expect(result['xref'], 'M5');
+    });
+
+    test('postMediaCrop() posts the crop, or null to remove it', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+
+      await client.postMediaCrop('Famtree', 'I1', media: 'M5', crop: {'top': 1, 'left': 2, 'height': 3, 'width': 4});
+      await client.postMediaCrop('Famtree', 'I1', media: 'M5', crop: null);
+
+      expect(adapter.requests[0].uri.queryParameters['route'], '/module/_api4webtrees_/MediaCrop/Famtree');
+      expect(adapter.requests[0].uri.queryParameters['xref'], 'I1');
+      expect(adapter.requests[0].data, {
+        'media': 'M5',
+        'crop': {'top': 1, 'left': 2, 'height': 3, 'width': 4},
+      });
+      expect(adapter.requests[1].data, {'media': 'M5', 'crop': null});
+    });
+  });
+
   group('postAddIndividual()', () {
     test('sends the full default body for an unlinked individual', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true,"xref":"I9"}'));
