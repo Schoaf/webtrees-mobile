@@ -749,10 +749,13 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                                 ),
                                 // More than one photo: a hint that tapping shows them all (#35).
                                 if (!_editing && photos.length > 1)
+                                  // Inside the avatar's bounds - a Stack only hit-tests there - and
+                                  // tappable itself, so the photo opens on the badge too.
                                   Positioned(
-                                    right: -4,
-                                    bottom: -4,
-                                    child: IgnorePointer(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: GestureDetector(
+                                      onTap: openPhotos,
                                       child: Tooltip(
                                         message: l10n.morePhotosTooltip,
                                         child: Container(

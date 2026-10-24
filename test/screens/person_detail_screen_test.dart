@@ -199,6 +199,17 @@ void main() {
       expect(find.text('1 / 2'), findsOneWidget);
     });
 
+    testWidgets('tapping the badge opens the photos too', (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer(
+        (_) async => personJson('I1')..['media'] = [photo('M1', isPrimary: true), photo('M2')],
+      );
+      await pumpScreen(tester);
+
+      await tester.tap(find.byKey(const Key('morePhotosBadge')));
+      await tester.pumpAndSettle();
+      expect(find.byType(MediaViewerScreen), findsOneWidget);
+    });
+
     testWidgets('one photo: no badge; tapping it opens the photo view', (tester) async {
       when(() => client.individual('Famtree', 'I1')).thenAnswer(
         (_) async => personJson('I1')..['media'] = [photo('M1', isPrimary: true)],
