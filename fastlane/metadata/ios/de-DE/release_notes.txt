@@ -1,3 +1,5 @@
-- Alle Fotos einer Person ansehen: wischen, Vorschaubild-Leiste, Hauptfoto festlegen, Fotos entfernen
-- Mehrere Fotos auf einmal hinzufügen
-- Fehlerbehebungen
+- Personen auf Fotos markieren: Rahmen ziehen, Person wählen – jeder bekommt seinen eigenen Ausschnitt desselben Fotos
+- Das Foto einer Person zeigt überall ihren Ausschnitt; Ausschnitt jederzeit anpassbar
+- Gespeichert wird alles direkt im Stammbaum als Standard-GEDCOM (GEDCOM 7, CROP) – keine eigene Datenbank, das Originalfoto bleibt unverändert, und der Export nimmt alles mit
+- Fotos vor dem Hochladen beschreiben: Titel, Beschreibung, Foto oder Dokument
+- Markieren und Ausschnitte brauchen eine aktuelle Version von api4webtrees auf dem Server

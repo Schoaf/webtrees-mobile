@@ -1,3 +1,5 @@
-- View all photos of a person: swipe, thumbnail strip, choose the main photo, remove photos
-- Add several photos at once
-- Bug fixes
+- Mark people on photos: draw a frame, pick the person – everyone gets their own part of the same photo
+- A person's photo shows their part everywhere; adjust it any time
+- Everything is stored right in the family tree as standard GEDCOM (GEDCOM 7, CROP) – no separate database, the original photo stays untouched, and an export takes it all along
+- Describe photos before uploading: title, description, photo or document
+- Marking and framing need a current version of api4webtrees on the server
