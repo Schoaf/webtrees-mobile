@@ -539,6 +539,17 @@ void main() {
       expect(result['xref'], 'M5');
     });
 
+    test('postMediaRotate() turns the media object (#40)', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+
+      await client.postMediaRotate('Famtree', 'M5', quarterTurns: 1);
+
+      final request = adapter.requests.single;
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/MediaRotate/Famtree');
+      expect(request.uri.queryParameters['xref'], 'M5');
+      expect(request.data, {'quarterTurns': 1});
+    });
+
     test('postMediaCrop() posts the crop, or null to remove it', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
       adapter.enqueue(_CannedResponse(200, '{"ok":true}'));

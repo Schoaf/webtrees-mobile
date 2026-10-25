@@ -313,5 +313,6 @@
   "doneButton": "Klaar",
   "resizeFrameTooltip": "Formaat wijzigen",
   "searchOtherPerson": "Iemand anders zoeken …",
-  "rotatePhotoTooltip": "Draaien"
+  "rotatePhotoTooltip": "Draaien",
+  "photoTurned": "Foto gedraaid."
 }

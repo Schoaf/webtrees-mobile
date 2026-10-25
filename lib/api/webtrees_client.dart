@@ -448,6 +448,18 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// Turns the image of [media] clockwise by [quarterTurns] × 90° on the
+  /// server; the crops of all links to it turn along (api4webtrees
+  /// MediaRotate).
+  Future<Map<String, dynamic>> postMediaRotate(String tree, String media, {required int quarterTurns}) async {
+    final response = await _dio.postUri(
+      _moduleUri('MediaRotate', tree, {'xref': media}),
+      data: {'quarterTurns': quarterTurns},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
   /// One media object with its files and everyone linked to it, each with
   /// the crop of their link (api4webtrees level 40).
   Future<Map<String, dynamic>> mediaObject(String tree, String xref) async {

@@ -493,5 +493,6 @@
   "doneButton": "Fertig",
   "resizeFrameTooltip": "Größe ändern",
   "searchOtherPerson": "Andere Person suchen …",
-  "rotatePhotoTooltip": "Drehen"
+  "rotatePhotoTooltip": "Drehen",
+  "photoTurned": "Foto gedreht."
 }

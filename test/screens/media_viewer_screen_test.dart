@@ -405,5 +405,25 @@ void main() {
       verifyNever(() => client.postPrimaryMedia(any(), any(), media: any(named: 'media')));
       expect(find.text('Anna Muster markiert.'), findsOneWidget, reason: 'already her profile photo: no question');
     });
+
+    testWidgets('turns the photo on the server, from the menu (#40)', (tester) async {
+      when(() => client.postMediaRotate('Famtree', 'M1', quarterTurns: 1)).thenAnswer((_) async => {'ok': true});
+      await pumpViewer(tester, [_photo('M1', isPrimary: true)], apiLevel: 41);
+
+      await tester.tap(find.byKey(const Key('photoMenu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Drehen'));
+      await tester.pumpAndSettle();
+
+      verify(() => client.postMediaRotate('Famtree', 'M1', quarterTurns: 1)).called(1);
+      expect(find.text('Foto gedreht.'), findsOneWidget);
+    });
+
+    testWidgets('no turning on a server without it', (tester) async {
+      await pumpViewer(tester, [_photo('M1', isPrimary: true)], apiLevel: 40);
+      await tester.tap(find.byKey(const Key('photoMenu')));
+      await tester.pumpAndSettle();
+      expect(find.text('Drehen'), findsNothing);
+    });
   });
 }

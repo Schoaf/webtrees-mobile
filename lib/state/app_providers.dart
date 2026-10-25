@@ -209,6 +209,9 @@ final apiLevelProvider = FutureProvider<int?>((ref) async {
 /// levels 38-40).
 const photoMarkingApiLevel = 40;
 
+/// Turning a photo on the server (api4webtrees MediaRotate).
+const photoRotateApiLevel = 41;
+
 /// Whether the server has at least API [level] - unknown counts as no, as
 /// these are new routes the server would not answer.
 bool isApiAtLeast(WidgetRef ref, int level) => (ref.watch(apiLevelProvider).value ?? 0) >= level;

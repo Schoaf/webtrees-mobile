@@ -54,6 +54,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   /// "Personen markieren": all frames shown, tap one to adjust, + to add.
   bool _isMarking = false;
 
+  /// How often a photo was turned here - part of its image's key, so the turned file is shown.
+  final _turnedCount = <String, int>{};
+
   /// Media whose GET MediaObject has been asked for already.
   final _requestedMarks = <String>{};
 
@@ -121,10 +124,51 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     }
   }
 
+  /// Turns the photo in view by 90° clockwise on the server - its frames turn along.
+  Future<void> _turn() async {
+    final l10n = AppLocalizations.of(context)!;
+    final photo = _photo;
+    setState(() => _isBusy = true);
+    try {
+      final result = await ref
+          .read(webtreesClientProvider)
+          .postMediaRotate(ref.read(treeNameProvider), photo['xref'] as String, quarterTurns: 1);
+      if (!mounted) return;
+      if (result['ok'] != true) {
+        _showMessage(l10n.rejectedError('${result['error']}'));
+        return;
+      }
+      // Same addresses, new pictures: drop the old ones from every cache.
+      final headers = ref.read(webtreesClientProvider).imageHeaders;
+      for (final url in {photo['file'], photo['thumb']}.whereType<String>()) {
+        await NetworkImage(url, headers: headers).evict();
+        _images.remove(url);
+      }
+      _hasChanged = true;
+      setState(() => _turnedCount[photo['xref'] as String] = (_turnedCount[photo['xref']] ?? 0) + 1);
+      _loadMarks(photo['xref'] as String);
+      _showMessage(l10n.photoTurned);
+    } on Exception catch (e) {
+      if (mounted) _showMessage(l10n.connectionFailedError('$e'));
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
   Future<void> _loadMarks(String media) async {
     try {
       final result = await ref.read(webtreesClientProvider).mediaObject(ref.read(treeNameProvider), media);
-      if (mounted && result['ok'] != false) setState(() => _mediaObjects[media] = result);
+      if (!mounted || result['ok'] == false) return;
+      setState(() {
+        _mediaObjects[media] = result;
+        // This person's own frame, e.g. after the photo was turned.
+        final own = (result['people'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>().where(
+          (person) => person['xref'] == widget.personXref,
+        );
+        for (final photo in _photos.where((photo) => photo['xref'] == media)) {
+          if (own.isNotEmpty) photo['crop'] = own.first['crop'];
+        }
+      });
     } on Exception catch (e) {
       if (mounted) _showMessage(AppLocalizations.of(context)!.connectionFailedError('$e'));
     }
@@ -503,6 +547,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     final isPrimary = _photo['primary'] == true;
     final canShowMarks = isApiAtLeast(ref, photoMarkingApiLevel);
     final canMark = widget.canEdit && canShowMarks;
+    final canTurn = widget.canEdit && isApiAtLeast(ref, photoRotateApiLevel);
     if (canShowMarks) _ensureMarks(_photo['xref'] as String);
     final people = (_mediaObjects[_photo['xref']]?['people'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
     return PopScope<bool>(
@@ -557,6 +602,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                       itemBuilder: (_) => [
                         if (canMark) PopupMenuItem(value: _startMarking, child: Text(l10n.markPeople)),
                         if (!isPrimary) PopupMenuItem(value: _makePrimary, child: Text(l10n.useAsProfilePhoto)),
+                        if (canTurn) PopupMenuItem(value: _turn, child: Text(l10n.rotatePhotoTooltip)),
                         PopupMenuItem(value: _remove, child: Text(l10n.removePhoto)),
                       ],
                     ),
@@ -588,6 +634,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                               // Always fitted like this - the marks are drawn on the same geometry.
                               Positioned.fill(
                                 child: Image.network(
+                                  key: ValueKey('${_photos[i]['xref']}-${_turnedCount[_photos[i]['xref']] ?? 0}'),
                                   _fileUrl(_photos[i]),
                                   headers: headers,
                                   fit: BoxFit.contain,
@@ -680,6 +727,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                         child: Opacity(
                           opacity: i == _index ? 1 : 0.6,
                           child: Image.network(
+                            key: ValueKey('thumb-${_photos[i]['xref']}-${_turnedCount[_photos[i]['xref']] ?? 0}'),
                             (_photos[i]['thumb'] ?? _photos[i]['file']) as String,
                             headers: headers,
                             fit: BoxFit.cover,
