@@ -357,6 +357,19 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// Ancestors with Kekulé numbers (1 = [xref], 2 = father, 3 = mother ...),
+  /// [generations] counting [xref] itself (1-12).
+  Future<Map<String, dynamic>> pedigree(String tree, String xref, int generations) async {
+    final response = await _dio.getUri(_moduleUri('Pedigree', tree, {'xref': xref, 'generations': '$generations'}));
+    return _json(response);
+  }
+
+  /// Descendants as a nested tree, [generations] counting [xref] itself (1-10).
+  Future<Map<String, dynamic>> descendants(String tree, String xref, int generations) async {
+    final response = await _dio.getUri(_moduleUri('Descendants', tree, {'xref': xref, 'generations': '$generations'}));
+    return _json(response);
+  }
+
   /// Labelled list of fact types the app can offer to add, e.g. for a quick
   /// "pick a fact type" chooser. [type] is `INDI` or `FAM`.
   Future<Map<String, dynamic>> tags(String tree, {String type = 'INDI'}) async {

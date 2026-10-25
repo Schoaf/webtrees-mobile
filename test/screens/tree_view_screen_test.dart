@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/tree_view/tree_view_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+
+import '../fixtures/tree_lineage.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -25,6 +28,7 @@ void main() {
   };
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     client = MockWebtreesClient();
     when(() => client.usePrettyUrls).thenReturn(false);
     when(() => client.imageHeaders).thenReturn(<String, String>{});
@@ -333,5 +337,73 @@ void main() {
         .getSize(find.ancestor(of: find.byIcon(Icons.undo), matching: find.byType(Container)).first)
         .width;
     expect(topBarContainerWidth, 1100, reason: 'must match tabletBoundedMaxWidth, same as every other screen');
+  });
+
+  group('generations (#42)', () {
+    setUp(() {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());
+      when(
+        () => client.pedigree('Famtree', 'I1', any()),
+      ).thenAnswer((invocation) async => pedigreeJson(invocation.positionalArguments[2] as int));
+      when(
+        () => client.descendants('Famtree', 'I1', any()),
+      ).thenAnswer((invocation) async => descendantsJson(invocation.positionalArguments[2] as int));
+    });
+
+    Future<void> pick(WidgetTester tester, String label) async {
+      await tester.tap(find.byKey(const Key('treeGenerationsButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(Key('treeGenerations-$label')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('one generation is the plain view, without loading more', (tester) async {
+      await pumpScreen(tester);
+
+      expect(find.text('Anton'), findsOneWidget);
+      expect(find.text('Mia'), findsOneWidget);
+      expect(find.text('Josef'), findsNothing);
+      expect(find.text('Lena'), findsNothing);
+      verifyNever(() => client.pedigree(any(), any(), any()));
+      verifyNever(() => client.descendants(any(), any(), any()));
+    });
+
+    testWidgets('two generations add the grandparents and grandchildren', (tester) async {
+      await pumpScreen(tester);
+      await pick(tester, '2');
+
+      for (final name in ['Josef', 'Anna', 'Karl', 'Rosa', 'Lena']) {
+        expect(find.text(name), findsOneWidget, reason: name);
+      }
+      expect(find.text('Johann'), findsNothing, reason: 'a great-grandparent');
+      // The parents and children stay where they were, once each.
+      expect(find.text('Anton'), findsOneWidget);
+      expect(find.text('Mia'), findsOneWidget);
+      verify(() => client.pedigree('Famtree', 'I1', 3)).called(1);
+      verify(() => client.descendants('Famtree', 'I1', 4)).called(1);
+    });
+
+    testWidgets('the picked number is kept for the next time', (tester) async {
+      await pumpScreen(tester);
+      await pick(tester, '3');
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('tree_generations'), 3);
+      expect(find.text('Johann'), findsOneWidget);
+    });
+
+    testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {
+      await pumpScreen(tester);
+      await pick(tester, '∞');
+
+      // The tall test view shows everything: it keeps loading to the end.
+      expect(find.text('Johann'), findsOneWidget);
+      expect(find.text('Lena'), findsOneWidget);
+      verify(() => client.pedigree('Famtree', 'I1', 3)).called(1);
+      verify(() => client.pedigree('Famtree', 'I1', 4)).called(1);
+      verifyNever(() => client.pedigree('Famtree', 'I1', 5));
+      verify(() => client.descendants('Famtree', 'I1', 4)).called(1);
+      verifyNever(() => client.descendants('Famtree', 'I1', 5));
+    });
   });
 }

@@ -444,6 +444,10 @@
   "askForHelpSendFailed": "Senden fehlgeschlagen: {error}",
   "@askForHelpSendFailed": {"placeholders": {"error": {"type": "String"}}},
   "treeCenterTooltip": "Zur Ausgangsperson",
+  "treeGenerationsTooltip": "Generationen nach oben und unten",
+  "treeGenerationsCount": "{count, plural, =1{Generation} other{Generationen}}",
+  "@treeGenerationsCount": {"placeholders": {"count": {"type": "int"}}},
+  "treeGenerationsAll": "Alle – lädt nach",
 
   "addPhotos": "Fotos hinzufügen",
   "showPhotos": "Fotos ansehen",

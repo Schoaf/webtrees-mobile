@@ -270,6 +270,9 @@
   "languageSetting": "Taal",
   "languageDevice": "Taal van het apparaat",
   "treeCenterTooltip": "Terug naar de startpersoon",
+  "treeGenerationsTooltip": "Generaties omhoog en omlaag",
+  "treeGenerationsCount": "{count, plural, =1{generatie} other{generaties}}",
+  "treeGenerationsAll": "Alle – laadt meer",
 
   "addPhotos": "Foto's toevoegen",
   "showPhotos": "Foto's bekijken",

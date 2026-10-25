@@ -4,14 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/tree_lineage.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
+import '../../state/tree_generations.dart';
 import '../../state/tree_view_providers.dart';
 import '../../utils/device_size.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/load_error_view.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
+import '../../widgets/tree_lineage_chart.dart';
 import '../../widgets/tree_node_card.dart';
 
 const _kCardWidth = 90.0;
@@ -85,16 +88,35 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   // own untransformed coordinate space, independent of whatever pan/zoom is
   // currently applied - see _maybeCenterOnActivePerson.
   final _contentKey = GlobalKey();
-  // Wraps parents + connector + the siblings frame (not the children frame
-  // below, which stays reachable by panning down rather than being forced
-  // into the initial fit).
-  final _familyGroupKey = GlobalKey();
+  // The parents row and the siblings frame: what the initial fit shows
+  // (not the children frame below, which stays reachable by panning down,
+  // nor further generations above or below - #42).
+  final _parentsRowKey = GlobalKey();
+  final _siblingsFrameKey = GlobalKey();
+  // The outermost rows of further generations, for ∞ to see when to load
+  // the next one.
+  final _topRowKey = GlobalKey();
+  final _bottomRowKey = GlobalKey();
   String? _centeredForXref;
+
+  // ∞ (#42): the generations up and down loaded so far for this person -
+  // one more each time only one is left outside the view.
+  static const _kInfiniteStart = 2;
+  int _infiniteUp = _kInfiniteStart;
+  int _infiniteDown = _kInfiniteStart;
+  String? _infiniteForXref;
+
+  // Where the siblings frame was in the content, last frame: when rows are
+  // added above it (more generations), the view moves along so it stays put
+  // on the screen instead of the new rows pushing it away.
+  Offset? _anchor;
+  String? _anchorXref;
 
   @override
   void initState() {
     super.initState();
     _lastVisibilitySignal = widget.visibilitySignal;
+    _transformController.addListener(_maybeLoadMoreGenerations);
     // After this frame: changing a provider while widgets build is not allowed.
     Future.microtask(() {
       if (!mounted) return;
@@ -130,6 +152,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
 
   @override
   void dispose() {
+    _transformController.removeListener(_maybeLoadMoreGenerations);
     _transformController.dispose();
     super.dispose();
   }
@@ -145,13 +168,14 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final groupBox = _familyGroupKey.currentContext?.findRenderObject() as RenderBox?;
-      final contentBox = _contentKey.currentContext?.findRenderObject() as RenderBox?;
+      final siblingsRect = _rectInContent(_siblingsFrameKey);
+      final parentsRect = _rectInContent(_parentsRowKey);
       final viewportBox = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
-      if (groupBox == null || contentBox == null || viewportBox == null) return;
+      if (siblingsRect == null || viewportBox == null) return;
 
-      final groupTopLeft = groupBox.localToGlobal(Offset.zero, ancestor: contentBox);
-      final groupSize = groupBox.size;
+      final group = parentsRect == null ? siblingsRect : siblingsRect.expandToInclude(parentsRect);
+      final groupTopLeft = group.topLeft;
+      final groupSize = group.size;
       final viewportSize = viewportBox.size;
 
       const horizontalPadding = 24.0;
@@ -173,15 +197,103 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     });
   }
 
+  /// Where [key]'s widget is in the content's own (untransformed) space.
+  Rect? _rectInContent(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    final contentBox = _contentKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || contentBox == null || !box.attached) return null;
+    return box.localToGlobal(Offset.zero, ancestor: contentBox) & box.size;
+  }
+
+  /// Where [key]'s widget is on the screen, relative to the viewport.
+  Rect? _rectInViewport(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    final viewportBox = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || viewportBox == null || !box.attached) return null;
+    return box.localToGlobal(Offset.zero, ancestor: viewportBox) &
+        (box.size * _transformController.value.getMaxScaleOnAxis());
+  }
+
+  /// After a frame: keeps the siblings frame where it was on the screen when
+  /// the content around it changed (#42), then lets ∞ check for more.
+  void _afterFrame(String activeXref) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final anchor = _rectInContent(_siblingsFrameKey)?.topLeft;
+      if (anchor == null) return;
+      final previous = _anchor;
+      if (previous != null && _anchorXref == activeXref && anchor != previous) {
+        final shift = anchor - previous;
+        _transformController.value = _transformController.value.clone()..translateByDouble(-shift.dx, -shift.dy, 0, 1);
+      }
+      _anchor = anchor;
+      _anchorXref = activeXref;
+      _maybeLoadMoreGenerations();
+    });
+  }
+
+  /// ∞ (#42): one more generation up or down whenever only one more is left
+  /// outside the view - also after zooming out, until the view is filled.
+  void _maybeLoadMoreGenerations() {
+    if (!mounted || ref.read(treeGenerationsProvider) != null) return;
+    final xref = ref.read(treeViewControllerProvider).activeXref;
+    final viewportBox = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+    if (xref == null || xref != _infiniteForXref || viewportBox == null) return;
+    final lineage = ref.read(treeLineageProvider(xref));
+
+    final top = _rectInViewport(_topRowKey) ?? _rectInViewport(_parentsRowKey);
+    if (top != null &&
+        !lineage.isLoadingAncestors &&
+        lineage.ancestorGenerations >= _infiniteUp &&
+        lineage.hasMoreAncestors &&
+        top.top > -top.height * 1.3) {
+      setState(() => _infiniteUp++);
+    }
+
+    final bottom = _rectInViewport(_bottomRowKey);
+    if (bottom != null &&
+        !lineage.isLoadingDescendants &&
+        lineage.descendantGenerations >= _infiniteDown &&
+        lineage.hasMoreDescendants &&
+        bottom.bottom < viewportBox.size.height + bottom.height * 1.3) {
+      setState(() => _infiniteDown++);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final treeState = ref.watch(treeViewControllerProvider);
     final controller = ref.read(treeViewControllerProvider.notifier);
     final neighborhood = treeState.activeNeighborhood;
+    final activeXref = treeState.activeXref;
+
+    // Generations up and down (#42): the picked number, or for ∞ as many
+    // as loaded so far - starting over for every person.
+    final pickedGenerations = ref.watch(treeGenerationsProvider);
+    if (activeXref != _infiniteForXref) {
+      _infiniteForXref = activeXref;
+      _infiniteUp = _kInfiniteStart;
+      _infiniteDown = _kInfiniteStart;
+    }
+    final generationsUp = pickedGenerations ?? _infiniteUp;
+    final generationsDown = pickedGenerations ?? _infiniteDown;
+    final lineage = activeXref == null || (generationsUp <= 1 && generationsDown <= 1)
+        ? const TreeLineage()
+        : ref.watch(treeLineageProvider(activeXref));
+    if (activeXref != null && (generationsUp > 1 || generationsDown > 1)) {
+      // After this frame: changing a provider while widgets build is not allowed.
+      Future.microtask(() {
+        if (!mounted) return;
+        final lineageController = ref.read(treeLineageProvider(activeXref).notifier);
+        lineageController.ensureAncestors(generationsUp);
+        lineageController.ensureDescendants(generationsDown);
+      });
+    }
 
     if (neighborhood != null) {
-      _maybeCenterOnActivePerson(treeState.activeXref!);
+      _maybeCenterOnActivePerson(activeXref!);
+      _afterFrame(activeXref);
     }
 
     return Scaffold(
@@ -248,19 +360,33 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                             neighborhood: neighborhood,
                             selectedPartnerXref: treeState.selectedPartnerXref,
                             activeCardKey: _activeCardKey,
-                            familyGroupKey: _familyGroupKey,
+                            parentsRowKey: _parentsRowKey,
+                            siblingsFrameKey: _siblingsFrameKey,
+                            topRowKey: _topRowKey,
+                            bottomRowKey: _bottomRowKey,
+                            generationsUp: generationsUp,
+                            generationsDown: generationsDown,
+                            lineage: lineage,
                             onSelectPerson: controller.selectPerson,
                             onSelectPartner: controller.selectPartner,
                             onOpenProfile: (xref) => openPerson(context, xref),
                           ),
                         ),
                       ),
-                      if (treeState.loading)
+                      if (treeState.loading || lineage.isLoadingAncestors || lineage.isLoadingDescendants)
                         const Positioned(
                           top: 12,
-                          right: 12,
+                          left: 12,
                           child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                         ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _GenerationsButton(
+                          generations: pickedGenerations,
+                          onSelected: ref.read(treeGenerationsProvider.notifier).set,
+                        ),
+                      ),
                     ],
                   );
                 },
@@ -349,7 +475,13 @@ class _TreeContent extends ConsumerWidget {
     required this.neighborhood,
     required this.selectedPartnerXref,
     required this.activeCardKey,
-    required this.familyGroupKey,
+    required this.parentsRowKey,
+    required this.siblingsFrameKey,
+    required this.topRowKey,
+    required this.bottomRowKey,
+    required this.generationsUp,
+    required this.generationsDown,
+    required this.lineage,
     required this.onSelectPerson,
     required this.onSelectPartner,
     required this.onOpenProfile,
@@ -358,9 +490,16 @@ class _TreeContent extends ConsumerWidget {
   final TreeNeighborhood neighborhood;
   final String? selectedPartnerXref;
   final GlobalKey activeCardKey;
-  /// Wraps parents + siblings frame - see _TreeViewScreenState's own doc
-  /// comment on the field this is passed from.
-  final GlobalKey familyGroupKey;
+
+  /// See _TreeViewScreenState's own doc comments on the fields these are
+  /// passed from.
+  final GlobalKey parentsRowKey;
+  final GlobalKey siblingsFrameKey;
+  final GlobalKey topRowKey;
+  final GlobalKey bottomRowKey;
+  final int generationsUp;
+  final int generationsDown;
+  final TreeLineage lineage;
   final void Function(String xref) onSelectPerson;
   final void Function(String xref) onSelectPartner;
   final void Function(String xref) onOpenProfile;
@@ -373,23 +512,38 @@ class _TreeContent extends ConsumerWidget {
         : neighborhood.partners.where((p) => p.familyXref == selectedPartnerXref).firstOrNull ??
               neighborhood.defaultPartner;
 
+    final hasParents = neighborhood.father != null || neighborhood.mother != null;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Column(
-          key: familyGroupKey,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (neighborhood.father != null || neighborhood.mother != null) ...[
-              _ParentsRow(
+            if (hasParents && generationsUp > 1)
+              _AncestorsSection(
                 neighborhood: neighborhood,
+                lineage: lineage,
+                generations: generationsUp,
                 photoHeaders: photoHeaders,
+                parentsRowKey: parentsRowKey,
+                topRowKey: topRowKey,
                 onSelectPerson: onSelectPerson,
+              )
+            else if (hasParents) ...[
+              KeyedSubtree(
+                key: parentsRowKey,
+                child: _ParentsRow(
+                  neighborhood: neighborhood,
+                  photoHeaders: photoHeaders,
+                  onSelectPerson: onSelectPerson,
+                ),
               ),
               const SizedBox(height: 10),
               Container(width: 2, height: 24, color: const Color(0xFFD1D5DB)),
             ],
             _SiblingsFrame(
+              key: siblingsFrameKey,
               neighborhood: neighborhood,
               partner: partner,
               photoHeaders: photoHeaders,
@@ -419,10 +573,103 @@ class _TreeContent extends ConsumerWidget {
               final next = neighborhood.partners[(i + 1) % neighborhood.partners.length];
               onSelectPartner(next.familyXref);
             },
+            descendants: generationsDown > 1 ? _descendantsOf(partner) : null,
+            generations: generationsDown,
+            bottomRowKey: bottomRowKey,
             onSelectPerson: onSelectPerson,
           ),
       ],
     );
+  }
+
+  /// The children with [partner], with their own descendants as far as
+  /// loaded - the cards themselves from the Individual answer, as on
+  /// generation 1.
+  List<TreeDescendant> _descendantsOf(TreePartnerFamily partner) {
+    final family = lineage.descendants?.families.where((f) => f.familyXref == partner.familyXref).firstOrNull;
+    return [
+      for (final child in partner.children)
+        TreeDescendant(
+          node: child,
+          families: family?.children.where((d) => d.node.xref == child.xref).firstOrNull?.families ?? const [],
+        ),
+    ];
+  }
+}
+
+/// The parents with the generations above them (#42), on the picked
+/// number of generations - one is the plain parents row.
+class _AncestorsSection extends StatelessWidget {
+  const _AncestorsSection({
+    required this.neighborhood,
+    required this.lineage,
+    required this.generations,
+    required this.photoHeaders,
+    required this.parentsRowKey,
+    required this.topRowKey,
+    required this.onSelectPerson,
+  });
+
+  final TreeNeighborhood neighborhood;
+  final TreeLineage lineage;
+  final int generations;
+  final Map<String, String> photoHeaders;
+  final GlobalKey parentsRowKey;
+  final GlobalKey topRowKey;
+  final void Function(String xref) onSelectPerson;
+
+  @override
+  Widget build(BuildContext context) {
+    final father = neighborhood.father;
+    final mother = neighborhood.mother;
+    // The parents as the Individual answer has them (with their counts);
+    // the generations above from the pedigree, only above the same parent.
+    final ancestors = <int, TreeNode>{
+      for (final entry in lineage.ancestors.entries)
+        if (entry.key > 3 && _isAbove(entry.key, father, mother)) entry.key: entry.value,
+      2: ?father,
+      3: ?mother,
+    };
+
+    return AncestorChart(
+      ancestors: ancestors,
+      generations: generations,
+      // Room for the "+N" badges below the parents, as in the plain row.
+      bottomBandHeight: 48,
+      parentsRowKey: parentsRowKey,
+      topRowKey: topRowKey,
+      cardBuilder: (n, node, {required isShowingParents}) => n <= 3
+          ? _ParentCard(
+              neighborhood: neighborhood,
+              node: node,
+              isFather: n == 2,
+              isShowingAncestorsIcon: !isShowingParents && (node.hasParents ?? false),
+              photoHeaders: photoHeaders,
+              onSelectPerson: onSelectPerson,
+            )
+          : TreeNodeCard(
+              firstName: node.firstName,
+              sex: node.sex,
+              isDead: node.isDead,
+              birthYear: node.birthYear,
+              thumb: node.thumb,
+              photoHeaders: photoHeaders,
+              showAncestorsIcon: !isShowingParents && (node.hasParents ?? false),
+              onTap: () => onSelectPerson(node.xref),
+            ),
+    );
+  }
+
+  /// Whether the pedigree's ancestor [n] is above the parent shown here -
+  /// the pedigree could take another parent family than the Individual
+  /// answer.
+  bool _isAbove(int n, TreeNode? father, TreeNode? mother) {
+    var parent = n;
+    while (parent > 3) {
+      parent ~/= 2;
+    }
+    final shown = parent == 2 ? father : mother;
+    return shown != null && lineage.ancestors[parent]?.xref == shown.xref;
   }
 }
 
@@ -442,53 +689,14 @@ class _ParentsRow extends StatelessWidget {
     final father = neighborhood.father;
     final mother = neighborhood.mother;
 
-    Widget parentCard(TreeNode node, {required bool isFather}) {
-      final extra = isFather ? neighborhood.extraChildrenFather : neighborhood.extraChildrenMother;
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          TreeNodeCard(
-            firstName: node.firstName,
-            sex: node.sex,
-            isDead: node.isDead,
-            birthYear: node.birthYear,
-            thumb: node.thumb,
-            photoHeaders: photoHeaders,
-            showAncestorsIcon: node.hasParents ?? false,
-            showPartnerIcon: (node.partnersCount ?? 0) > 1,
-            partnerExtraCount: (node.partnersCount ?? 0) - 1,
-            onTap: () => onSelectPerson(node.xref),
-          ),
-          if (extra > 0)
-            Positioned(
-              bottom: -20,
-              left: isFather ? 6 : null,
-              right: isFather ? null : 6,
-              child: Column(
-                children: [
-                  Container(width: 2, height: 9, color: const Color(0xFFD1D5DB)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _kBadgeBackground,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TreeBranchIcon(pointingUp: false, size: 9, color: const Color(0xFF6B7280)),
-                        const SizedBox(width: 1),
-                        Text('+$extra', style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF6B7280))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      );
-    }
+    Widget parentCard(TreeNode node, {required bool isFather}) => _ParentCard(
+      neighborhood: neighborhood,
+      node: node,
+      isFather: isFather,
+      isShowingAncestorsIcon: node.hasParents ?? false,
+      photoHeaders: photoHeaders,
+      onSelectPerson: onSelectPerson,
+    );
 
     if (father != null && mother != null) {
       return Padding(
@@ -527,6 +735,78 @@ class _ParentsRow extends StatelessWidget {
   }
 }
 
+/// A parent's card, with a "+N" badge below for children with another
+/// partner.
+class _ParentCard extends StatelessWidget {
+  const _ParentCard({
+    required this.neighborhood,
+    required this.node,
+    required this.isFather,
+    required this.isShowingAncestorsIcon,
+    required this.photoHeaders,
+    required this.onSelectPerson,
+  });
+
+  final TreeNeighborhood neighborhood;
+  final TreeNode node;
+  final bool isFather;
+  final bool isShowingAncestorsIcon;
+  final Map<String, String> photoHeaders;
+  final void Function(String xref) onSelectPerson;
+
+  @override
+  Widget build(BuildContext context) {
+    final extra = isFather ? neighborhood.extraChildrenFather : neighborhood.extraChildrenMother;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        TreeNodeCard(
+          firstName: node.firstName,
+          sex: node.sex,
+          isDead: node.isDead,
+          birthYear: node.birthYear,
+          thumb: node.thumb,
+          photoHeaders: photoHeaders,
+          showAncestorsIcon: isShowingAncestorsIcon,
+          showPartnerIcon: (node.partnersCount ?? 0) > 1,
+          partnerExtraCount: (node.partnersCount ?? 0) - 1,
+          onTap: () => onSelectPerson(node.xref),
+        ),
+        if (extra > 0)
+          Positioned(
+            bottom: -20,
+            left: isFather ? 6 : null,
+            right: isFather ? null : 6,
+            child: Column(
+              children: [
+                Container(width: 2, height: 9, color: const Color(0xFFD1D5DB)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _kBadgeBackground,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TreeBranchIcon(pointingUp: false, size: 9, color: const Color(0xFF6B7280)),
+                      const SizedBox(width: 1),
+                      Text(
+                        '+$extra',
+                        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF6B7280)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 // 1.5x the original 22px/13px - see _kRelationshipBadgeSize in
 // tree_node_card.dart, which mirrors this size for the info button.
 const _kRelationshipBubbleSize = 33.0;
@@ -560,6 +840,7 @@ class _RelationshipBubble extends StatelessWidget {
 
 class _SiblingsFrame extends StatelessWidget {
   const _SiblingsFrame({
+    super.key,
     required this.neighborhood,
     required this.partner,
     required this.photoHeaders,
@@ -836,6 +1117,9 @@ class _ChildrenFrameSection extends StatelessWidget {
     required this.photoHeaders,
     required this.extraChildrenCount,
     required this.onTapExtraChildren,
+    required this.descendants,
+    required this.generations,
+    required this.bottomRowKey,
     required this.onSelectPerson,
   });
 
@@ -843,6 +1127,12 @@ class _ChildrenFrameSection extends StatelessWidget {
   final Map<String, String> photoHeaders;
   final int extraChildrenCount;
   final VoidCallback onTapExtraChildren;
+
+  /// The children with their descendants on more than one generation (#42),
+  /// else null.
+  final List<TreeDescendant>? descendants;
+  final int generations;
+  final GlobalKey bottomRowKey;
   final void Function(String xref) onSelectPerson;
 
   static const _connectorTopGap = 10.0;
@@ -863,7 +1153,15 @@ class _ChildrenFrameSection extends StatelessWidget {
             const SizedBox(height: _connectorTopGap),
             Container(width: 2, height: _connectorHeight, color: const Color(0xFFD1D5DB)),
             const SizedBox(height: _connectorBottomGap),
-            _ChildrenFrame(partner: partner, photoHeaders: photoHeaders, extraLabelText: extraLabelText, onSelectPerson: onSelectPerson),
+            _ChildrenFrame(
+              partner: partner,
+              photoHeaders: photoHeaders,
+              extraLabelText: extraLabelText,
+              descendants: descendants,
+              generations: generations,
+              bottomRowKey: bottomRowKey,
+              onSelectPerson: onSelectPerson,
+            ),
           ],
         ),
         if (extraLabelText != null)
@@ -908,7 +1206,15 @@ class _ChildrenFrameSection extends StatelessWidget {
 }
 
 class _ChildrenFrame extends StatelessWidget {
-  const _ChildrenFrame({required this.partner, required this.photoHeaders, required this.extraLabelText, required this.onSelectPerson});
+  const _ChildrenFrame({
+    required this.partner,
+    required this.photoHeaders,
+    required this.extraLabelText,
+    required this.descendants,
+    required this.generations,
+    required this.bottomRowKey,
+    required this.onSelectPerson,
+  });
 
   final TreePartnerFamily partner;
   final Map<String, String> photoHeaders;
@@ -918,6 +1224,11 @@ class _ChildrenFrame extends StatelessWidget {
   /// here to reserve enough width via [minWidth] so the two labels never
   /// overlap.
   final String? extraLabelText;
+
+  /// See _ChildrenFrameSection.
+  final List<TreeDescendant>? descendants;
+  final int generations;
+  final GlobalKey bottomRowKey;
   final void Function(String xref) onSelectPerson;
 
   static const _mainLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5);
@@ -972,7 +1283,8 @@ class _ChildrenFrame extends StatelessWidget {
                     _chipChrome +
                     12, // breathing room between the two labels
               ),
-        maxWidth: 378,
+        // Wider with further generations below the children (#42).
+        maxWidth: descendants == null ? 378 : double.infinity,
       ),
       margin: const EdgeInsets.symmetric(horizontal: 6),
       // Same label-straddles-the-border treatment as the siblings frame.
@@ -1000,25 +1312,44 @@ class _ChildrenFrame extends StatelessWidget {
           // No "show more" cutoff - every child is shown, wrapping onto as
           // many rows as needed. There's plenty of room below to grow into,
           // unlike a fixed-height card row.
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            alignment: WrapAlignment.center,
-            children: [
-              for (final child in children)
-                TreeNodeCard(
-                  firstName: child.firstName,
-                  sex: child.sex,
-                  isDead: child.isDead,
-                  birthYear: child.birthYear,
-                  thumb: child.thumb,
-                  photoHeaders: photoHeaders,
-                  showChildrenIcon: (child.childrenCount ?? 0) > 0,
-                  childrenCount: child.childrenCount ?? 0,
-                  onTap: () => onSelectPerson(child.xref),
-                ),
-            ],
-          ),
+          if (descendants != null)
+            // One row, so each child's own descendants fit below them.
+            DescendantChart(
+              children: descendants!,
+              generations: generations,
+              bottomRowKey: bottomRowKey,
+              cardBuilder: (d, {required isShowingChildren}) => TreeNodeCard(
+                firstName: d.node.firstName,
+                sex: d.node.sex,
+                isDead: d.node.isDead,
+                birthYear: d.node.birthYear,
+                thumb: d.node.thumb,
+                photoHeaders: photoHeaders,
+                showChildrenIcon: !isShowingChildren && (d.node.childrenCount ?? 0) > 0,
+                childrenCount: d.node.childrenCount ?? 0,
+                onTap: () => onSelectPerson(d.node.xref),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final child in children)
+                  TreeNodeCard(
+                    firstName: child.firstName,
+                    sex: child.sex,
+                    isDead: child.isDead,
+                    birthYear: child.birthYear,
+                    thumb: child.thumb,
+                    photoHeaders: photoHeaders,
+                    showChildrenIcon: (child.childrenCount ?? 0) > 0,
+                    childrenCount: child.childrenCount ?? 0,
+                    onTap: () => onSelectPerson(child.xref),
+                  ),
+              ],
+            ),
           // Painted last (on top of the cards above) - same fix as the
           // siblings frame: this label floats above the frame's own top
           // border and can otherwise end up hidden behind the first row of
@@ -1056,6 +1387,66 @@ class _ChildrenFrame extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The generations picker in the tree's top right corner (#42): 1, 2 or 3
+/// up and down, or ∞ ([generations] null).
+class _GenerationsButton extends StatelessWidget {
+  const _GenerationsButton({required this.generations, required this.onSelected});
+
+  final int? generations;
+  final void Function(int? generations) onSelected;
+
+  static const _kInfinity = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    String label(int? value) => value == null ? '∞' : '$value';
+    return PopupMenuButton<int>(
+      key: const Key('treeGenerationsButton'),
+      tooltip: l10n.treeGenerationsTooltip,
+      initialValue: generations ?? _kInfinity,
+      onSelected: (value) => onSelected(value == _kInfinity ? null : value),
+      itemBuilder: (_) => [
+        for (final value in [1, 2, 3, null])
+          PopupMenuItem(
+            key: Key('treeGenerations-${label(value)}'),
+            value: value ?? _kInfinity,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: Text(label(value), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 8),
+                Flexible(child: Text(value == null ? l10n.treeGenerationsAll : l10n.treeGenerationsCount(value))),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: const [BoxShadow(color: Color(0x1F111827), blurRadius: 4, offset: Offset(0, 1))],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.unfold_more, size: 18, color: Color(0xFF374151)),
+            const SizedBox(width: 4),
+            Text(
+              label(generations),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF374151)),
+            ),
+          ],
+        ),
       ),
     );
   }
