@@ -204,4 +204,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsNothing, reason: 'still on the page');
   });
+
+  testWidgets('Back to a page that is still open keeps the bar hidden; only the tab page brings it back', (
+    tester,
+  ) async {
+    await pumpShell(tester, viewSize: const Size(400, 800));
+    await tester.tap(find.byIcon(Icons.search));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open other page'));
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.text('other page'))).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(appBar: AppBar(), body: const Text('editor')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('other page'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing, reason: 'the page below is still open');
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
 }

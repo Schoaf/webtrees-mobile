@@ -26,8 +26,7 @@ final searchNavigatorKey = GlobalKey<NavigatorState>();
 final tabNavigatorKeys = [homeNavigatorKey, personNavigatorKey, treeNavigatorKey, searchNavigatorKey];
 
 /// Whether the bottom bar shows (#31): hidden as soon as a page is opened
-/// from a tab, shown again after every Back - even if that lands on an inner
-/// page - so someone who got lost always gets it back with one Back.
+/// from a tab, shown again once Back lands on the tab's own first page.
 class BottomBarVisibility extends Notifier<bool> {
   @override
   bool build() => true;
@@ -57,14 +56,16 @@ class BottomBarObserver extends NavigatorObserver {
     if (route is PageRoute && previousRoute != null) _set(false);
   }
 
+  // Back on the tab's first page brings the bar back - not when another page is still open below.
+
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (route is PageRoute) _set(true);
+    if (route is PageRoute) _set(previousRoute?.isFirst ?? true);
   }
 
   @override
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (route is PageRoute) _set(true);
+    if (route is PageRoute) _set(previousRoute?.isFirst ?? true);
   }
 }
 
