@@ -315,5 +315,7 @@
   "photoTurned": "Foto gedraaid.",
   "unlinkPerson": "Koppeling verwijderen",
   "setFrame": "Kader plaatsen",
-  "withoutFrame": "Zonder kader"
+  "withoutFrame": "Zonder kader",
+  "useAsProfilePhotoInstead": "Als profielfoto gebruiken (in plaats van de huidige)",
+  "removeFrame": "Kader verwijderen"
 }

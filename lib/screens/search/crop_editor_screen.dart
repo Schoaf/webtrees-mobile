@@ -12,7 +12,14 @@ import '../../widgets/cropped_photo.dart';
 /// resize by its corner handle. Pops with the [PhotoCrop] in pixels of the
 /// original image, or null when cancelled.
 class CropEditorScreen extends ConsumerStatefulWidget {
-  const CropEditorScreen({super.key, required this.url, required this.headers, required this.title, this.initialCrop});
+  const CropEditorScreen({
+    super.key,
+    required this.url,
+    required this.headers,
+    required this.title,
+    this.initialCrop,
+    this.quarterTurns = 0,
+  });
 
   final String url;
   final Map<String, String> headers;
@@ -20,6 +27,10 @@ class CropEditorScreen extends ConsumerStatefulWidget {
 
   /// The crop to start with, as the API sends it - else a centred frame.
   final Object? initialCrop;
+
+  /// The image as shown turned clockwise by this many quarter turns - the
+  /// frame is then in pixels of the turned image.
+  final int quarterTurns;
 
   @override
   ConsumerState<CropEditorScreen> createState() => _CropEditorScreenState();
@@ -74,7 +85,9 @@ class _CropEditorScreenState extends ConsumerState<CropEditorScreen> {
             }
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));
             final image = snapshot.data!;
-            final imageSize = Size(image.width.toDouble(), image.height.toDouble());
+            final imageSize = widget.quarterTurns.isOdd
+                ? Size(image.height.toDouble(), image.width.toDouble())
+                : Size(image.width.toDouble(), image.height.toDouble());
             if (_frame == null) {
               // After this build: the Save button needs the frame too.
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -105,7 +118,10 @@ class _CropEditorScreenState extends ConsumerState<CropEditorScreen> {
                   children: [
                     Positioned.fromRect(
                       rect: origin & shown,
-                      child: RawImage(image: image, fit: BoxFit.fill),
+                      child: RotatedBox(
+                        quarterTurns: widget.quarterTurns,
+                        child: RawImage(image: image, fit: BoxFit.fill),
+                      ),
                     ),
                     Positioned.fill(
                       child: IgnorePointer(child: CustomPaint(painter: _ShadePainter(onScreen))),

@@ -495,5 +495,7 @@
   "photoTurned": "Foto gedreht.",
   "unlinkPerson": "Verknüpfung entfernen",
   "setFrame": "Rahmen setzen",
-  "withoutFrame": "Ohne Rahmen"
+  "withoutFrame": "Ohne Rahmen",
+  "useAsProfilePhotoInstead": "Als Profilbild verwenden (statt des bisherigen)",
+  "removeFrame": "Rahmen entfernen"
 }

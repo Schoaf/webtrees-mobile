@@ -650,14 +650,19 @@ class WebtreesClient {
   /// for whatever the reviewer ticked) to the tree, under the reviewer's own
   /// session. Returns `{ok, nextId}` — `nextId` is the next request still
   /// waiting for review, or null once none are left.
+  ///
+  /// [photo]: the reviewer's turn, frame and description of an accepted
+  /// photo (photoTurns, photoCrop, photoTitle, photoNote, photoType,
+  /// photoIsProfile) - webtrees-contribution-request 0.3+.
   Future<Map<String, dynamic>> shareRequestApply(
     String tree,
     int id,
-    Map<String, bool> accept,
-  ) async {
+    Map<String, bool> accept, {
+    Map<String, dynamic>? photo,
+  }) async {
     final response = await _dio.postUri(
       _shareModuleUri('RequestApply', tree),
-      data: {'id': id, 'accept': accept},
+      data: {'id': id, 'accept': accept, ...?photo},
       options: Options(contentType: Headers.jsonContentType),
     );
     return _json(response);

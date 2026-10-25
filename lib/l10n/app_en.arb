@@ -315,5 +315,7 @@
   "photoTurned": "Photo turned.",
   "unlinkPerson": "Remove link",
   "setFrame": "Add a frame",
-  "withoutFrame": "Without a frame"
+  "withoutFrame": "Without a frame",
+  "useAsProfilePhotoInstead": "Use as profile picture (instead of the current one)",
+  "removeFrame": "Remove frame"
 }

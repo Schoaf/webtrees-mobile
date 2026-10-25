@@ -38,6 +38,12 @@ class PhotoCrop {
   factory PhotoCrop.fromRect(Rect rect) =>
       PhotoCrop(left: rect.left.round(), top: rect.top.round(), width: rect.width.round(), height: rect.height.round());
 
+  /// This frame after turning the image (of [imageSize], as shown now) a
+  /// quarter turn clockwise: the left edge becomes the top one, the height
+  /// the width - as api4webtrees' MediaRotate turns a crop.
+  PhotoCrop turnedClockwise(Size imageSize) =>
+      PhotoCrop(left: imageSize.height.round() - top - height, top: left, width: height, height: width);
+
   Rect get rect => Rect.fromLTWH(left.toDouble(), top.toDouble(), width.toDouble(), height.toDouble());
 
   Map<String, int> toJson() => {'top': top, 'left': left, 'height': height, 'width': width};

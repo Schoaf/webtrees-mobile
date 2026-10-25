@@ -6,6 +6,7 @@ import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/responses/response_detail_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/widgets/cropped_photo.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -37,9 +38,8 @@ void main() {
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
-                onPressed: () => Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => ResponseDetailScreen(id: id))),
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ResponseDetailScreen(id: id))),
                 child: const Text('open'),
               ),
             ),
@@ -51,6 +51,60 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('a contributed photo can still be turned, framed and described before applying (#39)', (tester) async {
+    final image = (await tester.runAsync(() => createTestImage(width: 400, height: 300)))!;
+    container = ProviderContainer(
+      overrides: [
+        webtreesClientProvider.overrideWithValue(client),
+        networkImageLoaderProvider.overrideWithValue((_, _) async => image),
+      ],
+    );
+    addTearDown(container.dispose);
+    when(() => client.shareRequestDetail('Famtree', 7)).thenAnswer(
+      (_) async => {
+        'id': 7,
+        'name': 'Anna Muster',
+        'applied': false,
+        'compare': <String, dynamic>{},
+        'photoUrl': 'https://example.org/photo.jpg',
+        'photoCrop': {'top': 10, 'left': 20, 'height': 100, 'width': 100},
+        'photoTitle': 'Hochzeit',
+        'photoNote': '',
+        'photoType': 'photo',
+        'hasProfilePhoto': true,
+      },
+    );
+    when(() => client.shareRequestApply('Famtree', 7, any(), photo: any(named: 'photo')))
+        .thenAnswer((_) async => {'ok': true, 'nextId': null});
+    await pumpPushed(tester);
+
+    expect(find.byKey(const Key('contributedPhotoFrame')), findsOneWidget, reason: 'the guest framed it');
+    expect(find.text('Hochzeit'), findsOneWidget);
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.ensureVisible(find.byKey(const Key('turnContributedPhoto')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('turnContributedPhoto')));
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('contributedPhotoIsProfile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('contributedPhotoIsProfile')));
+    await tester.pump();
+    await tester.ensureVisible(find.text('Ausgewähltes übernehmen'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ausgewähltes übernehmen'));
+    await tester.pumpAndSettle();
+
+    final photo =
+        verify(() => client.shareRequestApply('Famtree', 7, {'photo': true}, photo: captureAny(named: 'photo')))
+                .captured
+                .single
+            as Map<String, dynamic>;
+    expect(photo['photoTurns'], 1);
+    // Turned with the image: 400 x 300 becomes 300 x 400, the frame moves along.
+    expect(photo['photoCrop'], {'top': 20, 'left': 190, 'height': 100, 'width': 100});
+    expect((photo['photoTitle'], photo['photoType'], photo['photoIsProfile']), ('Hochzeit', 'photo', true));
+  });
+
   testWidgets('shows a load error instead of crashing', (tester) async {
     when(() => client.shareRequestDetail('Famtree', 7)).thenAnswer((_) => Future.error(Exception('offline')));
 
@@ -60,9 +114,8 @@ void main() {
   });
 
   testWidgets('an already-applied request shows the info message, not the compare form', (tester) async {
-    when(() => client.shareRequestDetail('Famtree', 7)).thenAnswer(
-      (_) async => {'id': 7, 'name': 'Anna Muster', 'applied': true, 'compare': <String, dynamic>{}},
-    );
+    when(() => client.shareRequestDetail('Famtree', 7))
+        .thenAnswer((_) async => {'id': 7, 'name': 'Anna Muster', 'applied': true, 'compare': <String, dynamic>{}});
 
     await pumpPushed(tester);
 
@@ -71,9 +124,8 @@ void main() {
   });
 
   testWidgets('no proposed changes shows the "nothing proposed" message', (tester) async {
-    when(() => client.shareRequestDetail('Famtree', 7)).thenAnswer(
-      (_) async => {'id': 7, 'name': 'Anna Muster', 'applied': false, 'compare': <String, dynamic>{}},
-    );
+    when(() => client.shareRequestDetail('Famtree', 7))
+        .thenAnswer((_) async => {'id': 7, 'name': 'Anna Muster', 'applied': false, 'compare': <String, dynamic>{}});
 
     await pumpPushed(tester);
 
@@ -120,12 +172,10 @@ void main() {
         },
       },
     );
-    when(() => client.shareRequestDetail('Famtree', 8)).thenAnswer(
-      (_) async => {'id': 8, 'name': 'Next Person', 'applied': false, 'compare': <String, dynamic>{}},
-    );
-    when(() => client.shareRequestApply('Famtree', 7, {'SURN': true})).thenAnswer(
-      (_) async => {'ok': true, 'nextId': 8},
-    );
+    when(() => client.shareRequestDetail('Famtree', 8))
+        .thenAnswer((_) async => {'id': 8, 'name': 'Next Person', 'applied': false, 'compare': <String, dynamic>{}});
+    when(() => client.shareRequestApply('Famtree', 7, {'SURN': true}))
+        .thenAnswer((_) async => {'ok': true, 'nextId': 8});
 
     await pumpPushed(tester);
 
