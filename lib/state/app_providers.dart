@@ -196,6 +196,7 @@ final availableModulesProvider = FutureProvider<Set<String>?>((ref) async {
 final apiLevelProvider = FutureProvider<int?>((ref) async {
   final client = ref.watch(webtreesClientProvider);
   final tree = ref.watch(treeNameProvider);
+  ref.watch(authControllerProvider.select((auth) => auth.loggedIn));
   if (tree.isEmpty) return null;
   try {
     return (await client.info(tree))['api'] as int?;
