@@ -26,7 +26,7 @@ class CropEditorScreen extends ConsumerStatefulWidget {
 }
 
 class _CropEditorScreenState extends ConsumerState<CropEditorScreen> {
-  static const _handleSize = 28.0;
+  static const _handleSize = 36.0;
   static const _minSideOnScreen = 40.0;
 
   late final Future<ui.Image> _image = ref.read(networkImageLoaderProvider)(widget.url, widget.headers);
@@ -131,10 +131,18 @@ class _CropEditorScreenState extends ConsumerState<CropEditorScreen> {
                         child: Container(
                           width: _handleSize,
                           height: _handleSize,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black54),
+                            boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)],
+                          ),
+                          // A double arrow along the diagonal: this resizes, the frame itself moves.
+                          child: Tooltip(
+                            message: AppLocalizations.of(context)!.resizeFrameTooltip,
+                            child: Transform.rotate(
+                              angle: math.pi / 2,
+                              child: const Icon(Icons.open_in_full, size: 20, color: Colors.black87),
+                            ),
                           ),
                         ),
                       ),
@@ -158,14 +166,19 @@ class _ShadePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final outside = Path.combine(PathOperation.difference, Path()..addRect(Offset.zero & size), Path()..addRect(frame));
+    final rounded = RRect.fromRectAndRadius(frame, const Radius.circular(12));
+    final outside = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Offset.zero & size),
+      Path()..addRRect(rounded),
+    );
     canvas.drawPath(outside, Paint()..color = Colors.black54);
-    canvas.drawRect(
-      frame,
+    canvas.drawRRect(
+      rounded,
       Paint()
         ..color = Colors.white
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+        ..strokeWidth = 2.5,
     );
   }
 

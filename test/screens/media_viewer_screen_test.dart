@@ -174,54 +174,93 @@ void main() {
   });
 
   group('marking people (#37)', () {
-    testWidgets('an older server: no marks, no marking', (tester) async {
-      await pumpViewer(tester, [_photo('M1', isPrimary: true)]);
-      expect(find.byKey(const Key('marksButton')), findsNothing);
-      expect(find.byKey(const Key('photoMenu')), findsNothing);
+    Map<String, dynamic> object(List<Map<String, dynamic>> people) => {'xref': 'M1', 'people': people};
+
+    setUp(() {
+      when(() => client.mediaObject('Famtree', 'M1')).thenAnswer((_) async => object([]));
     });
 
-    testWidgets('shows who is marked where; tapping one opens them', (tester) async {
+    testWidgets('an older server: no marking, no "Auf dem Foto"', (tester) async {
+      await pumpViewer(tester, [_photo('M1', isPrimary: true)]);
+      expect(find.byKey(const Key('markPeopleButton')), findsNothing);
+      await tester.tap(find.byKey(const Key('photoMenu')));
+      await tester.pumpAndSettle();
+      expect(find.text('Personen markieren'), findsNothing);
+      expect(find.text('Auf dem Foto'), findsNothing);
+      verifyNever(() => client.mediaObject(any(), any()));
+    });
+
+    testWidgets('the profile photo carries a label; the menu offers it for the others', (tester) async {
+      when(() => client.postPrimaryMedia('Famtree', 'I1', media: 'M2')).thenAnswer((_) async => {'ok': true});
+      await pumpViewer(tester, [_photo('M1', isPrimary: true), _photo('M2')]);
+      expect(find.text('Profilbild'), findsOneWidget);
+
+      await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('Profilbild'), findsNothing);
+      await tester.tap(find.byKey(const Key('photoMenu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Als Profilbild verwenden'));
+      await tester.pumpAndSettle();
+
+      verify(() => client.postPrimaryMedia('Famtree', 'I1', media: 'M2')).called(1);
+      expect(find.text('Profilbild'), findsOneWidget);
+    });
+
+    testWidgets('"Auf dem Foto" lists who is on it; tapping one opens them', (tester) async {
       when(() => client.mediaObject('Famtree', 'M1')).thenAnswer(
-        (_) async => {
-          'xref': 'M1',
-          'people': [
-            {'xref': 'I1', 'name': 'Anna Muster', 'crop': null},
-            {
-              'xref': 'I2',
-              'name': 'Karl Muster',
-              'crop': {'top': 10, 'left': 20, 'height': 100, 'width': 100},
-            },
-          ],
-        },
+        (_) async => object([
+          {'xref': 'I1', 'name': 'Anna Muster', 'crop': null},
+          {
+            'xref': 'I2',
+            'name': 'Karl Muster',
+            'crop': {'top': 10, 'left': 20, 'height': 100, 'width': 100},
+          },
+        ]),
       );
       await pumpViewer(tester, [_photo('M1', isPrimary: true)], canEdit: false, apiLevel: 40);
 
-      await tester.tap(find.byKey(const Key('marksButton')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('mark-I1')), findsNothing, reason: 'no crop, no frame');
-      expect(find.text('Karl Muster'), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key('mark-I2')));
+      expect(find.text('Auf dem Foto'), findsOneWidget);
+      expect(find.byKey(const Key('mark-I2')), findsNothing, reason: 'frames only while marking');
+      await tester.tap(find.byKey(const Key('onPhoto-I2')));
       await tester.pumpAndSettle();
       expect(container.read(personHistoryProvider).activeXref, 'I2');
     });
 
-    testWidgets('adjusts the crop of this person', (tester) async {
+    testWidgets('nobody marked: no "Auf dem Foto"', (tester) async {
+      await pumpViewer(tester, [_photo('M1', isPrimary: true)], canEdit: false, apiLevel: 40);
+      expect(find.text('Auf dem Foto'), findsNothing);
+      expect(find.byKey(const Key('markPeopleButton')), findsNothing, reason: 'no edit rights');
+    });
+
+    testWidgets('marking: all frames show, a tapped frame is adjusted', (tester) async {
+      when(() => client.mediaObject('Famtree', 'M1')).thenAnswer(
+        (_) async => object([
+          {'xref': 'I1', 'name': 'Anna Muster', 'crop': null},
+          {
+            'xref': 'I2',
+            'name': 'Karl Muster',
+            'crop': {'top': 10, 'left': 20, 'height': 100, 'width': 100},
+          },
+        ]),
+      );
       when(
         () => client.postMediaCrop(
           'Famtree',
-          'I1',
+          'I2',
           media: 'M1',
           crop: any(named: 'crop'),
         ),
       ).thenAnswer((_) async => {'ok': true});
-      await pumpViewer(tester, [
-        _photo('M1', isPrimary: true)..['crop'] = {'top': 10, 'left': 20, 'height': 100, 'width': 100},
-      ], apiLevel: 40);
+      await pumpViewer(tester, [_photo('M1', isPrimary: true)], apiLevel: 40);
 
-      await tester.tap(find.byKey(const Key('photoMenu')));
+      await tester.tap(find.byKey(const Key('markPeopleButton')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Ausschnitt anpassen'));
+      expect(find.text('Personen markieren'), findsOneWidget);
+      expect(find.byKey(const Key('mark-I1')), findsNothing, reason: 'no crop, no frame');
+      await tester.tap(find.byKey(const Key('mark-I2')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rahmen anpassen'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('saveCropButton')));
       await tester.pumpAndSettle();
@@ -229,15 +268,37 @@ void main() {
       verify(
         () => client.postMediaCrop(
           'Famtree',
-          'I1',
+          'I2',
           media: 'M1',
           crop: {'top': 10, 'left': 20, 'height': 100, 'width': 100},
         ),
       ).called(1);
-      expect(find.text('Ausschnitt gespeichert.'), findsOneWidget);
+      expect(find.text('Rahmen gespeichert.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('doneMarkingButton')));
+      await tester.pumpAndSettle();
+      expect(find.text('1 / 1'), findsOneWidget);
     });
 
-    testWidgets('marks another person: frame, who is it - their main photo when they have none', (tester) async {
+    Future<void> markBerta(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('photoMenu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Personen markieren'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('addMarkButton')));
+      await tester.pumpAndSettle();
+      expect(find.text('Rahmen um die Person'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('saveCropButton')));
+      await tester.pumpAndSettle();
+      expect(find.text('Wer ist das?'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Berta');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Berta Muster', findRichText: true));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('+ Person: frame, who is it - their profile photo when they have none', (tester) async {
       when(() => client.individuals('Famtree', query: any(named: 'query'))).thenAnswer(
         (_) async => {
           'data': [
@@ -256,20 +317,7 @@ void main() {
       when(() => client.postPrimaryMedia('Famtree', 'I9', media: 'M1')).thenAnswer((_) async => {'ok': true});
       await pumpViewer(tester, [_photo('M1', isPrimary: true)], apiLevel: 40);
 
-      await tester.tap(find.byKey(const Key('photoMenu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Person markieren'));
-      await tester.pumpAndSettle();
-      expect(find.text('Rahmen um die Person'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('saveCropButton')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Wer ist das?'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), 'Berta');
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Berta Muster', findRichText: true));
-      await tester.pumpAndSettle();
+      await markBerta(tester);
 
       verify(
         () => client.postMediaCrop(
@@ -301,23 +349,61 @@ void main() {
       ).thenAnswer((_) async => {'ok': true});
       await pumpViewer(tester, [_photo('M1', isPrimary: true)], apiLevel: 40);
 
-      await tester.tap(find.byKey(const Key('photoMenu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Person markieren'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('saveCropButton')));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Berta');
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Berta Muster', findRichText: true));
-      await tester.pumpAndSettle();
+      await markBerta(tester);
 
-      expect(find.text('Als Hauptfoto von Berta Muster verwenden?'), findsOneWidget);
+      expect(find.text('Als Profilbild von Berta Muster verwenden?'), findsOneWidget);
       expect(find.byType(CroppedPhoto), findsOneWidget);
       await tester.tap(find.text('Bisheriges behalten'));
       await tester.pumpAndSettle();
       verifyNever(() => client.postPrimaryMedia(any(), any(), media: any(named: 'media')));
+    });
+
+    testWidgets('who is it: the people linked to the photo come first, unmarked at the top', (tester) async {
+      when(() => client.mediaObject('Famtree', 'M1')).thenAnswer(
+        (_) async => object([
+          {
+            'xref': 'I2',
+            'name': 'Karl Muster',
+            'crop': {'top': 10, 'left': 20, 'height': 100, 'width': 100},
+          },
+          {'xref': 'I1', 'name': 'Anna Muster', 'crop': null},
+        ]),
+      );
+      when(
+        () => client.postMediaCrop(
+          'Famtree',
+          'I1',
+          media: 'M1',
+          crop: any(named: 'crop'),
+        ),
+      ).thenAnswer((_) async => {'ok': true});
+      await pumpViewer(tester, [_photo('M1', isPrimary: true)], apiLevel: 40);
+
+      await tester.tap(find.byKey(const Key('markPeopleButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('addMarkButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('saveCropButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('searchOtherPerson')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('pick-I1'))).dy,
+        lessThan(tester.getTopLeft(find.byKey(const Key('pick-I2'))).dy),
+      );
+      await tester.tap(find.byKey(const Key('pick-I1')));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => client.postMediaCrop(
+          'Famtree',
+          'I1',
+          media: 'M1',
+          crop: any(named: 'crop'),
+        ),
+      ).called(1);
+      verifyNever(() => client.postPrimaryMedia(any(), any(), media: any(named: 'media')));
+      expect(find.text('Anna Muster markiert.'), findsOneWidget, reason: 'already her profile photo: no question');
     });
   });
 }

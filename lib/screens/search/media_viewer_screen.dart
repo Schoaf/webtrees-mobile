@@ -50,7 +50,12 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   final _thumbController = ScrollController();
   bool _isBusy = false;
   bool _hasChanged = false;
-  bool _isShowingMarks = false;
+
+  /// "Personen markieren": all frames shown, tap one to adjust, + to add.
+  bool _isMarking = false;
+
+  /// Media whose GET MediaObject has been asked for already.
+  final _requestedMarks = <String>{};
 
   /// GET MediaObject per media xref: who is marked where.
   final _mediaObjects = <String, Map<String, dynamic>>{};
@@ -76,7 +81,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
 
   void _onPageChanged(int index) {
     setState(() => _index = index);
-    if (_isShowingMarks) _loadMarks(_photo['xref'] as String);
     // Keep the active thumbnail in view.
     if (_thumbController.hasClients) {
       final target = index * (_thumbSize + 8) - (MediaQuery.sizeOf(context).width - _thumbSize) / 2;
@@ -106,7 +110,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           }
           _hasChanged = true;
         });
-        _showMessage(l10n.primaryPhotoSet);
+        _showMessage(l10n.profilePhotoSet);
       } else {
         _showMessage(l10n.rejectedError('${result['error']}'));
       }
@@ -126,9 +130,13 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     }
   }
 
-  void _toggleMarks() {
-    setState(() => _isShowingMarks = !_isShowingMarks);
-    if (_isShowingMarks) _loadMarks(_photo['xref'] as String);
+  /// Who is on [media] - once, as soon as the server can tell (level 40).
+  void _ensureMarks(String media) {
+    if (!_requestedMarks.add(media)) return;
+    // After this frame: called from build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadMarks(media);
+    });
   }
 
   /// The crop editor for the photo in view; null when cancelled.
@@ -158,7 +166,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       }
       _hasChanged = true;
       if (personXref == widget.personXref) setState(() => _photo['crop'] = crop.toJson());
-      if (_isShowingMarks || _mediaObjects.containsKey(media)) _loadMarks(media);
+      _loadMarks(media);
       return true;
     } on Exception catch (e) {
       if (mounted) _showMessage(l10n.connectionFailedError('$e'));
@@ -166,18 +174,20 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     }
   }
 
-  /// Frames [personXref] (default: the person this view is for) on the photo in view.
-  Future<void> _adjustCrop({String? personXref, Object? initialCrop}) async {
+  /// Adjusts the frame of [personXref] on the photo in view.
+  Future<void> _adjustFrame(String personXref, Object? initialCrop) async {
     final l10n = AppLocalizations.of(context)!;
-    final crop = await _editCrop(
-      title: l10n.adjustCrop,
-      initialCrop: personXref == null ? _photo['crop'] : initialCrop,
-    );
+    final crop = await _editCrop(title: l10n.adjustFrame, initialCrop: initialCrop);
     if (crop == null || !mounted) return;
     setState(() => _isBusy = true);
-    final isSaved = await _saveCrop(personXref ?? widget.personXref, crop);
+    final isSaved = await _saveCrop(personXref, crop);
     if (mounted) setState(() => _isBusy = false);
-    if (isSaved && mounted) _showMessage(l10n.cropSaved);
+    if (isSaved && mounted) _showMessage(l10n.frameSaved);
+  }
+
+  void _startMarking() {
+    _ensureMarks(_photo['xref'] as String);
+    setState(() => _isMarking = true);
   }
 
   /// Draw a frame, say who it is: links the photo to them with that crop. Their
@@ -186,18 +196,21 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     final l10n = AppLocalizations.of(context)!;
     final crop = await _editCrop(title: l10n.markPersonFrameTitle);
     if (crop == null || !mounted) return;
-    final person = await Navigator.of(context)
-        .push<Map<String, dynamic>>(MaterialPageRoute(builder: (_) => SearchScreen(pickerTitle: l10n.whoIsThis)));
+    final person = await _pickPerson();
     if (person == null || !mounted) return;
 
     final xref = person['xref'] as String;
     final name = person['name'] as String? ?? xref;
-    final oldThumb = person['thumb'] as String?;
+    // Already this person's profile photo: nothing to ask.
+    final isAlreadyProfilePhoto = xref == widget.personXref && _photo['primary'] == true;
+    final oldThumb = isAlreadyProfilePhoto ? null : person['thumb'] as String?;
     final media = _photo['xref'] as String;
     setState(() => _isBusy = true);
     try {
       if (!await _saveCrop(xref, crop) || !mounted) return;
-      final isMainPhoto = oldThumb == null || oldThumb.isEmpty || await _asksUseAsMainPhoto(name, oldThumb, crop);
+      final isMainPhoto =
+          !isAlreadyProfilePhoto &&
+          (oldThumb == null || oldThumb.isEmpty || await _asksUseAsMainPhoto(name, oldThumb, crop));
       if (isMainPhoto && mounted) {
         await ref.read(webtreesClientProvider).postPrimaryMedia(ref.read(treeNameProvider), xref, media: media);
       }
@@ -207,6 +220,54 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     } finally {
       if (mounted) setState(() => _isBusy = false);
     }
+  }
+
+  /// "Wer ist das?": the people linked to the photo first - they are likely on it, those
+  /// without a frame at the top - then a search for anyone else. Null when cancelled.
+  Future<Map<String, dynamic>?> _pickPerson() async {
+    final l10n = AppLocalizations.of(context)!;
+    final headers = ref.read(webtreesClientProvider).imageHeaders;
+    final linked = [...(_mediaObjects[_photo['xref']]?['people'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>()]
+      ..sort((a, b) => (a['crop'] == null ? 0 : 1).compareTo(b['crop'] == null ? 0 : 1));
+    Future<Map<String, dynamic>?> search() =>
+        Navigator.of(context)
+            .push<Map<String, dynamic>>(MaterialPageRoute(builder: (_) => SearchScreen(pickerTitle: l10n.whoIsThis)));
+    if (linked.isEmpty) return search();
+
+    final choice = await showModalBottomSheet<Object>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(title: Text(l10n.whoIsThis, style: Theme.of(context).textTheme.titleMedium)),
+            for (final person in linked)
+              ListTile(
+                key: Key('pick-${person['xref']}'),
+                leading: CircleAvatar(
+                  backgroundImage: (person['thumb'] as String?)?.isNotEmpty == true
+                      ? NetworkImage(person['thumb'] as String, headers: headers)
+                      : null,
+                  child: (person['thumb'] as String?)?.isNotEmpty == true ? null : const Icon(Icons.person),
+                ),
+                title: Text(person['name'] as String? ?? ''),
+                trailing: person['crop'] == null ? null : const Icon(Icons.crop_free, size: 18),
+                onTap: () => Navigator.of(context).pop(person),
+              ),
+            ListTile(
+              key: const Key('searchOtherPerson'),
+              leading: const Icon(Icons.search),
+              title: Text(l10n.searchOtherPerson),
+              onTap: () => Navigator.of(context).pop('search'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return null;
+    if (choice == 'search') return search();
+    return choice as Map<String, dynamic>?;
   }
 
   Future<bool> _asksUseAsMainPhoto(String name, String oldThumb, PhotoCrop crop) async {
@@ -251,12 +312,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     return isNew ?? false;
   }
 
-  /// A marked person tapped: go to them - or, with edit rights, adjust their frame.
-  Future<void> _onMarkTapped(Map<String, dynamic> person, bool canMark) async {
-    if (!canMark) {
-      openPerson(context, person['xref'] as String);
-      return;
-    }
+  /// A frame tapped while marking: adjust it, or go to the person.
+  Future<void> _onMarkTapped(Map<String, dynamic> person) async {
     final l10n = AppLocalizations.of(context)!;
     final choice = await showModalBottomSheet<String>(
       context: context,
@@ -268,14 +325,14 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
               title: Text(person['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
             ),
             ListTile(
+              leading: const Icon(Icons.crop_free),
+              title: Text(l10n.adjustFrame),
+              onTap: () => Navigator.of(context).pop('crop'),
+            ),
+            ListTile(
               leading: const Icon(Icons.person_outline),
               title: Text(l10n.goToPerson),
               onTap: () => Navigator.of(context).pop('open'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.crop),
-              title: Text(l10n.adjustCrop),
-              onTap: () => Navigator.of(context).pop('crop'),
             ),
           ],
         ),
@@ -283,11 +340,11 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     );
     if (!mounted) return;
     if (choice == 'open') openPerson(context, person['xref'] as String);
-    if (choice == 'crop') await _adjustCrop(personXref: person['xref'] as String, initialCrop: person['crop']);
+    if (choice == 'crop') await _adjustFrame(person['xref'] as String, person['crop']);
   }
 
   /// The frames of everyone marked on [photo], over the image as shown (BoxFit.contain in [area]).
-  List<Widget> _marks(Map<String, dynamic> photo, Size area, ui.Image image, bool canMark) {
+  List<Widget> _marks(Map<String, dynamic> photo, Size area, ui.Image image) {
     final people = (_mediaObjects[photo['xref']]?['people'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
     final imageSize = Size(image.width.toDouble(), image.height.toDouble());
     final scale = [area.width / imageSize.width, area.height / imageSize.height].reduce((a, b) => a < b ? a : b);
@@ -302,9 +359,13 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             height: crop.height * scale,
             child: GestureDetector(
               key: Key('mark-${person['xref']}'),
-              onTap: () => _onMarkTapped(person, canMark),
+              onTap: () => _onMarkTapped(person),
               child: DecoratedBox(
-                decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 2)),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white, width: 2.5),
+                  boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 6)],
+                ),
               ),
             ),
           ),
@@ -315,10 +376,10 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             width: 160,
             child: Center(
               child: GestureDetector(
-                onTap: () => _onMarkTapped(person, canMark),
+                onTap: () => _onMarkTapped(person),
                 child: Container(
-                  color: Colors.black54,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   child: Text(
                     person['name'] as String? ?? '',
                     maxLines: 2,
@@ -331,6 +392,62 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           ),
         ],
     ];
+  }
+
+  /// "Auf dem Foto": everyone linked to the photo, as round faces with names - tap to go to them.
+  Widget _onThisPhoto(List<Map<String, dynamic>> people, Map<String, String> headers) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.onThisPhoto, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: people.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final person = people[i];
+                final thumb = person['thumb'] as String?;
+                return Material(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  shape: const StadiumBorder(),
+                  child: InkWell(
+                    key: Key('onPhoto-${person['xref']}'),
+                    customBorder: const StadiumBorder(),
+                    onTap: () => openPerson(context, person['xref'] as String),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: Colors.white24,
+                            backgroundImage: thumb == null || thumb.isEmpty
+                                ? null
+                                : NetworkImage(thumb, headers: headers),
+                            child: thumb == null || thumb.isEmpty
+                                ? const Icon(Icons.person, size: 16, color: Colors.white)
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(person['name'] as String? ?? '', style: const TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _remove() async {
@@ -386,6 +503,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     final isPrimary = _photo['primary'] == true;
     final canShowMarks = isApiAtLeast(ref, photoMarkingApiLevel);
     final canMark = widget.canEdit && canShowMarks;
+    if (canShowMarks) _ensureMarks(_photo['xref'] as String);
+    final people = (_mediaObjects[_photo['xref']]?['people'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
     return PopScope<bool>(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -396,83 +515,148 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
         appBar: AppBar(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
-          title: Text('${_index + 1} / ${_photos.length}', style: const TextStyle(color: Colors.white)),
-          actions: [
-            if (canShowMarks)
-              IconButton(
-                key: const Key('marksButton'),
-                tooltip: _isShowingMarks ? l10n.hideMarks : l10n.showMarks,
-                onPressed: _toggleMarks,
-                icon: Icon(_isShowingMarks ? Icons.people_alt : Icons.people_alt_outlined),
-              ),
-            if (widget.canEdit) ...[
-              IconButton(
-                key: const Key('primaryPhotoButton'),
-                tooltip: isPrimary ? l10n.isPrimaryPhoto : l10n.makePrimaryPhoto,
-                onPressed: isPrimary || _isBusy ? null : _makePrimary,
-                icon: Icon(isPrimary ? Icons.star : Icons.star_border),
-                disabledColor: isPrimary ? Colors.amber : Colors.white38,
-              ),
-              IconButton(
-                key: const Key('removePhotoButton'),
-                tooltip: l10n.removePhoto,
-                onPressed: _isBusy ? null : _remove,
-                icon: const Icon(Icons.delete_outline),
-              ),
-            ],
-            if (canMark)
-              PopupMenuButton<VoidCallback>(
-                key: const Key('photoMenu'),
-                enabled: !_isBusy,
-                icon: const Icon(Icons.more_vert),
-                onSelected: (action) => action(),
-                itemBuilder: (_) => [
-                  PopupMenuItem(value: _adjustCrop, child: Text(l10n.adjustCrop)),
-                  PopupMenuItem(value: _markPerson, child: Text(l10n.markPerson)),
+          title: Text(
+            _isMarking ? l10n.markPeople : '${_index + 1} / ${_photos.length}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          actions: _isMarking
+              ? [
+                  TextButton(
+                    key: const Key('doneMarkingButton'),
+                    onPressed: () => setState(() => _isMarking = false),
+                    child: Text(l10n.doneButton, style: const TextStyle(color: Colors.white)),
+                  ),
+                ]
+              : [
+                  // The same as in the ⋮ menu, as symbols for those who use them often.
+                  if (canMark)
+                    IconButton(
+                      key: const Key('markPeopleButton'),
+                      tooltip: l10n.markPeople,
+                      onPressed: _isBusy ? null : _startMarking,
+                      icon: const Icon(Icons.person_pin_outlined),
+                    ),
+                  if (widget.canEdit) ...[
+                    IconButton(
+                      key: const Key('primaryPhotoButton'),
+                      tooltip: l10n.useAsProfilePhoto,
+                      onPressed: isPrimary || _isBusy ? null : _makePrimary,
+                      icon: const Icon(Icons.account_circle_outlined),
+                    ),
+                    IconButton(
+                      key: const Key('removePhotoButton'),
+                      tooltip: l10n.removePhoto,
+                      onPressed: _isBusy ? null : _remove,
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                    PopupMenuButton<VoidCallback>(
+                      key: const Key('photoMenu'),
+                      enabled: !_isBusy,
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (action) => action(),
+                      itemBuilder: (_) => [
+                        if (canMark) PopupMenuItem(value: _startMarking, child: Text(l10n.markPeople)),
+                        if (!isPrimary) PopupMenuItem(value: _makePrimary, child: Text(l10n.useAsProfilePhoto)),
+                        PopupMenuItem(value: _remove, child: Text(l10n.removePhoto)),
+                      ],
+                    ),
+                  ],
                 ],
-              ),
-          ],
         ),
+        floatingActionButton: _isMarking
+            ? FloatingActionButton.extended(
+                key: const Key('addMarkButton'),
+                onPressed: _isBusy ? null : _markPerson,
+                icon: const Icon(Icons.add),
+                label: Text(l10n.addMarkButton),
+              )
+            : null,
         body: Column(
           children: [
             Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _photos.length,
-                onPageChanged: _onPageChanged,
-                itemBuilder: (_, i) => InteractiveViewer(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) => Stack(
-                      children: [
-                        // Always fitted like this - the marks are drawn on the same geometry.
-                        Positioned.fill(
-                          child: Image.network(
-                            _fileUrl(_photos[i]),
-                            headers: headers,
-                            fit: BoxFit.contain,
-                            loadingBuilder: (_, child, progress) => progress == null
-                                ? child
-                                : const Center(child: CircularProgressIndicator(color: Colors.white)),
-                            errorBuilder: (_, _, _) =>
-                                const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48)),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      itemCount: _photos.length,
+                      onPageChanged: _onPageChanged,
+                      itemBuilder: (_, i) => InteractiveViewer(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) => Stack(
+                            children: [
+                              // Always fitted like this - the marks are drawn on the same geometry.
+                              Positioned.fill(
+                                child: Image.network(
+                                  _fileUrl(_photos[i]),
+                                  headers: headers,
+                                  fit: BoxFit.contain,
+                                  loadingBuilder: (_, child, progress) => progress == null
+                                      ? child
+                                      : const Center(child: CircularProgressIndicator(color: Colors.white)),
+                                  errorBuilder: (_, _, _) => const Center(
+                                    child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
+                                  ),
+                                ),
+                              ),
+                              // "Profilbild" at the top left of the image itself.
+                              if (_photos[i]['primary'] == true && !_isMarking)
+                                Positioned.fill(
+                                  child: FutureBuilder<ui.Image>(
+                                    future: _imageOf(_fileUrl(_photos[i])),
+                                    builder: (context, snapshot) {
+                                      if (!snapshot.hasData) return const SizedBox.shrink();
+                                      final image = snapshot.data!;
+                                      final area = constraints.biggest;
+                                      final scale = [
+                                        area.width / image.width,
+                                        area.height / image.height,
+                                      ].reduce((a, b) => a < b ? a : b);
+                                      return Stack(
+                                        children: [
+                                          Positioned(
+                                            left: (area.width - image.width * scale) / 2 + 10,
+                                            top: (area.height - image.height * scale) / 2 + 10,
+                                            child: IgnorePointer(
+                                              child: Container(
+                                                key: const Key('profilePhotoLabel'),
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black54,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  l10n.profilePhoto,
+                                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              if (_isMarking && _mediaObjects.containsKey(_photos[i]['xref']))
+                                Positioned.fill(
+                                  child: FutureBuilder<ui.Image>(
+                                    future: _imageOf(_fileUrl(_photos[i])),
+                                    builder: (context, snapshot) => snapshot.hasData
+                                        ? Stack(children: _marks(_photos[i], constraints.biggest, snapshot.data!))
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (_isShowingMarks && _mediaObjects.containsKey(_photos[i]['xref']))
-                          Positioned.fill(
-                            child: FutureBuilder<ui.Image>(
-                              future: _imageOf(_fileUrl(_photos[i])),
-                              builder: (context, snapshot) => snapshot.hasData
-                                  ? Stack(children: _marks(_photos[i], constraints.biggest, snapshot.data!, canMark))
-                                  : const SizedBox.shrink(),
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-            if (_photos.length > 1)
+            if (!_isMarking && people.isNotEmpty) _onThisPhoto(people, headers),
+            if (_photos.length > 1 && !_isMarking)
               SafeArea(
                 top: false,
                 child: SizedBox(

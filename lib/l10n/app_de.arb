@@ -450,9 +450,6 @@
   "photosUploaded": "{count, plural, =1{Foto hochgeladen.} other{{count} Fotos hochgeladen.}}",
   "@photosUploaded": {"placeholders": {"count": {"type": "int"}}},
   "morePhotosTooltip": "Weitere Fotos",
-  "makePrimaryPhoto": "Als Hauptfoto festlegen",
-  "isPrimaryPhoto": "Hauptfoto",
-  "primaryPhotoSet": "Hauptfoto festgelegt.",
   "removePhoto": "Foto entfernen",
   "removePhotoTitle": "Foto von {name} entfernen?",
   "@removePhotoTitle": {"placeholders": {"name": {"type": "String"}}},
@@ -463,13 +460,9 @@
   "remove": "Entfernen",
   "photoRemoved": "Foto entfernt.",
 
-  "showMarks": "Markierte Personen zeigen",
-  "hideMarks": "Markierungen ausblenden",
-  "markPerson": "Person markieren",
-  "adjustCrop": "Ausschnitt anpassen",
   "markPersonFrameTitle": "Rahmen um die Person",
   "whoIsThis": "Wer ist das?",
-  "useAsMainPhotoTitle": "Als Hauptfoto von {name} verwenden?",
+  "useAsMainPhotoTitle": "Als Profilbild von {name} verwenden?",
   "@useAsMainPhotoTitle": {"placeholders": {"name": {"type": "String"}}},
   "currentPhoto": "Bisher",
   "newPhoto": "Neu",
@@ -477,7 +470,6 @@
   "useNewPhoto": "Neues verwenden",
   "personMarked": "{name} markiert.",
   "@personMarked": {"placeholders": {"name": {"type": "String"}}},
-  "cropSaved": "Ausschnitt gespeichert.",
   "goToPerson": "Zur Person",
 
   "describePhotosTitle": "{count, plural, =1{Foto beschreiben} other{{count} Fotos beschreiben}}",
@@ -488,5 +480,18 @@
   "photoTypeDocument": "Dokument",
   "describePhotosHint": "Alles optional.",
   "appliesToAllPhotos": "Gilt für alle ausgewählten Fotos.",
-  "uploadButton": "Hochladen"
+  "uploadButton": "Hochladen",
+
+  "markPeople": "Personen markieren",
+  "addMarkButton": "Person",
+  "useAsProfilePhoto": "Als Profilbild verwenden",
+  "profilePhoto": "Profilbild",
+  "profilePhotoSet": "Profilbild festgelegt.",
+  "onThisPhoto": "Auf dem Foto",
+  "adjustFrame": "Rahmen anpassen",
+  "frameSaved": "Rahmen gespeichert.",
+  "doneButton": "Fertig",
+  "resizeFrameTooltip": "Größe ändern",
+  "searchOtherPerson": "Andere Person suchen …",
+  "rotatePhotoTooltip": "Drehen"
 }
