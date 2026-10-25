@@ -486,6 +486,13 @@ void main() {
       expect(form.files.single.value.filename, 'photo.jpg');
     });
 
+    test('sends the description and the kind of media (#38)', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      await client.postMedia('Famtree', 'I1', bytes: [1], filename: 'a.jpg', note: 'Pfarramt', type: 'document');
+      final form = adapter.requests.single.data as FormData;
+      expect(Map.fromEntries(form.fields), {'note': 'Pfarramt', 'type': 'document'});
+    });
+
     test('omits the title field when none is given', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
       await client.postMedia('Famtree', 'I1', bytes: [1], filename: 'a.jpg');

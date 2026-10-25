@@ -478,5 +478,15 @@
   "personMarked": "{name} markiert.",
   "@personMarked": {"placeholders": {"name": {"type": "String"}}},
   "cropSaved": "Ausschnitt gespeichert.",
-  "goToPerson": "Zur Person"
+  "goToPerson": "Zur Person",
+
+  "describePhotosTitle": "{count, plural, =1{Foto beschreiben} other{{count} Fotos beschreiben}}",
+  "@describePhotosTitle": {"placeholders": {"count": {"type": "int"}}},
+  "photoTitleLabel": "Titel",
+  "photoDescriptionLabel": "Beschreibung",
+  "photoTypePhoto": "Foto",
+  "photoTypeDocument": "Dokument",
+  "describePhotosHint": "Alles optional.",
+  "appliesToAllPhotos": "Gilt für alle ausgewählten Fotos.",
+  "uploadButton": "Hochladen"
 }

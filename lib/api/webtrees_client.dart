@@ -413,16 +413,21 @@ class WebtreesClient {
   }
 
   /// Uploads a photo and links it to [xref] - as its last media link, see
-  /// [postPrimaryMedia].
+  /// [postPrimaryMedia]. [note] becomes a note at the media object, [type]
+  /// its kind (`photo`, `document` ...; default `photo`).
   Future<Map<String, dynamic>> postMedia(
     String tree,
     String xref, {
     required List<int> bytes,
     required String filename,
     String? title,
+    String? note,
+    String? type,
   }) async {
     final form = FormData.fromMap({
       'title': ?title,
+      'note': ?note,
+      'type': ?type,
       'file': MultipartFile.fromBytes(bytes, filename: filename),
     });
     final response = await _dio.postUri(

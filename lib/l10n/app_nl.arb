@@ -299,5 +299,14 @@
   "useNewPhoto": "Nieuwe gebruiken",
   "personMarked": "{name} gemarkeerd.",
   "cropSaved": "Uitsnede opgeslagen.",
-  "goToPerson": "Naar persoon"
+  "goToPerson": "Naar persoon",
+
+  "describePhotosTitle": "{count, plural, =1{Foto beschrijven} other{{count} foto's beschrijven}}",
+  "photoTitleLabel": "Titel",
+  "photoDescriptionLabel": "Beschrijving",
+  "photoTypePhoto": "Foto",
+  "photoTypeDocument": "Document",
+  "describePhotosHint": "Alles optioneel.",
+  "appliesToAllPhotos": "Geldt voor alle gekozen foto's.",
+  "uploadButton": "Uploaden"
 }

@@ -299,5 +299,14 @@
   "useNewPhoto": "Use new",
   "personMarked": "{name} marked.",
   "cropSaved": "Crop saved.",
-  "goToPerson": "Go to person"
+  "goToPerson": "Go to person",
+
+  "describePhotosTitle": "{count, plural, =1{Describe the photo} other{Describe {count} photos}}",
+  "photoTitleLabel": "Title",
+  "photoDescriptionLabel": "Description",
+  "photoTypePhoto": "Photo",
+  "photoTypeDocument": "Document",
+  "describePhotosHint": "All optional.",
+  "appliesToAllPhotos": "Applies to all selected photos.",
+  "uploadButton": "Upload"
 }

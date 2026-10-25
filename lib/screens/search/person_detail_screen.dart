@@ -23,6 +23,7 @@ import '../../widgets/gedcom_date_field.dart';
 import '../../widgets/load_error_view.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
+import '../../widgets/photo_description_sheet.dart';
 import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
@@ -369,16 +370,25 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         : [?await picker.pickImage(source: source, maxWidth: 2000, imageQuality: 85)];
     if (files.isEmpty || !mounted) return;
 
+    final allBytes = [for (final file in files) await file.readAsBytes()];
+    if (!mounted) return;
+    // Title, description, photo or document (#38) - all optional.
+    final description = await showPhotoDescriptionSheet(context, allBytes);
+    if (description == null || !mounted) return;
+
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
     try {
       var result = <String, dynamic>{};
-      for (final file in files) {
+      for (var i = 0; i < files.length; i++) {
         result = await client.postMedia(
           tree,
           _xref,
-          bytes: await file.readAsBytes(),
-          filename: file.name,
+          bytes: allBytes[i],
+          filename: files[i].name,
+          title: description.title,
+          note: description.note,
+          type: description.type,
         );
         if (result['ok'] != true) break;
         // Uploaded photos are linked last; the new one should be the person's photo (#34).
