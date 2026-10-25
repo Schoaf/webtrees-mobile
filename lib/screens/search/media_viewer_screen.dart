@@ -666,7 +666,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                         PopupMenuItem(
                           key: const Key('removePhotoItem'),
                           value: () => _unlink({'xref': widget.personXref, 'name': widget.personName}),
-                          child: _MenuEntry(Icons.delete_outline, l10n.removePhoto),
+                          child: _MenuEntry(Icons.link_off, l10n.unlinkPerson),
                         ),
                       ],
                     ),

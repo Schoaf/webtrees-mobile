@@ -129,7 +129,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('removePhotoItem')));
     await tester.pumpAndSettle();
-    expect(find.text('Foto von Anna Muster entfernen?'), findsOneWidget);
+    expect(find.text('Verknüpfung zu Anna Muster entfernen?'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('removePhotoComment')), 'Falsche Person');
     await tester.tap(find.text('Entfernen'));
     await tester.pumpAndSettle();
@@ -469,7 +469,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('unlinkPerson')));
       await tester.pumpAndSettle();
-      expect(find.text('Foto von Karl Muster entfernen?'), findsOneWidget);
+      expect(find.text('Verknüpfung zu Karl Muster entfernen?'), findsOneWidget);
       await tester.tap(find.text('Entfernen'));
       await tester.pumpAndSettle();
 
