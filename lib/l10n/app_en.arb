@@ -285,7 +285,7 @@
 
   "markPersonFrameTitle": "Frame the person",
   "whoIsThis": "Who is this?",
-  "useAsMainPhotoTitle": "Use as profile photo of {name}?",
+  "useAsMainPhotoTitle": "Use as profile picture of {name}?",
   "currentPhoto": "Current",
   "newPhoto": "New",
   "keepCurrentPhoto": "Keep current",
@@ -304,9 +304,9 @@
 
   "markPeople": "Mark people",
   "addMarkButton": "Mark a person",
-  "useAsProfilePhoto": "Use as profile photo",
-  "profilePhoto": "Profile photo",
-  "profilePhotoSet": "Profile photo set.",
+  "useAsProfilePhoto": "Use as profile picture",
+  "profilePhoto": "Profile picture",
+  "profilePhotoSet": "Profile picture set.",
   "onThisPhoto": "In this photo",
   "adjustFrame": "Adjust frame",
   "frameSaved": "Frame saved.",
