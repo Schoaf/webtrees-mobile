@@ -487,6 +487,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           SizedBox(
             height: 36,
             child: ListView.separated(
+              // Starts at the left for every photo.
+              key: ValueKey('people-${_photo['xref']}'),
               scrollDirection: Axis.horizontal,
               itemCount: people.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
@@ -617,7 +619,14 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             style: const TextStyle(color: Colors.white),
           ),
           actions: _isMarking
-              ? null
+              ? [
+                  IconButton(
+                    key: const Key('addMarkButton'),
+                    tooltip: l10n.addMarkButton,
+                    onPressed: _isBusy ? null : _markPerson,
+                    icon: const Icon(Icons.person_add_alt_1_outlined),
+                  ),
+                ]
               : [
                   // Also in the ⋮ menu - as a symbol for those who mark often.
                   if (canMark)
@@ -626,13 +635,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                       tooltip: l10n.markPeople,
                       onPressed: _isBusy ? null : _startMarking,
                       icon: const PersonTagIcon(background: Colors.black),
-                    ),
-                  if (widget.canEdit)
-                    IconButton(
-                      key: const Key('removePhotoButton'),
-                      tooltip: l10n.removePhoto,
-                      onPressed: _isBusy ? null : () => _unlink({'xref': widget.personXref, 'name': widget.personName}),
-                      icon: const Icon(Icons.delete_outline),
                     ),
                   if (widget.canEdit)
                     PopupMenuButton<VoidCallback>(
@@ -661,18 +663,15 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                           ),
                         if (canTurn)
                           PopupMenuItem(value: _turn, child: _MenuEntry(Icons.rotate_right, l10n.rotatePhotoTooltip)),
+                        PopupMenuItem(
+                          key: const Key('removePhotoItem'),
+                          value: () => _unlink({'xref': widget.personXref, 'name': widget.personName}),
+                          child: _MenuEntry(Icons.delete_outline, l10n.removePhoto),
+                        ),
                       ],
                     ),
                 ],
         ),
-        floatingActionButton: _isMarking
-            ? FloatingActionButton.extended(
-                key: const Key('addMarkButton'),
-                onPressed: _isBusy ? null : _markPerson,
-                icon: const Icon(Icons.add),
-                label: Text(l10n.addMarkButton),
-              )
-            : null,
         body: Column(
           children: [
             Expanded(
@@ -759,13 +758,19 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                 ],
               ),
             ),
+            // Always the same height while marking, so switching photos moves nothing.
             if (!_isMarking && people.isNotEmpty) _onThisPhoto(people, headers),
-            if (_isMarking && people.any((person) => person['crop'] == null))
-              _onThisPhoto(
-                people.where((person) => person['crop'] == null).toList(),
-                headers,
-                label: l10n.withoutFrame,
-                onTap: _onMarkTapped,
+            if (_isMarking)
+              SizedBox(
+                height: 84,
+                child: people.any((person) => person['crop'] == null)
+                    ? _onThisPhoto(
+                        people.where((person) => person['crop'] == null).toList(),
+                        headers,
+                        label: l10n.withoutFrame,
+                        onTap: _onMarkTapped,
+                      )
+                    : null,
               ),
             if (_photos.length > 1 && !_isMarking)
               SafeArea(

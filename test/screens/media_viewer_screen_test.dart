@@ -92,7 +92,7 @@ void main() {
     await pumpViewer(tester, [_photo('M1', isPrimary: true), _photo('M2')], canEdit: false);
 
     expect(find.byKey(const Key('photoMenu')), findsNothing);
-    expect(find.byKey(const Key('removePhotoButton')), findsNothing);
+    expect(find.byKey(const Key('removePhotoItem')), findsNothing);
   });
 
   testWidgets('makes the photo in view the profile photo, from the menu only', (tester) async {
@@ -125,7 +125,9 @@ void main() {
     when(() => client.postUnlinkMedia('Famtree', 'I1', media: 'M1')).thenAnswer((_) async => {'ok': true});
     await pumpViewer(tester, [_photo('M1', isPrimary: true), _photo('M2')]);
 
-    await tester.tap(find.byKey(const Key('removePhotoButton')));
+    await tester.tap(find.byKey(const Key('photoMenu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('removePhotoItem')));
     await tester.pumpAndSettle();
     expect(find.text('Foto von Anna Muster entfernen?'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('removePhotoComment')), 'Falsche Person');
@@ -142,7 +144,9 @@ void main() {
     when(() => client.postUnlinkMedia('Famtree', 'I1', media: 'M1')).thenAnswer((_) async => {'ok': true});
     await pumpViewer(tester, [_photo('M1', isPrimary: true)]);
 
-    await tester.tap(find.byKey(const Key('removePhotoButton')));
+    await tester.tap(find.byKey(const Key('photoMenu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('removePhotoItem')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Entfernen'));
     await tester.pumpAndSettle();
@@ -162,7 +166,9 @@ void main() {
   testWidgets('cancelling the question removes nothing', (tester) async {
     await pumpViewer(tester, [_photo('M1', isPrimary: true), _photo('M2')]);
 
-    await tester.tap(find.byKey(const Key('removePhotoButton')));
+    await tester.tap(find.byKey(const Key('photoMenu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('removePhotoItem')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Abbrechen'));
     await tester.pumpAndSettle();
