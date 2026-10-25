@@ -1,5 +1,5 @@
-- Personen auf Fotos markieren: Rahmen ziehen, Person wählen – jeder bekommt seinen eigenen Ausschnitt desselben Fotos
-- Das Foto einer Person zeigt überall ihren Ausschnitt; Ausschnitt jederzeit anpassbar
-- Gespeichert wird alles direkt im Stammbaum als Standard-GEDCOM (GEDCOM 7, CROP) – keine eigene Datenbank, das Originalfoto bleibt unverändert, und der Export nimmt alles mit
+- Personen auf Fotos markieren: Rahmen ziehen, Person wählen – jeder bekommt seinen eigenen Ausschnitt
+- Das Foto einer Person zeigt überall ihren Ausschnitt, jederzeit anpassbar
+- Alles steht als Standard-GEDCOM (GEDCOM 7, CROP) im Stammbaum – keine eigene Datenbank, Originalfoto unverändert, Export nimmt alles mit
 - Fotos vor dem Hochladen beschreiben: Titel, Beschreibung, Foto oder Dokument
-- Markieren und Ausschnitte brauchen eine aktuelle Version von api4webtrees auf dem Server
+- Markieren und Ausschnitte brauchen ein aktuelles api4webtrees auf dem Server

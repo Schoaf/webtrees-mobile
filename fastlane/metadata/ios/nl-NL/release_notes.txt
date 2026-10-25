@@ -1,5 +1,5 @@
-- Personen op foto's markeren: kader trekken, persoon kiezen – iedereen krijgt een eigen uitsnede van dezelfde foto
-- De foto van een persoon toont overal zijn uitsnede; altijd aan te passen
-- Alles wordt direct in de stamboom opgeslagen als standaard-GEDCOM (GEDCOM 7, CROP) – geen aparte database, de originele foto blijft onveranderd en een export neemt alles mee
+- Personen op foto's markeren: kader trekken, persoon kiezen – iedereen een eigen uitsnede
+- De foto van een persoon toont overal zijn uitsnede, altijd aan te passen
+- Alles staat als standaard-GEDCOM (GEDCOM 7, CROP) in de stamboom – geen aparte database, originele foto onveranderd, export neemt alles mee
 - Foto's beschrijven vóór het uploaden: titel, beschrijving, foto of document
-- Markeren en uitsnedes vereisen een recente versie van api4webtrees op de server
+- Markeren en uitsnedes vereisen een recente api4webtrees op de server
