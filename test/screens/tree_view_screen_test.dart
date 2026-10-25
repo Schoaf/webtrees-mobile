@@ -392,6 +392,32 @@ void main() {
       expect(find.text('Johann'), findsOneWidget);
     });
 
+    TransformationController transform(WidgetTester tester) =>
+        tester.widget<InteractiveViewer>(find.byType(InteractiveViewer)).transformationController!;
+
+    testWidgets('fewer generations zoom in to fit when zoomed out further than needed', (tester) async {
+      await pumpScreen(tester);
+      await pick(tester, '3');
+      transform(tester).value = Matrix4.identity()..scaleByDouble(0.5, 0.5, 0.5, 1);
+      await tester.pumpAndSettle();
+
+      await pick(tester, '1');
+
+      expect(transform(tester).value.getMaxScaleOnAxis(), greaterThan(0.5));
+    });
+
+    testWidgets('fewer generations keep the view when zoomed in closer', (tester) async {
+      await pumpScreen(tester);
+      await pick(tester, '3');
+      final zoomedIn = Matrix4.identity()..scaleByDouble(2, 2, 2, 1);
+      transform(tester).value = zoomedIn.clone();
+      await tester.pumpAndSettle();
+
+      await pick(tester, '2');
+
+      expect(transform(tester).value.getMaxScaleOnAxis(), 2);
+    });
+
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {
       await pumpScreen(tester);
       await pick(tester, '∞');

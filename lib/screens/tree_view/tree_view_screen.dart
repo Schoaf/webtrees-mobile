@@ -112,6 +112,12 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   Offset? _anchor;
   String? _anchorXref;
 
+  // The generations up and down shown last, for this person - to notice
+  // when fewer are picked.
+  int? _shownUp;
+  int? _shownDown;
+  String? _shownForXref;
+
   @override
   void initState() {
     super.initState();
@@ -177,23 +183,52 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
       final groupTopLeft = group.topLeft;
       final groupSize = group.size;
       final viewportSize = viewportBox.size;
-
-      const horizontalPadding = 24.0;
-      const topPadding = 24.0;
-      const bottomPadding = 24.0;
-
-      final scaleByWidth = (viewportSize.width - 2 * horizontalPadding) / groupSize.width;
-      final scaleByHeight = (viewportSize.height - topPadding - bottomPadding) / groupSize.height;
-      final scale = math.min(scaleByWidth, scaleByHeight).clamp(_kMinScale, _kMaxScale);
+      final scale = _fitScale(groupSize, viewportSize);
 
       final groupCenterX = groupTopLeft.dx + groupSize.width / 2;
       final groupTopY = groupTopLeft.dy;
 
+      const topPadding = 24.0;
       _transformController.value = Matrix4.identity()
         ..translateByDouble(viewportSize.width / 2, topPadding, 0, 1)
         ..scaleByDouble(scale, scale, scale, 1)
         ..translateByDouble(-groupCenterX, -groupTopY, 0, 1);
       _centeredForXref = activeXref;
+    });
+  }
+
+  /// The zoom that fits [size] into [viewportSize], with some room around it.
+  double _fitScale(Size size, Size viewportSize) {
+    const padding = 24.0;
+    final scaleByWidth = (viewportSize.width - 2 * padding) / size.width;
+    final scaleByHeight = (viewportSize.height - 2 * padding) / size.height;
+    return math.min(scaleByWidth, scaleByHeight).clamp(_kMinScale, _kMaxScale);
+  }
+
+  /// After picking fewer generations (#42): if the view is zoomed out
+  /// further than the whole, now smaller tree needs, it is centred and
+  /// zoomed in so the tree fills the view - but never closer than the
+  /// starting view on parents and siblings. Zoomed in further, it stays.
+  void _maybeFitAfterFewerGenerations() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final contentBox = _contentKey.currentContext?.findRenderObject() as RenderBox?;
+      final viewportBox = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
+      final siblingsRect = _rectInContent(_siblingsFrameKey);
+      final parentsRect = _rectInContent(_parentsRowKey);
+      if (contentBox == null || viewportBox == null || siblingsRect == null) return;
+
+      final contentSize = contentBox.size;
+      final viewportSize = viewportBox.size;
+      final fitScale = _fitScale(contentSize, viewportSize);
+      if (_transformController.value.getMaxScaleOnAxis() >= fitScale) return;
+
+      final group = parentsRect == null ? siblingsRect : siblingsRect.expandToInclude(parentsRect);
+      final scale = math.min(fitScale, _fitScale(group.size, viewportSize));
+      _transformController.value = Matrix4.identity()
+        ..translateByDouble(viewportSize.width / 2, viewportSize.height / 2, 0, 1)
+        ..scaleByDouble(scale, scale, scale, 1)
+        ..translateByDouble(-contentSize.width / 2, -contentSize.height / 2, 0, 1);
     });
   }
 
@@ -294,6 +329,13 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     if (neighborhood != null) {
       _maybeCenterOnActivePerson(activeXref!);
       _afterFrame(activeXref);
+      final isShowingFewer = pickedGenerations != null &&
+          _shownForXref == activeXref &&
+          (generationsUp < (_shownUp ?? 0) || generationsDown < (_shownDown ?? 0));
+      if (isShowingFewer) _maybeFitAfterFewerGenerations();
+      _shownUp = generationsUp;
+      _shownDown = generationsDown;
+      _shownForXref = activeXref;
     }
 
     return Scaffold(
