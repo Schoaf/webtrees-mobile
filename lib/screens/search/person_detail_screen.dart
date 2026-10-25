@@ -14,6 +14,7 @@ import '../../utils/webtrees_url.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../utils/device_size.dart';
 import '../../utils/gedcom.dart';
+import '../../utils/rotate_image.dart';
 import '../../utils/server_error.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/add_fact_sheet.dart';
@@ -381,11 +382,12 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     try {
       var result = <String, dynamic>{};
       for (var i = 0; i < files.length; i++) {
+        final turns = description.quarterTurns.elementAtOrNull(i) ?? 0;
         result = await client.postMedia(
           tree,
           _xref,
-          bytes: allBytes[i],
-          filename: files[i].name,
+          bytes: await rotateImageBytes(allBytes[i], turns),
+          filename: turns % 4 == 0 ? files[i].name : jpegFilename(files[i].name),
           title: description.title,
           note: description.note,
           type: description.type,

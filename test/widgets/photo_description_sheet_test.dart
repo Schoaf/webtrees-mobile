@@ -62,6 +62,16 @@ void main() {
     expect((result!.title, result!.note, result!.type), ('Taufschein', 'Pfarramt Graz, 1952', 'document'));
   });
 
+  testWidgets('each photo can be turned by 90° (wrongly taken)', (tester) async {
+    await openSheet(tester, count: 2);
+    await tester.tap(find.byKey(const Key('rotatePhoto-1')));
+    await tester.tap(find.byKey(const Key('rotatePhoto-1')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('uploadPhotosButton')));
+    await tester.pumpAndSettle();
+    expect(result!.quarterTurns, [0, 2]);
+  });
+
   testWidgets('several photos: says it applies to all', (tester) async {
     await openSheet(tester, count: 3);
     expect(find.text('3 Fotos beschreiben'), findsOneWidget);

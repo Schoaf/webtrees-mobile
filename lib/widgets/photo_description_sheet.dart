@@ -7,13 +7,17 @@ import '../l10n/app_localizations.dart';
 /// What the person said about photos before uploading them (#38). Empty
 /// fields are null and not sent.
 class PhotoDescription {
-  const PhotoDescription({this.title, this.note, this.type = 'photo'});
+  const PhotoDescription({this.title, this.note, this.type = 'photo', this.quarterTurns = const []});
 
   final String? title;
   final String? note;
 
   /// `photo` or `document` - the media type webtrees stores.
   final String type;
+
+  /// Per photo: how often to turn it clockwise by 90° before uploading - for
+  /// one taken the wrong way round.
+  final List<int> quarterTurns;
 }
 
 /// Asks for a title, a description and photo vs. document before an upload -
@@ -40,6 +44,7 @@ class _PhotoDescriptionSheetState extends State<_PhotoDescriptionSheet> {
   final _titleController = TextEditingController();
   final _noteController = TextEditingController();
   String _type = 'photo';
+  late final List<int> _quarterTurns = List.filled(widget.previews.length, 0);
 
   @override
   void dispose() {
@@ -70,14 +75,42 @@ class _PhotoDescriptionSheetState extends State<_PhotoDescriptionSheet> {
               Text(l10n.describePhotosTitle(count), style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
               SizedBox(
-                height: 72,
+                height: 96,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: count,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.memory(widget.previews[i], width: 72, height: 72, fit: BoxFit.cover),
+                  itemBuilder: (_, i) => SizedBox.square(
+                    dimension: 96,
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: RotatedBox(
+                            quarterTurns: _quarterTurns[i],
+                            child: Image.memory(widget.previews[i], width: 96, height: 96, fit: BoxFit.cover),
+                          ),
+                        ),
+                        // Turn by 90° - for a photo taken the wrong way round.
+                        Positioned(
+                          right: 4,
+                          bottom: 4,
+                          child: Material(
+                            color: Colors.black54,
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              key: Key('rotatePhoto-$i'),
+                              tooltip: l10n.rotatePhotoTooltip,
+                              visualDensity: VisualDensity.compact,
+                              iconSize: 20,
+                              color: Colors.white,
+                              onPressed: () => setState(() => _quarterTurns[i] = (_quarterTurns[i] + 1) % 4),
+                              icon: const Icon(Icons.rotate_right),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -127,6 +160,7 @@ class _PhotoDescriptionSheetState extends State<_PhotoDescriptionSheet> {
                     title: _textOrNull(_titleController),
                     note: _textOrNull(_noteController),
                     type: _type,
+                    quarterTurns: List.of(_quarterTurns),
                   ),
                 ),
                 child: Text(l10n.uploadButton),
