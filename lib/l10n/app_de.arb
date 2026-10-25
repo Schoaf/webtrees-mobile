@@ -494,5 +494,8 @@
   "resizeFrameTooltip": "Größe ändern",
   "searchOtherPerson": "Andere Person suchen …",
   "rotatePhotoTooltip": "Drehen",
-  "photoTurned": "Foto gedreht."
+  "photoTurned": "Foto gedreht.",
+  "unlinkPerson": "Verknüpfung entfernen",
+  "setFrame": "Rahmen setzen",
+  "withoutFrame": "Ohne Rahmen"
 }

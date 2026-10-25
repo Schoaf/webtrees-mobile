@@ -314,5 +314,8 @@
   "resizeFrameTooltip": "Formaat wijzigen",
   "searchOtherPerson": "Iemand anders zoeken …",
   "rotatePhotoTooltip": "Draaien",
-  "photoTurned": "Foto gedraaid."
+  "photoTurned": "Foto gedraaid.",
+  "unlinkPerson": "Koppeling verwijderen",
+  "setFrame": "Kader plaatsen",
+  "withoutFrame": "Zonder kader"
 }

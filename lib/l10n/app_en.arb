@@ -314,5 +314,8 @@
   "resizeFrameTooltip": "Resize",
   "searchOtherPerson": "Search for someone else …",
   "rotatePhotoTooltip": "Rotate",
-  "photoTurned": "Photo turned."
+  "photoTurned": "Photo turned.",
+  "unlinkPerson": "Remove link",
+  "setFrame": "Add a frame",
+  "withoutFrame": "Without a frame"
 }
