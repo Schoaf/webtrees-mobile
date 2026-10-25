@@ -168,7 +168,9 @@ void main() {
 
     // Like "Person hinzufügen" from the ⋮ menu: the bar hides, the person page rebuilds below.
     personNavigatorKey.currentState!.push(
-      MaterialPageRoute(builder: (_) => Scaffold(appBar: AppBar(), body: const Text('other page'))),
+      MaterialPageRoute(
+        builder: (_) => Scaffold(appBar: AppBar(), body: const Text('other page')),
+      ),
     );
     await tester.pumpAndSettle();
     expect(
@@ -181,5 +183,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Anna Muster'), findsWidgets);
     expect(find.byIcon(Icons.arrow_back), findsNothing);
+  });
+
+  testWidgets('closing a menu or dialog on a page keeps the bottom bar hidden', (tester) async {
+    await pumpShell(tester, viewSize: const Size(400, 800));
+    await tester.tap(find.byIcon(Icons.search));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open other page'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+
+    showDialog<void>(
+      context: tester.element(find.text('other page')),
+      // Like a popup menu: on the tab's own navigator.
+      useRootNavigator: false,
+      builder: (context) => const AlertDialog(content: Text('menu')),
+    );
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.text('menu'))).pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing, reason: 'still on the page');
   });
 }

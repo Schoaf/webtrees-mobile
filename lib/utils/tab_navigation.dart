@@ -48,17 +48,24 @@ class BottomBarObserver extends NavigatorObserver {
     Future.microtask(() => container.read(bottomBarVisibleProvider.notifier).set(visible));
   }
 
+  // Only pages count - a menu, dialog or bottom sheet on top of a page
+  // neither hides the bar nor, when closed, brings it back.
+
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     // The tab's own first page is pushed too - that one keeps the bar.
-    if (previousRoute != null) _set(false);
+    if (route is PageRoute && previousRoute != null) _set(false);
   }
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _set(true);
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route is PageRoute) _set(true);
+  }
 
   @override
-  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) => _set(true);
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route is PageRoute) _set(true);
+  }
 }
 
 /// Whether the page at [context] is the first page of its Navigator - a
