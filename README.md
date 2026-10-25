@@ -59,7 +59,7 @@ Flutter, Riverpod, `dio`, `sqflite`. A local dev server is configured in [`lib/s
 | api4webtrees – welcome text, registration settings, changing your name | **1.14.0** |
 | api4webtrees – "waiting for approval" marker | **1.15.0** |
 | api4webtrees – hiding links to disabled modules | **1.18.2** |
-| Registering inside the app | only the fork [Schoaf/webtreesand-api](https://github.com/Schoaf/webtreesand-api); elsewhere "Register" opens the site's registration page |
+| Registering inside the app | only the fork [Schoaf/api4webtrees](https://github.com/Schoaf/api4webtrees); elsewhere "Register" opens the site's registration page |
 
 ## License
 
