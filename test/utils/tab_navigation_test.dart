@@ -229,4 +229,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NavigationBar), findsOneWidget);
   });
+
+  testWidgets('opening a person from a page on another tab shows the bar on the Person tab', (tester) async {
+    await pumpShell(tester, viewSize: const Size(400, 800));
+    await tester.tap(find.byIcon(Icons.search));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open other page'));
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+
+    // Like the start person on "Mein Konto": a page over a tab opens a person.
+    openPerson(tester.element(find.text('other page')), 'I2');
+    await tester.pumpAndSettle();
+
+    expect(container.read(selectedTabProvider), kPersonTabIndex);
+    expect(
+      find.byType(NavigationBar),
+      findsOneWidget,
+      reason: 'the Person tab has no Back - without the bar there is no way out',
+    );
+  });
 }

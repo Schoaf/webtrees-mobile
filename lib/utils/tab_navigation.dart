@@ -91,7 +91,9 @@ void openTreeView(BuildContext context, String xref) {
 }
 
 void _switchToTab(ProviderContainer container, int index) {
-  // Its first page is the one showing the person.
+  // Its first page is the one showing the person - and there the bar shows,
+  // even if the tab we come from had a page open (that hid it).
   tabNavigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
   container.read(selectedTabProvider.notifier).select(index);
+  container.read(bottomBarVisibleProvider.notifier).set(true);
 }

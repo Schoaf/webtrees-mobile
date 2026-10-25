@@ -388,6 +388,8 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
             tabNavigatorKeys[i].currentState?.popUntil((route) => route.isFirst);
           } else {
             ref.read(selectedTabProvider.notifier).select(i);
+            // The bar follows the tab: hidden while it has a page open on top.
+            ref.read(bottomBarVisibleProvider.notifier).set(!(tabNavigatorKeys[i].currentState?.canPop() ?? false));
           }
         },
         destinations: [
