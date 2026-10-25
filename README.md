@@ -1,21 +1,27 @@
 # webtrees-mobile
 
-Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks to the server through the [api4webtrees](https://github.com/thobgg/api4webtrees) module.
+Android & iOS app for [webtrees](https://webtrees.net) sites, developed with Flutter. It needs the [api4webtrees](https://github.com/thobgg/api4webtrees) module on the server.
 
 <a href="https://apps.apple.com/app/id6815108154"><img src="docs/app-store-badge.svg" height="40" alt="Download on the App Store"></a>
-<a href="https://play.google.com/store/apps/details?id=net.webtrees.webtreesmobile"><img src="docs/google-play-badge.png" height="58" alt="Get it on Google Play"></a>
+<a href="https://play.google.com/store/apps/details?id=net.webtrees.webtreesmobile"><img src="docs/google-play-badge.png" height="40" alt="Get it on Google Play"></a>
 
-## Server requirements
+## Why this app
 
-| | Minimum version |
-|---|---|
-| webtrees | 2.2 |
-| api4webtrees – app works (older versions are refused with a hint) | **1.13.0** (API level 24) |
-| api4webtrees – app appears on the "App" page (connect via link/QR code) | **1.13.1** |
-| api4webtrees – welcome text, registration settings, changing your name | **1.14.0** |
-| api4webtrees – "waiting for approval" marker | **1.15.0** |
-| api4webtrees – hiding links to disabled modules | **1.18.2** |
-| Registering inside the app | only the fork [Schoaf/webtreesand-api](https://github.com/Schoaf/webtreesand-api); elsewhere "Register" opens the site's registration page |
+There are other apps for webtrees. This one deliberately does not try to cover everything webtrees can do – and it won't in the future either. webtrees in the browser stays the best place for genealogists to record and catalogue everything properly.
+
+The app is for families who build their family tree together, extend it and keep it alive. It keeps things simple, so that everyone – beginner or expert – can use it without instructions. It shows the most important information and deliberately leaves out what is more background knowledge.
+
+What should be easy:
+
+- adding a person and quickly changing a detail
+- adding or changing a photo – say, while you're at a family celebration
+- showing the relatives you're sitting with someone from the family
+
+Everything else is done in webtrees on the web.
+
+The design is made for the phone: few, reduced elements, with symbols and colours as indicators to save space. The main question is always what else can be left out – not what else can be added.
+
+The [webtrees-contribution-request](https://github.com/Schoaf/webtrees-contribution-request) module goes the same way and makes working together even easier: from a person's page you send a relative a link ("Ask for help"). They open it on their phone, correct or complete what is known and add a photo – no registration, no explanations needed. You see their answer in the app and take over what fits.
 
 ## Features
 
@@ -42,6 +48,18 @@ Flutter app (Android/iOS) for [webtrees](https://webtrees.net) sites. It talks t
 ## Development
 
 Flutter, Riverpod, `dio`, `sqflite`. A local dev server is configured in [`lib/state/app_providers.dart`](lib/state/app_providers.dart).
+
+## Server requirements
+
+| | Minimum version |
+|---|---|
+| webtrees | 2.2 |
+| api4webtrees – app works (older versions are refused with a hint) | **1.13.0** (API level 24) |
+| api4webtrees – app appears on the "App" page (connect via link/QR code) | **1.13.1** |
+| api4webtrees – welcome text, registration settings, changing your name | **1.14.0** |
+| api4webtrees – "waiting for approval" marker | **1.15.0** |
+| api4webtrees – hiding links to disabled modules | **1.18.2** |
+| Registering inside the app | only the fork [Schoaf/webtreesand-api](https://github.com/Schoaf/webtreesand-api); elsewhere "Register" opens the site's registration page |
 
 ## License
 
