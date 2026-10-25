@@ -282,7 +282,7 @@ void main() {
       ).called(1);
       expect(find.text('Rahmen gespeichert.'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('doneMarkingButton')));
+      await tester.tap(find.byKey(const Key('endMarkingButton')));
       await tester.pumpAndSettle();
       expect(find.text('1 / 1'), findsOneWidget);
     });

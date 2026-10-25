@@ -617,13 +617,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             style: const TextStyle(color: Colors.white),
           ),
           actions: _isMarking
-              ? [
-                  TextButton(
-                    key: const Key('doneMarkingButton'),
-                    onPressed: () => setState(() => _isMarking = false),
-                    child: Text(l10n.doneButton, style: const TextStyle(color: Colors.white)),
-                  ),
-                ]
+              ? null
               : [
                   // Also in the ⋮ menu - as a symbol for those who mark often.
                   if (canMark)

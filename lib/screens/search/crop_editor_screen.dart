@@ -57,10 +57,11 @@ class _CropEditorScreenState extends ConsumerState<CropEditorScreen> {
         foregroundColor: Colors.white,
         title: Text(widget.title, style: const TextStyle(color: Colors.white)),
         actions: [
-          TextButton(
+          IconButton(
             key: const Key('saveCropButton'),
+            tooltip: l10n.save,
             onPressed: _frame == null ? null : () => Navigator.of(context).pop(PhotoCrop.fromRect(_frame!)),
-            child: Text(l10n.save, style: const TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.save_outlined),
           ),
         ],
       ),
