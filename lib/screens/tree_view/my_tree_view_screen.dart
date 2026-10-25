@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/app_providers.dart';
+import '../../state/start_person.dart';
+import '../../state/tree_view_providers.dart';
 import '../../widgets/start_person_builder.dart';
 import 'tree_view_screen.dart';
 
@@ -19,6 +21,12 @@ class MyTreeViewScreen extends ConsumerWidget {
     // Stammbaum tab in an IndexedStack) - see the comment on
     // visibilitySignal for why that rebuild matters.
     final selectedTab = ref.watch(selectedTabProvider);
+    // A tree opened from elsewhere shows even without a start person.
+    final active = ref.watch(treeViewControllerProvider.select((state) => state.activeXref));
+    final start = ref.watch(startXrefProvider).value;
+    if (active != null && start == null) {
+      return TreeViewScreen(xref: active, visibilitySignal: selectedTab, isEnteringOnlyWhenEmpty: true);
+    }
     return StartPersonBuilder(
       builder: (xref) => TreeViewScreen(xref: xref, visibilitySignal: selectedTab, isEnteringOnlyWhenEmpty: true),
     );
