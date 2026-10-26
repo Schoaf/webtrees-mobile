@@ -582,8 +582,9 @@ class _TreeContent extends ConsumerWidget {
                   onSelectPerson: onSelectPerson,
                 ),
               ),
-              const SizedBox(height: 10),
-              Container(width: 2, height: 24, color: const Color(0xFFD1D5DB)),
+              // Joined to the parents: from the fork below two of them (see
+              // _ParentsRow) or the only parent's card down to the siblings frame.
+              Container(width: 2, height: 34, color: const Color(0xFFD1D5DB)),
             ],
             _SiblingsFrame(
               key: siblingsFrameKey,
@@ -720,6 +721,37 @@ extension _FirstOrNull<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
 
+// Room below two parents for their "+N" badges - and for the fork joining
+// the lines down from them.
+const _kParentsRowBottomPadding = 14.0;
+const _kParentsGap = 10.0;
+
+/// Lines down from the middle of two same-width parent cards, [gap] apart,
+/// joined by a bar along the bottom edge.
+class _ParentsForkPainter extends CustomPainter {
+  _ParentsForkPainter({required this.gap});
+
+  final double gap;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD1D5DB)
+      ..strokeWidth = 2;
+    final cardWidth = (size.width - gap) / 2;
+    final father = cardWidth / 2;
+    final mother = size.width - cardWidth / 2;
+    // On the bottom edge, so the bar meets the line below it.
+    final bar = size.height - 1;
+    canvas.drawLine(Offset(father, 0), Offset(father, bar), paint);
+    canvas.drawLine(Offset(mother, 0), Offset(mother, bar), paint);
+    canvas.drawLine(Offset(father - 1, bar), Offset(mother + 1, bar), paint);
+  }
+
+  @override
+  bool shouldRepaint(_ParentsForkPainter old) => old.gap != gap;
+}
+
 class _ParentsRow extends StatelessWidget {
   const _ParentsRow({required this.neighborhood, required this.photoHeaders, required this.onSelectPerson});
 
@@ -743,7 +775,7 @@ class _ParentsRow extends StatelessWidget {
 
     if (father != null && mother != null) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.only(bottom: _kParentsRowBottomPadding),
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
@@ -753,9 +785,18 @@ class _ParentsRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 parentCard(father, isFather: true),
-                const SizedBox(width: 10),
+                const SizedBox(width: _kParentsGap),
                 parentCard(mother, isFather: false),
               ],
+            ),
+            // A line down from each parent, joined below them - the line
+            // down to the person goes on from the middle of it.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: -_kParentsRowBottomPadding,
+              height: _kParentsRowBottomPadding,
+              child: CustomPaint(painter: _ParentsForkPainter(gap: _kParentsGap)),
             ),
             // Vertically centered on the cards beside it (Stack already
             // sizes itself to the Row before laying out Positioned
@@ -1178,9 +1219,11 @@ class _ChildrenFrameSection extends StatelessWidget {
   final GlobalKey bottomRowKey;
   final void Function(String xref) onSelectPerson;
 
-  static const _connectorTopGap = 10.0;
-  static const _connectorHeight = 18.0;
-  static const _connectorBottomGap = 10.0;
+  // The line touches both frames - no gaps, so it reads as one link from
+  // the person to their children.
+  static const _connectorTopGap = 0.0;
+  static const _connectorHeight = 38.0;
+  static const _connectorBottomGap = 0.0;
 
   @override
   Widget build(BuildContext context) {
