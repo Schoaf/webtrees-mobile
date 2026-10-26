@@ -88,7 +88,7 @@ void main() {
   });
 
   testWidgets('shows the active server, and "Ändern" opens the server screen', (tester) async {
-    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'api': 99, 'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -143,7 +143,7 @@ void main() {
   });
 
   testWidgets('shows the app version once PackageInfo resolves', (tester) async {
-    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'api': 99, 'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -152,7 +152,7 @@ void main() {
   });
 
   testWidgets('the password field starts obscured and the eye icon toggles visibility', (tester) async {
-    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'api': 99, 'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -168,7 +168,7 @@ void main() {
   });
 
   testWidgets('submitting wrong credentials shows the error and re-enables the button', (tester) async {
-    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'api': 99, 'trees': <dynamic>[]});
     when(() => client.login(username: 'alice', password: 'wrong')).thenAnswer((_) async => false);
 
     await pumpScreen(tester);
@@ -185,7 +185,7 @@ void main() {
   });
 
   testWidgets('the username and password fields are present and hold exactly what was typed into them', (tester) async {
-    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'trees': <dynamic>[]});
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'api': 99, 'trees': <dynamic>[]});
 
     await pumpScreen(tester);
     await tester.pumpAndSettle();
@@ -209,7 +209,7 @@ void main() {
     var infoCallCount = 0;
     when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async {
       infoCallCount++;
-      if (infoCallCount < 3) return {'trees': <dynamic>[]};
+      if (infoCallCount < 3) return {'api': 99, 'trees': <dynamic>[]};
       return {
         'trees': <dynamic>[],
         'user': {'loggedIn': true, 'userName': 'alice', 'realName': 'Alice A.'},
