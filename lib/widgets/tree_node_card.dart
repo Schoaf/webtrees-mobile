@@ -49,6 +49,7 @@ class TreeNodeCard extends StatelessWidget {
     this.childrenCount = 0,
     this.showInfoButton = false,
     this.onTap,
+    this.onDoubleTap,
     this.onInfoTap,
     this.width = 90,
     this.minHeight,
@@ -97,6 +98,10 @@ class TreeNodeCard extends StatelessWidget {
   final int childrenCount;
   final bool showInfoButton;
   final VoidCallback? onTap;
+
+  /// A double tap, so a stray single tap does nothing - the selected
+  /// person's card opens them this way.
+  final VoidCallback? onDoubleTap;
   final VoidCallback? onInfoTap;
   final double width;
 
@@ -119,6 +124,7 @@ class TreeNodeCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       child: Container(
         width: width,
         constraints: minHeight == null

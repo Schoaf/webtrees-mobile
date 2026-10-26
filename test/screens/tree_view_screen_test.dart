@@ -7,6 +7,7 @@ import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/tree_view/tree_view_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/utils/tab_navigation.dart';
 
 import '../fixtures/tree_lineage.dart';
 
@@ -476,6 +477,23 @@ void main() {
       // Parents and children too.
       expect(find.text('Muster'), findsNWidgets(6));
       expect((await SharedPreferences.getInstance()).getBool('tree_show_surnames'), isTrue);
+    });
+
+    testWidgets('a double tap on the selected person opens them, like the info button - a single one not', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      await tester.tap(find.text('Elisabeth'));
+      await tester.pumpAndSettle();
+      expect(container.read(selectedTabProvider), isNot(kPersonTabIndex));
+
+      await tester.tap(find.text('Elisabeth'));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text('Elisabeth'));
+      await tester.pumpAndSettle();
+
+      expect(container.read(selectedTabProvider), kPersonTabIndex);
     });
 
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {

@@ -990,6 +990,10 @@ class _SiblingsFrame extends StatelessWidget {
         showInfoButton: true,
         detail: neighborhood.personDetail,
         onInfoTap: () => onOpenProfile(neighborhood.person.xref),
+        // A double tap on the selected person opens them too - the info
+        // button gets small in a zoomed-out tree. Double, so a stray tap
+        // doesn't leave the tree.
+        onDoubleTap: () => onOpenProfile(neighborhood.person.xref),
       ),
     );
 
