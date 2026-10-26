@@ -30,6 +30,7 @@ class TreeNodeCard extends StatelessWidget {
   const TreeNodeCard({
     super.key,
     required this.firstName,
+    this.surname,
     required this.sex,
     required this.isDead,
     required this.birthYear,
@@ -52,6 +53,11 @@ class TreeNodeCard extends StatelessWidget {
   });
 
   final String firstName;
+
+  /// Non-null shows the surname below the first name - with [detail], on
+  /// the active person's card, whose detail shows the full birth date
+  /// instead of the year.
+  final String? surname;
   final String sex;
   final bool isDead;
   final int? birthYear;
@@ -151,15 +157,17 @@ class TreeNodeCard extends StatelessWidget {
                         color: Color(0xFF111827),
                       ),
                     ),
+                    if (surname != null) _SurnameRow(surname: surname!, titles: [detail?.title ?? '']),
                     if (partnerNameRow != null)
                       _PartnerNameRow(name: partnerNameRow!),
-                    Text(
-                      birthYear?.toString() ?? '',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFF6B7280),
+                    if (surname == null)
+                      Text(
+                        birthYear?.toString() ?? '',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF6B7280),
+                        ),
                       ),
-                    ),
                     if (detail != null) _DetailBlock(detail: detail!),
                   ],
                 ),
@@ -237,6 +245,44 @@ class TreeNodeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The surname below the first name, and below that, smaller, the person's
+/// titles - several joined by a middle dot: "Dr. · Freiherr".
+class _SurnameRow extends StatelessWidget {
+  const _SurnameRow({required this.surname, required this.titles});
+
+  final String surname;
+  final List<String> titles;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleLine = titles.where((t) => t.isNotEmpty).join(' · ');
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (surname.isNotEmpty)
+          Text(
+            surname,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+          ),
+        if (titleLine.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(
+              titleLine,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
+            ),
+          ),
+      ],
     );
   }
 }

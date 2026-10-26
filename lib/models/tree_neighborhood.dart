@@ -56,6 +56,16 @@ String _firstNameFrom({required String name, required String sortName}) {
   return (firstWord == null || firstWord.isEmpty) ? name : firstWord;
 }
 
+/// The surname part of webtrees' `sortName` (`"Surname,Given Middle"`), or
+/// the API's own `surname` field where it sends one.
+String _surnameFrom(Map<String, dynamic> json) {
+  final surname = json['surname'] as String?;
+  if (surname != null && surname.isNotEmpty) return surname;
+  final sortName = json['sortName'] as String? ?? '';
+  final comma = sortName.indexOf(',');
+  return comma == -1 ? '' : sortName.substring(0, comma).trim();
+}
+
 /// One person as shown on a tree-view card — parent, sibling, partner or
 /// child. `hasParents`/`partnersCount`/`childrenCount` are only present
 /// when the server was asked for them (`personSummary(..., withCounts:
@@ -64,6 +74,7 @@ class TreeNode {
   const TreeNode({
     required this.xref,
     required this.firstName,
+    this.surname = '',
     required this.sex,
     required this.isDead,
     required this.birthYear,
@@ -81,6 +92,7 @@ class TreeNode {
         name: json['name'] as String? ?? '',
         sortName: json['sortName'] as String? ?? '',
       ),
+      surname: _surnameFrom(json),
       sex: json['sex'] as String? ?? 'U',
       isDead: json['isDead'] as bool? ?? false,
       birthYear: _yearFromEvent(json['birth'] as Map<String, dynamic>?),
@@ -94,6 +106,9 @@ class TreeNode {
 
   final String xref;
   final String firstName;
+
+  /// Shown on the active person's card only.
+  final String surname;
   final String sex;
   final bool isDead;
   final int? birthYear;
@@ -107,7 +122,12 @@ class TreeNode {
 /// Extra detail shown only on the current/active person's (expanded)
 /// card — everyone else's card is name/year/badges only.
 class TreePersonDetail {
-  const TreePersonDetail({required this.birthDateText, required this.birthPlace, required this.occupation});
+  const TreePersonDetail({
+    required this.birthDateText,
+    required this.birthPlace,
+    required this.occupation,
+    this.title = '',
+  });
 
   factory TreePersonDetail.fromIndividualJson(Map<String, dynamic> json) {
     // The Individual response has no top-level "birth" field of its own -
@@ -119,17 +139,22 @@ class TreePersonDetail {
     final facts = (json['facts'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
     final birtFact = facts.where((f) => f['tag'] == 'BIRT').firstOrNull;
     final occuFact = facts.where((f) => f['tag'] == 'OCCU').firstOrNull;
+    final titleFact = facts.where((f) => f['tag'] == 'TITL').firstOrNull;
 
     return TreePersonDetail(
       birthDateText: (birtFact?['date'] as Map<String, dynamic>?)?['text'] as String? ?? '',
       birthPlace: (birtFact?['place'] as Map<String, dynamic>?)?['short'] as String? ?? '',
       occupation: occuFact?['value'] as String? ?? '',
+      title: titleFact?['value'] as String? ?? '',
     );
   }
 
   final String birthDateText;
   final String birthPlace;
   final String occupation;
+
+  /// The first TITL fact, e.g. "Dr." or "Freiherr".
+  final String title;
 }
 
 /// One of the current person's partner families — `partner` is `null` for

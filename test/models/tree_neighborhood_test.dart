@@ -179,4 +179,23 @@ void main() {
       expect(neighborhood.defaultPartner?.partner?.xref, 'I3');
     });
   });
+
+  test('TreeNode takes the surname from sortName when the API sends none', () {
+    final node = TreeNode.fromJson({'xref': 'I1', 'name': 'Anna Maria Muster', 'sortName': 'Muster,Anna Maria'});
+
+    expect(node.firstName, 'Anna');
+    expect(node.surname, 'Muster');
+    expect(TreeNode.fromJson({'xref': 'I2', 'sortName': 'Muster,Anna', 'surname': 'de Muster'}).surname, 'de Muster');
+  });
+
+  test('TreePersonDetail reads the first title', () {
+    final detail = TreePersonDetail.fromIndividualJson({
+      'facts': [
+        {'tag': 'TITL', 'value': 'Dr.'},
+        {'tag': 'TITL', 'value': 'Prof.'},
+      ],
+    });
+
+    expect(detail.title, 'Dr.');
+  });
 }

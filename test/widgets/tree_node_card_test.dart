@@ -35,6 +35,27 @@ void main() {
     expect(find.text('Lehrerin'), findsOneWidget);
   });
 
+  testWidgets('the active card shows the surname and below it the title instead of the birth year', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const TreeNodeCard(
+          firstName: 'Maria',
+          surname: 'Muster',
+          sex: 'F',
+          isDead: false,
+          birthYear: 1985,
+          detail: TreePersonDetail(birthDateText: '14. März 1985', birthPlace: 'Graz', occupation: '', title: 'Dr.'),
+        ),
+      ),
+    );
+
+    expect(find.text('Maria'), findsOneWidget);
+    expect(find.text('Muster'), findsOneWidget);
+    expect(find.text('Dr.'), findsOneWidget);
+    expect(find.text('1985'), findsNothing);
+    expect(find.text('14. März 1985'), findsOneWidget);
+  });
+
   testWidgets('shows the sibling partner-name row only when set', (tester) async {
     await tester.pumpWidget(
       _wrap(const TreeNodeCard(firstName: 'Thomas', sex: 'M', isDead: false, birthYear: 1982, partnerNameRow: 'Julia')),

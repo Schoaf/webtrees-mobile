@@ -971,6 +971,7 @@ class _SiblingsFrame extends StatelessWidget {
       key: activeCardKey,
       child: TreeNodeCard(
         firstName: neighborhood.person.firstName,
+        surname: neighborhood.person.surname,
         sex: neighborhood.person.sex,
         isDead: neighborhood.person.isDead,
         birthYear: neighborhood.person.birthYear,
