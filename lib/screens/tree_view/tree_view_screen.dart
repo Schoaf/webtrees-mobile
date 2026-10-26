@@ -138,12 +138,13 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     super.dispose();
   }
 
-  /// Fits and positions the view on the family group (parents + siblings
-  /// frame) whenever the active person changes: horizontally centered,
-  /// zoomed so the whole group is visible, with the parents row sitting
-  /// near the top rather than the active card just being pushed to the
-  /// canvas's dead center - that wasted space above the parents row and
-  /// often cut off siblings on a narrow phone screen.
+  /// The first time: fits and positions the view on the family group
+  /// (parents + siblings frame) - horizontally centered, zoomed so the whole
+  /// group is visible, with the parents row near the top rather than the
+  /// active card at the canvas's dead center (that wasted space above the
+  /// parents row and often cut off siblings on a narrow phone screen).
+  /// After that, a new active person keeps the zoom; only their siblings
+  /// frame moves to the middle.
   void _maybeCenterOnActivePerson(String activeXref) {
     if (_centeredForXref == activeXref || !widget.isVisible) return;
 
@@ -154,10 +155,24 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
       final viewportBox = _viewportKey.currentContext?.findRenderObject() as RenderBox?;
       if (siblingsRect == null || viewportBox == null) return;
 
+      final viewportSize = viewportBox.size;
+
+      // Another person after the first: keep the zoom - with several
+      // generations a new fit zoomed far out - and only bring their
+      // siblings frame to the middle.
+      if (_centeredForXref != null) {
+        final scale = _transformController.value.getMaxScaleOnAxis();
+        _transformController.value = Matrix4.identity()
+          ..translateByDouble(viewportSize.width / 2, viewportSize.height / 2, 0, 1)
+          ..scaleByDouble(scale, scale, scale, 1)
+          ..translateByDouble(-siblingsRect.center.dx, -siblingsRect.center.dy, 0, 1);
+        _centeredForXref = activeXref;
+        return;
+      }
+
       final group = parentsRect == null ? siblingsRect : siblingsRect.expandToInclude(parentsRect);
       final groupTopLeft = group.topLeft;
       final groupSize = group.size;
-      final viewportSize = viewportBox.size;
       final scale = _fitScale(groupSize, viewportSize);
 
       final groupCenterX = groupTopLeft.dx + groupSize.width / 2;

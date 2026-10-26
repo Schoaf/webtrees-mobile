@@ -496,6 +496,27 @@ void main() {
       expect(container.read(selectedTabProvider), kPersonTabIndex);
     });
 
+    testWidgets('selecting another person keeps the zoom and only moves the view', (tester) async {
+      when(() => client.individual('Famtree', 'I2')).thenAnswer(
+        (_) async => {
+          'person': personJson('I2', 'Anton', 'M', year: 1955),
+          'facts': <dynamic>[],
+          'parentFamilies': <dynamic>[],
+          'spouseFamilies': <dynamic>[],
+          'stepFamilies': <dynamic>[],
+          'media': <dynamic>[],
+        },
+      );
+      await pumpScreen(tester);
+      transform(tester).value = Matrix4.identity()..scaleByDouble(0.7, 0.7, 0.7, 1);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Anton'));
+      await tester.pumpAndSettle();
+
+      expect(transform(tester).value.getMaxScaleOnAxis(), closeTo(0.7, 0.0001));
+    });
+
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {
       await pumpScreen(tester);
       await pick(tester, '∞');
