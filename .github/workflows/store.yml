@@ -95,6 +95,26 @@ jobs:
           ASC_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: bundle exec fastlane store_ios version:${{ steps.build.outputs.version }} build:${{ steps.build.outputs.ios }}
 
+      # Header and search results artwork: deliver can't upload it yet. A
+      # failure here (Apple's API for it is new) doesn't stop the release -
+      # the artwork can still be set by hand in App Store Connect.
+      - name: App Store artwork
+        if: env.STORES != 'google'
+        continue-on-error: true
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: python tool/upload_app_store_artwork.py ${{ steps.build.outputs.version }}
+
+      - name: App Store submission
+        if: env.STORES != 'google'
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: bundle exec fastlane submit_ios version:${{ steps.build.outputs.version }} build:${{ steps.build.outputs.ios }}
+
       - name: Google Play
         # Also when the App Store step failed - the two stores are independent.
         if: ${{ !cancelled() && steps.build.outcome == 'success' && env.STORES != 'apple' }}
