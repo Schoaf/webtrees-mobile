@@ -275,6 +275,9 @@
   "treeGenerationsAll": "Alle – laadt meer",
   "treeViewTooltip": "Weergave",
   "treeShowSurnames": "Achternamen tonen",
+  "treeSurnameColors": "Kleuren per achternaam",
+  "treeSurnameLegend": "Achternamen",
+  "treeOtherSurnames": "zonder kleur",
 
   "addPhotos": "Foto's toevoegen",
   "showPhotos": "Foto's bekijken",

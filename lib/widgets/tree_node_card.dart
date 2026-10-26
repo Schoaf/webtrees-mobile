@@ -4,6 +4,7 @@ import '../models/tree_neighborhood.dart';
 import '../theme/app_theme.dart';
 import 'person_avatar.dart';
 import 'tree_icons.dart';
+import 'tree_lineage_chart.dart' show treeOutlineColor;
 
 // The content Column's own padding - deliberately asymmetric (generous
 // bottom padding so the descendants-count badge has somewhere to sit
@@ -53,6 +54,7 @@ class TreeNodeCard extends StatelessWidget {
     this.onInfoTap,
     this.width = 90,
     this.minHeight,
+    this.backgroundColor,
   });
 
   final String firstName;
@@ -109,6 +111,10 @@ class TreeNodeCard extends StatelessWidget {
   /// card, so it never reads as one of the sibling cards.
   final double? minHeight;
 
+  /// The card's background instead of white: the colour of the person's
+  /// surname (#43).
+  final Color? backgroundColor;
+
   @override
   Widget build(BuildContext context) {
     // The card's own banderole below spans the whole card, not just this
@@ -133,7 +139,12 @@ class TreeNodeCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.primary : const Color(0xFFE5E7EB),
+            // Coloured by surname (#43): a grey edge, like the lines'.
+            color: selected
+                ? AppColors.primary
+                : backgroundColor != null
+                ? treeOutlineColor
+                : const Color(0xFFE5E7EB),
             width: selected ? 2.5 : 1.5,
           ),
         ),
@@ -147,7 +158,7 @@ class TreeNodeCard extends StatelessWidget {
             // without this it sits left-aligned instead of centered.
             alignment: Alignment.topCenter,
             children: [
-              const Positioned.fill(child: ColoredBox(color: Colors.white)),
+              Positioned.fill(child: ColoredBox(color: backgroundColor ?? Colors.white)),
               // Below the corner badges (painted after it, further down
               // this list) but above the plain white background - spans
               // the whole card, not just the avatar circle.

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/surname_colors.dart';
 import '../../models/tree_lineage.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
@@ -116,6 +117,11 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   int? _shownUp;
   int? _shownDown;
   String? _shownForXref;
+
+  // Colours by surname (#43): kept for the whole time the tree is open, so
+  // a family keeps its colour when moving to another person.
+  final _surnameColors = SurnameColors();
+  bool _isLegendOpen = false;
 
   @override
   void initState() {
@@ -297,6 +303,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     // as loaded so far - starting over for every person.
     final pickedGenerations = ref.watch(treeGenerationsProvider);
     final isShowingSurnames = ref.watch(treeSurnamesProvider);
+    final isColouringSurnames = ref.watch(treeSurnameColorsProvider);
     if (activeXref != _infiniteForXref) {
       _infiniteForXref = activeXref;
       _infiniteUp = _kInfiniteStart;
@@ -316,6 +323,19 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
         lineageController.ensureDescendants(generationsDown);
       });
     }
+
+    // Colours by surname (#43): the people in view, counted once each.
+    final surnamesInView = isColouringSurnames && neighborhood != null
+        ? _surnamesInView(
+            neighborhood,
+            treeState.selectedPartnerXref,
+            lineage,
+            generationsUp,
+            generationsDown,
+            treeState.cache,
+          )
+        : null;
+    final surnameColors = surnamesInView == null ? null : _surnameColors.assign(surnamesInView);
 
     if (neighborhood != null) {
       // The partners' own names (a married name) come with their own answer.
@@ -398,7 +418,9 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 24),
                           child: _SurnamesShown(
                             isShowing: isShowingSurnames,
-                            child: _TreeContent(
+                            child: _SurnameColorsScope(
+                              colors: surnameColors,
+                              child: _TreeContent(
                               neighborhood: neighborhood,
                               selectedPartnerXref: treeState.selectedPartnerXref,
                               loaded: treeState.cache,
@@ -414,6 +436,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                               onSelectPartner: controller.selectPartner,
                               onOpenProfile: (xref) => openPerson(context, xref),
                             ),
+                            ),
                           ),
                         ),
                       ),
@@ -423,14 +446,28 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           left: 12,
                           child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                         ),
+                      if (surnameColors != null && surnameColors.isNotEmpty)
+                        Positioned(
+                          left: 8,
+                          right: 8,
+                          bottom: 8,
+                          child: _SurnameLegend(
+                            colors: surnameColors,
+                            surnames: surnamesInView!,
+                            isOpen: _isLegendOpen,
+                            onToggle: () => setState(() => _isLegendOpen = !_isLegendOpen),
+                          ),
+                        ),
                       Positioned(
                         top: 8,
                         right: 8,
                         child: _ViewButton(
                           generations: pickedGenerations,
                           isShowingSurnames: isShowingSurnames,
+                          isColouringSurnames: isColouringSurnames,
                           onSelectGenerations: ref.read(treeGenerationsProvider.notifier).set,
                           onToggleSurnames: () => ref.read(treeSurnamesProvider.notifier).set(!isShowingSurnames),
+                          onToggleColours: () => ref.read(treeSurnameColorsProvider.notifier).set(!isColouringSurnames),
                         ),
                       ),
                     ],
@@ -591,7 +628,20 @@ class _TreeContent extends ConsumerWidget {
               ),
               // Joined to the parents: from the fork below two of them (see
               // _ParentsRow) or the only parent's card down to the siblings frame.
-              Container(width: 2, height: 34, color: const Color(0xFFD1D5DB)),
+              Builder(
+                builder: (context) {
+                  final color = _SurnameColorsScope.lineOf(context, neighborhood.person.surname);
+                  if (color == null) return Container(width: 2, height: 34, color: const Color(0xFFD1D5DB));
+                  // Wide in the person's colour, with a grey edge on both sides.
+                  return Container(
+                    width: colouredLineWidth + 2,
+                    height: 34,
+                    color: treeOutlineColor,
+                    alignment: Alignment.center,
+                    child: Container(width: colouredLineWidth, color: color),
+                  );
+                },
+              ),
             ],
             _SiblingsFrame(
               key: siblingsFrameKey,
@@ -690,6 +740,8 @@ class _AncestorsSection extends StatelessWidget {
       bottomBandHeight: 48,
       parentsRowKey: parentsRowKey,
       topRowKey: topRowKey,
+      lineColorOf: (node) => _SurnameColorsScope.lineOf(context, node.surname),
+      rootLineColor: _SurnameColorsScope.lineOf(context, neighborhood.person.surname),
       cardBuilder: (n, node, {required isShowingParents}) => n <= 3
           ? _ParentCard(
               neighborhood: neighborhood,
@@ -702,6 +754,7 @@ class _AncestorsSection extends StatelessWidget {
           : TreeNodeCard(
               firstName: node.firstName,
               surname: _SurnamesShown.of(context) ? node.surname : null,
+              backgroundColor: _SurnameColorsScope.of(context, node.surname),
               isSurnameBold: false,
               sex: node.sex,
               isDead: node.isDead,
@@ -739,27 +792,39 @@ const _kParentsGap = 10.0;
 /// Lines down from the middle of two same-width parent cards, [gap] apart,
 /// joined by a bar along the bottom edge.
 class _ParentsForkPainter extends CustomPainter {
-  _ParentsForkPainter({required this.gap});
+  _ParentsForkPainter({required this.gap, this.fatherColor, this.motherColor, this.childColor});
 
   final double gap;
 
+  /// Each parent's half of the fork in the colour of their surname (#43).
+  final Color? fatherColor;
+  final Color? motherColor;
+
+  /// The line on down to the child, in theirs.
+  final Color? childColor;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFD1D5DB)
-      ..strokeWidth = 2;
     final cardWidth = (size.width - gap) / 2;
     final father = cardWidth / 2;
     final mother = size.width - cardWidth / 2;
-    // On the bottom edge, so the bar meets the line below it.
-    final bar = size.height - 1;
-    canvas.drawLine(Offset(father, 0), Offset(father, bar), paint);
-    canvas.drawLine(Offset(mother, 0), Offset(mother, bar), paint);
-    canvas.drawLine(Offset(father - 1, bar), Offset(mother + 1, bar), paint);
+    final middle = size.width / 2;
+    // Halfway down: room for a wide line, and its own short stem on to the
+    // line below.
+    final bar = size.height / 2;
+    canvas.clipRect(Offset.zero & size);
+    drawTreeLines(canvas, [
+      for (final (x, color) in [(father, fatherColor), (mother, motherColor)]) ...[
+        (Offset(x, 0), Offset(x, bar), color),
+        (Offset(x, bar), Offset(middle, bar), color),
+      ],
+      (Offset(middle, bar), Offset(middle, size.height), childColor),
+    ]);
   }
 
   @override
-  bool shouldRepaint(_ParentsForkPainter old) => old.gap != gap;
+  bool shouldRepaint(_ParentsForkPainter old) =>
+      old.gap != gap || old.fatherColor != fatherColor || old.motherColor != motherColor || old.childColor != childColor;
 }
 
 class _ParentsRow extends StatelessWidget {
@@ -806,7 +871,14 @@ class _ParentsRow extends StatelessWidget {
               right: 0,
               bottom: -_kParentsRowBottomPadding,
               height: _kParentsRowBottomPadding,
-              child: CustomPaint(painter: _ParentsForkPainter(gap: _kParentsGap)),
+              child: CustomPaint(
+                painter: _ParentsForkPainter(
+                  gap: _kParentsGap,
+                  fatherColor: _SurnameColorsScope.lineOf(context, father.surname),
+                  motherColor: _SurnameColorsScope.lineOf(context, mother.surname),
+                  childColor: _SurnameColorsScope.lineOf(context, neighborhood.person.surname),
+                ),
+              ),
             ),
             // Vertically centered on the cards beside it (Stack already
             // sizes itself to the Row before laying out Positioned
@@ -857,6 +929,7 @@ class _ParentCard extends StatelessWidget {
         TreeNodeCard(
           firstName: node.firstName,
           surname: _SurnamesShown.of(context) ? node.surname : null,
+          backgroundColor: _SurnameColorsScope.of(context, node.surname),
           isSurnameBold: false,
           sex: node.sex,
           isDead: node.isDead,
@@ -970,6 +1043,7 @@ class _SiblingsFrame extends StatelessWidget {
       return TreeNodeCard(
         firstName: node.firstName,
         surname: _SurnamesShown.of(context) ? node.surname : null,
+        backgroundColor: _SurnameColorsScope.of(context, node.surname),
         isSurnameBold: false,
         sex: node.sex,
         isDead: node.isDead,
@@ -991,6 +1065,7 @@ class _SiblingsFrame extends StatelessWidget {
       child: TreeNodeCard(
         firstName: neighborhood.person.firstName,
         surname: neighborhood.person.surname,
+        backgroundColor: _SurnameColorsScope.of(context, neighborhood.person.surname),
         sex: neighborhood.person.sex,
         isDead: neighborhood.person.isDead,
         birthYear: neighborhood.person.birthYear,
@@ -1054,6 +1129,13 @@ class _SiblingsFrame extends StatelessWidget {
                             // the active person's surname.
                             surname: partnerSurname,
                             isSurnameBold: partnerSurname != neighborhood.person.surname,
+                            // The colour of the family they come from.
+                            backgroundColor: _SurnameColorsScope.of(
+                              context,
+                              (partnerDetail?.birthSurname.isNotEmpty ?? false)
+                                  ? partnerDetail!.birthSurname
+                                  : p.partner!.surname,
+                            ),
                             birthSurname: (partnerDetail?.hasOtherMarriedSurname ?? false)
                                 ? partnerDetail!.birthSurname
                                 : null,
@@ -1440,9 +1522,11 @@ class _ChildrenFrame extends StatelessWidget {
               children: descendants!,
               generations: generations,
               bottomRowKey: bottomRowKey,
+              lineColorOf: (node) => _SurnameColorsScope.lineOf(context, node.surname),
               cardBuilder: (d, {required isShowingChildren}) => TreeNodeCard(
                 firstName: d.node.firstName,
                 surname: _SurnamesShown.of(context) ? d.node.surname : null,
+                backgroundColor: _SurnameColorsScope.of(context, d.node.surname),
                 isSurnameBold: false,
                 sex: d.node.sex,
                 isDead: d.node.isDead,
@@ -1464,6 +1548,7 @@ class _ChildrenFrame extends StatelessWidget {
                   TreeNodeCard(
                     firstName: child.firstName,
                     surname: _SurnamesShown.of(context) ? child.surname : null,
+                    backgroundColor: _SurnameColorsScope.of(context, child.surname),
                     isSurnameBold: false,
                     sex: child.sex,
                     isDead: child.isDead,
@@ -1525,17 +1610,22 @@ class _ViewButton extends StatelessWidget {
   const _ViewButton({
     required this.generations,
     required this.isShowingSurnames,
+    required this.isColouringSurnames,
     required this.onSelectGenerations,
     required this.onToggleSurnames,
+    required this.onToggleColours,
   });
 
   final int? generations;
   final bool isShowingSurnames;
+  final bool isColouringSurnames;
   final void Function(int? generations) onSelectGenerations;
   final VoidCallback onToggleSurnames;
+  final VoidCallback onToggleColours;
 
   static const _kInfinity = 0;
   static const _kSurnames = -1;
+  static const _kColours = -2;
 
   @override
   Widget build(BuildContext context) {
@@ -1549,9 +1639,11 @@ class _ViewButton extends StatelessWidget {
         key: const Key('treeViewButton'),
         tooltip: l10n.treeViewTooltip,
         initialValue: generations ?? _kInfinity,
-        onSelected: (value) => value == _kSurnames
-            ? onToggleSurnames()
-            : onSelectGenerations(value == _kInfinity ? null : value),
+        onSelected: (value) => switch (value) {
+          _kSurnames => onToggleSurnames(),
+          _kColours => onToggleColours(),
+          _ => onSelectGenerations(value == _kInfinity ? null : value),
+        },
         itemBuilder: (_) => [
           for (final value in [1, 2, 3, null])
             PopupMenuItem(
@@ -1586,6 +1678,21 @@ class _ViewButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Flexible(child: Text(l10n.treeShowSurnames)),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            key: const Key('treeSurnameColorsItem'),
+            value: _kColours,
+            child: Row(
+              children: [
+                Icon(
+                  isColouringSurnames ? Icons.check_box_outlined : Icons.check_box_outline_blank,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 12),
+                Flexible(child: Text(l10n.treeSurnameColors)),
               ],
             ),
           ),
@@ -1627,4 +1734,163 @@ class _SurnamesShown extends InheritedWidget {
 
   @override
   bool updateShouldNotify(_SurnamesShown old) => old.isShowing != isShowing;
+}
+
+/// The colours of the surnames in view (#43), or null when they're off -
+/// set once around the tree instead of handed to every card's builder.
+class _SurnameColorsScope extends InheritedWidget {
+  const _SurnameColorsScope({required this.colors, required super.child});
+
+  final Map<String, Color>? colors;
+
+  /// The card colour for [surname]: its own, or the one for all others.
+  static Color? of(BuildContext context, String surname) {
+    final colors = context.dependOnInheritedWidgetOfExactType<_SurnameColorsScope>()?.colors;
+    if (colors == null) return null;
+    return colors[surname] ?? otherSurnameColor;
+  }
+
+  /// The colour of the lines to a person with [surname] - null for the
+  /// plain grey: colours off, or a surname without a colour of its own.
+  static Color? lineOf(BuildContext context, String surname) {
+    final color = context.dependOnInheritedWidgetOfExactType<_SurnameColorsScope>()?.colors?[surname];
+    return color == null ? null : lineColorFor(color);
+  }
+
+  @override
+  bool updateShouldNotify(_SurnameColorsScope old) => old.colors != colors;
+}
+
+/// The surname of everyone in view - the person, parents, siblings, the
+/// shown partner (their birth name, the family they come from), children,
+/// and further generations as far as shown.
+List<String> _surnamesInView(
+  TreeNeighborhood neighborhood,
+  String? selectedPartnerXref,
+  TreeLineage lineage,
+  int generationsUp,
+  int generationsDown,
+  Map<String, TreeNeighborhood> loaded,
+) {
+  final partner = selectedPartnerXref == null
+      ? neighborhood.defaultPartner
+      : neighborhood.partners.where((p) => p.familyXref == selectedPartnerXref).firstOrNull ??
+            neighborhood.defaultPartner;
+  final partnerBirthName = partner?.partner == null ? '' : loaded[partner!.partner!.xref]?.personDetail.birthSurname ?? '';
+
+  final surnames = [
+    neighborhood.person.surname,
+    ?neighborhood.father?.surname,
+    ?neighborhood.mother?.surname,
+    for (final sibling in neighborhood.siblings) sibling.surname,
+    if (partner?.partner != null) partnerBirthName.isNotEmpty ? partnerBirthName : partner!.partner!.surname,
+    for (final child in partner?.children ?? const <TreeNode>[]) child.surname,
+  ];
+  if (generationsUp > 1) {
+    for (final entry in lineage.ancestors.entries) {
+      final generation = kekuleGeneration(entry.key);
+      if (generation >= 2 && generation <= generationsUp) surnames.add(entry.value.surname);
+    }
+  }
+  if (generationsDown > 1 && partner != null) {
+    final family = lineage.descendants?.families.where((f) => f.familyXref == partner.familyXref).firstOrNull;
+    var row = [for (final child in family?.children ?? const <TreeDescendant>[]) ...child.children];
+    for (var level = 2; level <= generationsDown && row.isNotEmpty; level++) {
+      surnames.addAll(row.map((d) => d.node.surname));
+      row = [for (final d in row) ...d.children];
+    }
+  }
+  return surnames;
+}
+
+/// The legend of the surname colours (#43): a small pill at the bottom of
+/// the tree, opening to the surnames in view with their colours.
+class _SurnameLegend extends StatelessWidget {
+  const _SurnameLegend({required this.colors, required this.surnames, required this.isOpen, required this.onToggle});
+
+  final Map<String, Color> colors;
+
+  /// One entry per person in view, for the counts.
+  final List<String> surnames;
+  final bool isOpen;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    // Pastel on white needs an edge to be seen.
+    Widget dot(Color color) => Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFFC4C8CF)),
+      ),
+    );
+    return Align(
+      alignment: Alignment.bottomLeft,
+      child: Container(
+        key: const Key('surnameLegend'),
+        constraints: const BoxConstraints(maxHeight: 180),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: const [BoxShadow(color: Color(0x1F111827), blurRadius: 4, offset: Offset(0, 1))],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onToggle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: isOpen
+                ? SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      children: [
+                        for (final entry in colors.entries)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              dot(entry.value),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${entry.key} ${surnames.where((s) => s == entry.key).length}',
+                                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                              ),
+                            ],
+                          ),
+                        if (surnames.any((s) => !colors.containsKey(s)))
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            dot(otherSurnameColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${l10n.treeOtherSurnames} ${surnames.where((s) => !colors.containsKey(s)).length}',
+                              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final color in colors.values.take(5)) ...[dot(color), const SizedBox(width: 3)],
+                      const SizedBox(width: 5),
+                      Text(
+                        l10n.treeSurnameLegend,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -27,6 +27,8 @@ class AncestorChart extends StatelessWidget {
     required this.bottomBandHeight,
     this.parentsRowKey,
     this.topRowKey,
+    this.lineColorOf,
+    this.rootLineColor,
   });
 
   /// By Kekulé number; 1 (the person) is not drawn.
@@ -43,9 +45,17 @@ class AncestorChart extends StatelessWidget {
   /// On the top row, to see how far it is from the view (∞).
   final Key? topRowKey;
 
+  /// The line from a person towards their child in this colour, drawn
+  /// stronger (#43) - null keeps the plain grey.
+  final Color? Function(TreeNode node)? lineColorOf;
+
+  /// The same for the person below the chart, whose card isn't part of it.
+  final Color? rootLineColor;
+
   @override
   Widget build(BuildContext context) {
     final layout = _AncestorLayout(ancestors, generations);
+    Color? colorOf(int n) => n == 1 ? rootLineColor : lineColorOf?.call(ancestors[n]!);
     final top = layout.topGeneration;
 
     final children = <Widget>[];
@@ -71,9 +81,14 @@ class AncestorChart extends StatelessWidget {
                 if (kekuleGeneration(n) == g - 1 && layout.isShowingParents(n))
                   _Fork(
                     single: layout.centers[n]!,
+                    singleColor: colorOf(n),
                     many: [
                       for (final parent in [2 * n, 2 * n + 1])
                         if (layout.isShown(parent)) layout.centers[parent]!,
+                    ],
+                    manyColors: [
+                      for (final parent in [2 * n, 2 * n + 1])
+                        if (layout.isShown(parent)) colorOf(parent),
                     ],
                   ),
             ], isPointingDown: false),
@@ -140,6 +155,7 @@ class DescendantChart extends StatelessWidget {
     required this.generations,
     required this.cardBuilder,
     this.bottomRowKey,
+    this.lineColorOf,
   });
 
   final List<TreeDescendant> children;
@@ -150,6 +166,9 @@ class DescendantChart extends StatelessWidget {
 
   /// On the bottom row, to see how far it is from the view (∞).
   final Key? bottomRowKey;
+
+  /// See [AncestorChart.lineColorOf].
+  final Color? Function(TreeNode node)? lineColorOf;
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +185,12 @@ class DescendantChart extends StatelessWidget {
               painter: _ForkPainter([
                 for (final parent in layout.rows[level - 1])
                   if (layout.isShowingChildren(parent))
-                    _Fork(single: layout.centers[parent]!, many: [for (final c in parent.children) layout.centers[c]!]),
+                    _Fork(
+                      single: layout.centers[parent]!,
+                      singleColor: lineColorOf?.call(parent.node),
+                      many: [for (final c in parent.children) layout.centers[c]!],
+                      manyColors: [for (final c in parent.children) lineColorOf?.call(c.node)],
+                    ),
               ], isPointingDown: true),
             ),
           ),
@@ -270,12 +294,55 @@ class _CardRow extends StatelessWidget {
   }
 }
 
-/// One person ([single]) and their parents or children ([many]).
+/// Width of a line in a surname's colour (#43): pale like the cards, so
+/// wide - with a thin grey edge on both sides, like the cards' edge.
+const colouredLineWidth = 6.0;
+const treeOutlineColor = Color(0xFF8A919C);
+const _kLineEdgeColor = Color(0xFFB8BEC6);
+
+/// Draws tree lines from one point to another: plain grey ones, or wide ones
+/// in a surname's colour with a grey edge (#43). Grey lines first, then all
+/// edges, then all colours - so lines that meet flow into each other.
+///
+/// Square ends, so corners meet - painters clip them at their own edge, so
+/// a line ends flush with the card it runs to, as if it went on beneath it.
+void drawTreeLines(Canvas canvas, List<(Offset, Offset, Color?)> lines) {
+  final grey = Paint()
+    ..color = _kLineColor
+    ..strokeWidth = 2;
+  final edge = Paint()
+    ..color = _kLineEdgeColor
+    ..strokeWidth = colouredLineWidth + 2
+    ..strokeCap = StrokeCap.square;
+  for (final (a, b, color) in lines) {
+    if (color == null) canvas.drawLine(a, b, grey);
+  }
+  for (final (a, b, color) in lines) {
+    if (color != null) canvas.drawLine(a, b, edge);
+  }
+  for (final (a, b, color) in lines) {
+    if (color != null) {
+      canvas.drawLine(
+        a,
+        b,
+        Paint()
+          ..color = color
+          ..strokeWidth = colouredLineWidth
+          ..strokeCap = StrokeCap.square,
+      );
+    }
+  }
+}
+
+/// One person ([single]) and their parents or children ([many]), each
+/// line in the colour of the person it leads to (null: plain grey).
 class _Fork {
-  const _Fork({required this.single, required this.many});
+  const _Fork({required this.single, required this.many, this.singleColor, this.manyColors = const []});
 
   final double single;
   final List<double> many;
+  final Color? singleColor;
+  final List<Color?> manyColors;
 }
 
 /// Fork lines across a band: the [_Fork.many] on one edge joined by a bar,
@@ -290,21 +357,21 @@ class _ForkPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _kLineColor
-      ..strokeWidth = 2;
     // Ancestors: the bar stays near the cards above, in a taller band too.
     final bar = isPointingDown ? size.height / 2 : math.min(14.0, size.height / 2);
     final singleY = isPointingDown ? 0.0 : size.height;
     final manyY = isPointingDown ? size.height : 0.0;
-    for (final fork in forks) {
-      final xs = [...fork.many, fork.single];
-      canvas.drawLine(Offset(xs.reduce(math.min), bar), Offset(xs.reduce(math.max), bar), paint);
-      canvas.drawLine(Offset(fork.single, singleY), Offset(fork.single, bar), paint);
-      for (final x in fork.many) {
-        canvas.drawLine(Offset(x, manyY), Offset(x, bar), paint);
-      }
-    }
+    canvas.clipRect(Offset.zero & size);
+    drawTreeLines(canvas, [
+      for (final fork in forks) ...[
+        for (var i = 0; i < fork.many.length; i++) ...[
+          // Down (or up) from this one, and along the bar to the single one.
+          (Offset(fork.many[i], manyY), Offset(fork.many[i], bar), i < fork.manyColors.length ? fork.manyColors[i] : null),
+          (Offset(fork.many[i], bar), Offset(fork.single, bar), i < fork.manyColors.length ? fork.manyColors[i] : null),
+        ],
+        (Offset(fork.single, singleY), Offset(fork.single, bar), fork.singleColor),
+      ],
+    ]);
   }
 
   @override

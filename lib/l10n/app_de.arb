@@ -450,6 +450,9 @@
   "treeGenerationsAll": "Alle – lädt nach",
   "treeViewTooltip": "Ansicht",
   "treeShowSurnames": "Nachnamen anzeigen",
+  "treeSurnameColors": "Farben nach Nachnamen",
+  "treeSurnameLegend": "Nachnamen",
+  "treeOtherSurnames": "ohne Farbe",
 
   "addPhotos": "Fotos hinzufügen",
   "showPhotos": "Fotos ansehen",

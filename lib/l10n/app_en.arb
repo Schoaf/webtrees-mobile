@@ -275,6 +275,9 @@
   "treeGenerationsAll": "All – loads more",
   "treeViewTooltip": "View",
   "treeShowSurnames": "Show surnames",
+  "treeSurnameColors": "Colours by surname",
+  "treeSurnameLegend": "Surnames",
+  "treeOtherSurnames": "no colour",
 
   "addPhotos": "Add photos",
   "showPhotos": "View photos",

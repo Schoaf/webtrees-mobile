@@ -517,6 +517,23 @@ void main() {
       expect(transform(tester).value.getMaxScaleOnAxis(), closeTo(0.7, 0.0001));
     });
 
+    testWidgets('colours by surname show a legend, kept across app starts', (tester) async {
+      await pumpScreen(tester);
+      expect(find.byKey(const Key('surnameLegend')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('treeViewButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('treeSurnameColorsItem')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('surnameLegend')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('surnameLegend')));
+      await tester.pumpAndSettle();
+      // Everyone in the fixture is a Muster: the person, parents, partner, children.
+      expect(find.text('Muster 6'), findsOneWidget);
+      expect((await SharedPreferences.getInstance()).getBool('tree_surname_colors'), isTrue);
+    });
+
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {
       await pumpScreen(tester);
       await pick(tester, '∞');
