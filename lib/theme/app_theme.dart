@@ -117,6 +117,18 @@ ThemeData buildAppTheme() {
         color: AppColors.textTertiary,
       ),
     ),
+    // One look for every ⋮ and picker menu: white, more rounded, with a
+    // light shadow and a thin border - so a grey selection reads as part of
+    // the menu, not of the grey screen below it.
+    popupMenuTheme: PopupMenuThemeData(
+      color: AppColors.surface,
+      elevation: 3,
+      shadowColor: Colors.black.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+    ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
       indicatorColor: AppColors.secondary.withValues(alpha: 0.22),

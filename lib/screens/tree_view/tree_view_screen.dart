@@ -9,6 +9,7 @@ import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
 import '../../state/tree_generations.dart';
 import '../../state/tree_view_providers.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/device_size.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/load_error_view.dart';
@@ -1448,46 +1449,56 @@ class _GenerationsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     String label(int? value) => value == null ? '∞' : '$value';
-    return PopupMenuButton<int>(
-      key: const Key('treeGenerationsButton'),
-      tooltip: l10n.treeGenerationsTooltip,
-      initialValue: generations ?? _kInfinity,
-      onSelected: (value) => onSelected(value == _kInfinity ? null : value),
-      itemBuilder: (_) => [
-        for (final value in [1, 2, 3, null])
-          PopupMenuItem(
-            key: Key('treeGenerations-${label(value)}'),
-            value: value ?? _kInfinity,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: Text(label(value), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                ),
-                const SizedBox(width: 8),
-                Flexible(child: Text(value == null ? l10n.treeGenerationsAll : l10n.treeGenerationsCount(value))),
-              ],
+    // The current choice on a light grey - the menu's own selection colour
+    // is too dark on its white background.
+    return Theme(
+      data: Theme.of(context).copyWith(highlightColor: const Color(0xFFF0F1F3)),
+      child: PopupMenuButton<int>(
+        key: const Key('treeGenerationsButton'),
+        tooltip: l10n.treeGenerationsTooltip,
+        initialValue: generations ?? _kInfinity,
+        onSelected: (value) => onSelected(value == _kInfinity ? null : value),
+        itemBuilder: (_) => [
+          for (final value in [1, 2, 3, null])
+            PopupMenuItem(
+              key: Key('treeGenerations-${label(value)}'),
+              value: value ?? _kInfinity,
+              // Laid out like the other menus' entries: a 20px "icon", then the text.
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 20,
+                    child: Text(
+                      label(value),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(child: Text(value == null ? l10n.treeGenerationsAll : l10n.treeGenerationsCount(value))),
+                ],
+              ),
             ),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            boxShadow: const [BoxShadow(color: Color(0x1F111827), blurRadius: 4, offset: Offset(0, 1))],
           ),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          boxShadow: const [BoxShadow(color: Color(0x1F111827), blurRadius: 4, offset: Offset(0, 1))],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.unfold_more, size: 18, color: Color(0xFF374151)),
-            const SizedBox(width: 4),
-            Text(
-              label(generations),
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF374151)),
-            ),
-          ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.unfold_more, size: 18, color: Color(0xFF374151)),
+              const SizedBox(width: 4),
+              Text(
+                label(generations),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF374151)),
+              ),
+            ],
+          ),
         ),
       ),
     );

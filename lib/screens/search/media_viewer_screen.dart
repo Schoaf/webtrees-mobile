@@ -650,7 +650,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                               null,
                               l10n.markPeople,
                               iconWidget: PersonTagIcon(
-                                background: Theme.of(context).colorScheme.surfaceContainer,
+                                // The menu's own background (see popupMenuTheme).
+                                background: AppColors.surface,
                                 size: 20,
                                 color: AppColors.textSecondary,
                               ),
