@@ -27,7 +27,8 @@ from compose_store_screenshots import (
     rounded_mask,
 )
 
-SIZES = [(5244, 2950), (3840, 1646), (1024, 500)]  # App Store header x2, Google Play feature graphic
+# App Store: universal (5244x2950), product page header (21:9) and search results (3:2); Google Play feature graphic
+SIZES = [(5244, 2950), (3840, 1646), (3840, 2560), (1024, 500)]
 ICON = REPO_ROOT / "ios" / "Runner" / "Assets.xcassets" / "AppIcon.appiconset" / "Icon-App-1024x1024@1x.png"
 SCREENS = ["home", "person_detail", "tree_view"]  # left to right, the middle one in front
 TEXT = {
@@ -73,9 +74,12 @@ def banner(lang: str, size: tuple[int, int]) -> Image.Image:
     # Phones on the right half, the middle one larger and in front.
     raw = RAW_DIR / lang / "ios"
     screens = [Image.open(raw / f"{name}.png") for name in SCREENS]
-    big = round(min(h * 0.86, w * 0.38))
+    # Taller formats (3:2 search results) have room for larger phones - and
+    # need slightly smaller text beside them.
+    is_tall = w / h < 1.7
+    big = round(min(h * 0.86, w * (0.44 if is_tall else 0.38)))
     small = round(big * 0.86)
-    right_center = round(w * 0.70)
+    right_center = round(w * (0.71 if is_tall else 0.70))
     spread = round(big * 0.40)
     for screen, height, dx in ((screens[0], small, -spread), (screens[2], small, spread), (screens[1], big, 0)):
         p = phone(screen, height)
@@ -84,7 +88,7 @@ def banner(lang: str, size: tuple[int, int]) -> Image.Image:
     # Icon, name and pitch on the left.
     left = round(w * 0.07)
     # Text scales with the narrower of height and width, so it never runs into the phones.
-    unit = min(h, w * 0.43)
+    unit = min(h, w * (0.38 if is_tall else 0.43))
     icon_size = round(unit * 0.20)
     icon = Image.open(ICON).convert("RGBA").resize((icon_size, icon_size), Image.LANCZOS)
     title, pitch = TEXT[lang]
