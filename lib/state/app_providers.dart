@@ -373,6 +373,8 @@ AuthError _authErrorFromDioException(DioException e) => switch (e.type) {
   _ => AuthError.loginFailedGeneric,
 };
 
+const _kAccountLanguageAdoptedKey = 'account_language_adopted';
+
 class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
@@ -409,6 +411,7 @@ class AuthController extends Notifier<AuthState> {
       }
 
       await _saveSession(client);
+      await _adoptAccountLanguage(user);
       state = AuthState(
         loggedIn: true,
         userName: user['userName'] as String?,
@@ -442,6 +445,7 @@ class AuthController extends Notifier<AuthState> {
       }
 
       await _saveSession(client);
+      await _adoptAccountLanguage(user);
       state = AuthState(
         loggedIn: true,
         userName: user['userName'] as String?,
@@ -503,6 +507,26 @@ class AuthController extends Notifier<AuthState> {
     } on Exception {
       return RegisterError.registerFailedGeneric;
     }
+  }
+
+  /// The first sign-in on this device starts the app in the language the
+  /// account chose in webtrees (#30) - if the app has it, and the person
+  /// hasn't picked one in the app. Only once: afterwards the app's own
+  /// setting or the device language applies as usual.
+  Future<void> _adoptAccountLanguage(Map<String, dynamic> user) async {
+    final language = (user['language'] as String? ?? '').split(RegExp('[-_]')).first.toLowerCase();
+    if (!appLanguages.containsKey(language)) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_kAccountLanguageAdoptedKey) ?? false) return;
+      await prefs.setBool(_kAccountLanguageAdoptedKey, true);
+    } on Exception {
+      return; // Storage unavailable - better no language than one each sign-in.
+    }
+    // The device's own language stays "like the device", not a fixed pick.
+    final deviceLanguage = resolveAppLocale(PlatformDispatcher.instance.locales).languageCode;
+    if (ref.read(languageProvider) != null || language == deviceLanguage) return;
+    await ref.read(languageProvider.notifier).set(language);
   }
 
   Future<void> _saveSession(WebtreesClient client) async {

@@ -7,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/state/language.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -282,6 +283,47 @@ void main() {
       final error = await container.read(authControllerProvider.notifier).login('alice', 's3cret');
 
       expect(error, AuthError.loginFailedGeneric);
+    });
+  });
+
+  group('account language on the first sign-in (#30)', () {
+    void signInAnswers(String language) {
+      var calls = 0;
+      when(() => client.info('Famtree')).thenAnswer((_) async {
+        calls++;
+        if (calls.isOdd) return {'csrf': 'tok'};
+        return {
+          'user': {'loggedIn': true, 'userName': 'alice', 'language': language},
+        };
+      });
+      when(() => client.login(username: 'alice', password: 'pw')).thenAnswer((_) async => true);
+      when(() => client.sessionCookie).thenReturn('c');
+    }
+
+    setUp(() => SharedPreferences.setMockInitialValues({}));
+
+    test('the app starts in the account language, but only on the first sign-in', () async {
+      signInAnswers('nl');
+      await container.read(authControllerProvider.notifier).login('alice', 'pw');
+      expect(container.read(languageProvider), 'nl');
+
+      await container.read(languageProvider.notifier).set(null);
+      signInAnswers('de');
+      await container.read(authControllerProvider.notifier).login('alice', 'pw');
+      expect(container.read(languageProvider), isNull, reason: 'afterwards the app setting applies');
+    });
+
+    test('a language picked in the app wins, and one the app lacks is ignored', () async {
+      await container.read(languageProvider.notifier).set('de');
+      signInAnswers('nl');
+      await container.read(authControllerProvider.notifier).login('alice', 'pw');
+      expect(container.read(languageProvider), 'de');
+
+      await container.read(languageProvider.notifier).set(null);
+      SharedPreferences.setMockInitialValues({});
+      signInAnswers('fr');
+      await container.read(authControllerProvider.notifier).login('alice', 'pw');
+      expect(container.read(languageProvider), isNull);
     });
   });
 
