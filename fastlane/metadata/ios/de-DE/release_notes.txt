@@ -1,4 +1,5 @@
-- Stammbaum zeigt mehr Generationen (1, 2, 3 oder alle)
-- Ausgewählte Person mit Nachname und Titel, Partner mit Ehe- und Geburtsname
-- Fotos aus Mithilfe-Anfragen vor dem Übernehmen drehen, zuschneiden und beschreiben
-- Einheitliche Menüs und Verbesserungen in der Navigation
+- Nachnamen im Stammbaum ein- und ausblenden
+- Doppeltipp auf die ausgewählte Person öffnet sie, beim Personenwechsel bleibt der Zoom
+- Funktioniert jetzt auch mit webtrees in einem Unterordner
+- Die App startet in der Sprache deines webtrees-Kontos
+- Klarere Fehlermeldungen beim Verbinden

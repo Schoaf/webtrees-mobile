@@ -1,4 +1,5 @@
-- Stamboom toont meer generaties (1, 2, 3 of alle)
-- Geselecteerde persoon met achternaam en titel, partner met huwelijks- en geboortenaam
-- Foto's uit hulpverzoeken vóór het overnemen draaien, uitsnijden en beschrijven
-- Uniforme menu's en verbeteringen in de navigatie
+- Achternamen in de stamboom tonen of verbergen
+- Dubbeltik op de geselecteerde persoon om die te openen; de zoom blijft bij het wisselen van persoon
+- Werkt nu ook met webtrees in een submap
+- De app start in de taal van je webtrees-account
+- Duidelijkere foutmeldingen bij het verbinden

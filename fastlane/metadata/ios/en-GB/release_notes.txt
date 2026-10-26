@@ -1,4 +1,5 @@
-- Family tree shows more generations (1, 2, 3 or all)
-- Selected person with surname and title, partner with married and birth name
-- Turn, frame and describe photos from contribution requests before applying them
-- Consistent menus and navigation improvements
+- Show or hide surnames in the family tree
+- Double-tap the selected person to open them; the zoom stays when switching people
+- Now also works with webtrees in a subfolder
+- The app starts in the language of your webtrees account
+- Clearer error messages when connecting
