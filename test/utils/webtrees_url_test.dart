@@ -2,10 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:webtrees_mobile/utils/webtrees_url.dart';
 
 void main() {
-  test('index.php form keeps a subfolder', () {
+  test('index.php form keeps a subfolder, in the path and in the route', () {
     expect(
       webtreesUrl('https://example.com/webtrees', '/tree/T/individual/I1', usePrettyUrls: false).toString(),
-      'https://example.com/webtrees/index.php?route=%2Ftree%2FT%2Findividual%2FI1',
+      'https://example.com/webtrees/index.php?route=%2Fwebtrees%2Ftree%2FT%2Findividual%2FI1',
+    );
+  });
+
+  test('index.php form in the web root has the plain route', () {
+    expect(
+      webtreesUrl('https://example.com', '/ping', usePrettyUrls: false).toString(),
+      'https://example.com/index.php?route=%2Fping',
     );
   });
 
