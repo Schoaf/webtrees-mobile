@@ -281,6 +281,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     // Generations up and down (#42): the picked number, or for ∞ as many
     // as loaded so far - starting over for every person.
     final pickedGenerations = ref.watch(treeGenerationsProvider);
+    final isShowingSurnames = ref.watch(treeSurnamesProvider);
     if (activeXref != _infiniteForXref) {
       _infiniteForXref = activeXref;
       _infiniteUp = _kInfiniteStart;
@@ -380,21 +381,24 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                         child: Padding(
                           key: _contentKey,
                           padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: _TreeContent(
-                            neighborhood: neighborhood,
-                            selectedPartnerXref: treeState.selectedPartnerXref,
-                            loaded: treeState.cache,
-                            activeCardKey: _activeCardKey,
-                            parentsRowKey: _parentsRowKey,
-                            siblingsFrameKey: _siblingsFrameKey,
-                            topRowKey: _topRowKey,
-                            bottomRowKey: _bottomRowKey,
-                            generationsUp: generationsUp,
-                            generationsDown: generationsDown,
-                            lineage: lineage,
-                            onSelectPerson: controller.selectPerson,
-                            onSelectPartner: controller.selectPartner,
-                            onOpenProfile: (xref) => openPerson(context, xref),
+                          child: _SurnamesShown(
+                            isShowing: isShowingSurnames,
+                            child: _TreeContent(
+                              neighborhood: neighborhood,
+                              selectedPartnerXref: treeState.selectedPartnerXref,
+                              loaded: treeState.cache,
+                              activeCardKey: _activeCardKey,
+                              parentsRowKey: _parentsRowKey,
+                              siblingsFrameKey: _siblingsFrameKey,
+                              topRowKey: _topRowKey,
+                              bottomRowKey: _bottomRowKey,
+                              generationsUp: generationsUp,
+                              generationsDown: generationsDown,
+                              lineage: lineage,
+                              onSelectPerson: controller.selectPerson,
+                              onSelectPartner: controller.selectPartner,
+                              onOpenProfile: (xref) => openPerson(context, xref),
+                            ),
                           ),
                         ),
                       ),
@@ -407,9 +411,11 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                       Positioned(
                         top: 8,
                         right: 8,
-                        child: _GenerationsButton(
+                        child: _ViewButton(
                           generations: pickedGenerations,
-                          onSelected: ref.read(treeGenerationsProvider.notifier).set,
+                          isShowingSurnames: isShowingSurnames,
+                          onSelectGenerations: ref.read(treeGenerationsProvider.notifier).set,
+                          onToggleSurnames: () => ref.read(treeSurnamesProvider.notifier).set(!isShowingSurnames),
                         ),
                       ),
                     ],
@@ -680,6 +686,8 @@ class _AncestorsSection extends StatelessWidget {
             )
           : TreeNodeCard(
               firstName: node.firstName,
+              surname: _SurnamesShown.of(context) ? node.surname : null,
+              isSurnameBold: false,
               sex: node.sex,
               isDead: node.isDead,
               birthYear: node.birthYear,
@@ -833,6 +841,8 @@ class _ParentCard extends StatelessWidget {
       children: [
         TreeNodeCard(
           firstName: node.firstName,
+          surname: _SurnamesShown.of(context) ? node.surname : null,
+          isSurnameBold: false,
           sex: node.sex,
           isDead: node.isDead,
           birthYear: node.birthYear,
@@ -944,6 +954,8 @@ class _SiblingsFrame extends StatelessWidget {
     Widget siblingCard(TreeNode node) {
       return TreeNodeCard(
         firstName: node.firstName,
+        surname: _SurnamesShown.of(context) ? node.surname : null,
+        isSurnameBold: false,
         sex: node.sex,
         isDead: node.isDead,
         birthYear: node.birthYear,
@@ -1411,6 +1423,8 @@ class _ChildrenFrame extends StatelessWidget {
               bottomRowKey: bottomRowKey,
               cardBuilder: (d, {required isShowingChildren}) => TreeNodeCard(
                 firstName: d.node.firstName,
+                surname: _SurnamesShown.of(context) ? d.node.surname : null,
+                isSurnameBold: false,
                 sex: d.node.sex,
                 isDead: d.node.isDead,
                 birthYear: d.node.birthYear,
@@ -1430,6 +1444,8 @@ class _ChildrenFrame extends StatelessWidget {
                 for (final child in children)
                   TreeNodeCard(
                     firstName: child.firstName,
+                    surname: _SurnamesShown.of(context) ? child.surname : null,
+                    isSurnameBold: false,
                     sex: child.sex,
                     isDead: child.isDead,
                     birthYear: child.birthYear,
@@ -1483,15 +1499,24 @@ class _ChildrenFrame extends StatelessWidget {
   }
 }
 
-/// The generations picker in the tree's top right corner (#42): 1, 2 or 3
-/// up and down, or ∞ ([generations] null).
-class _GenerationsButton extends StatelessWidget {
-  const _GenerationsButton({required this.generations, required this.onSelected});
+/// The view menu in the tree's top right corner: generations 1, 2 or 3 up
+/// and down, or ∞ ([generations] null) (#42), and surnames on every card
+/// on or off (#43).
+class _ViewButton extends StatelessWidget {
+  const _ViewButton({
+    required this.generations,
+    required this.isShowingSurnames,
+    required this.onSelectGenerations,
+    required this.onToggleSurnames,
+  });
 
   final int? generations;
-  final void Function(int? generations) onSelected;
+  final bool isShowingSurnames;
+  final void Function(int? generations) onSelectGenerations;
+  final VoidCallback onToggleSurnames;
 
   static const _kInfinity = 0;
+  static const _kSurnames = -1;
 
   @override
   Widget build(BuildContext context) {
@@ -1502,10 +1527,12 @@ class _GenerationsButton extends StatelessWidget {
     return Theme(
       data: Theme.of(context).copyWith(highlightColor: const Color(0xFFF0F1F3)),
       child: PopupMenuButton<int>(
-        key: const Key('treeGenerationsButton'),
-        tooltip: l10n.treeGenerationsTooltip,
+        key: const Key('treeViewButton'),
+        tooltip: l10n.treeViewTooltip,
         initialValue: generations ?? _kInfinity,
-        onSelected: (value) => onSelected(value == _kInfinity ? null : value),
+        onSelected: (value) => value == _kSurnames
+            ? onToggleSurnames()
+            : onSelectGenerations(value == _kInfinity ? null : value),
         itemBuilder: (_) => [
           for (final value in [1, 2, 3, null])
             PopupMenuItem(
@@ -1527,6 +1554,22 @@ class _GenerationsButton extends StatelessWidget {
                 ],
               ),
             ),
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            key: const Key('treeSurnamesItem'),
+            value: _kSurnames,
+            child: Row(
+              children: [
+                Icon(
+                  isShowingSurnames ? Icons.check_box_outlined : Icons.check_box_outline_blank,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 12),
+                Flexible(child: Text(l10n.treeShowSurnames)),
+              ],
+            ),
+          ),
         ],
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1551,4 +1594,18 @@ class _GenerationsButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Whether every card shows the surname below the first name (#43) - set
+/// once around the tree instead of handed to every card's builder.
+class _SurnamesShown extends InheritedWidget {
+  const _SurnamesShown({required this.isShowing, required super.child});
+
+  final bool isShowing;
+
+  static bool of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_SurnamesShown>()?.isShowing ?? false;
+
+  @override
+  bool updateShouldNotify(_SurnamesShown old) => old.isShowing != isShowing;
 }

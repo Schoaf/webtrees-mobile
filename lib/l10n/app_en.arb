@@ -273,6 +273,8 @@
   "treeGenerationsTooltip": "Generations up and down",
   "treeGenerationsCount": "{count, plural, =1{generation} other{generations}}",
   "treeGenerationsAll": "All – loads more",
+  "treeViewTooltip": "View",
+  "treeShowSurnames": "Show surnames",
 
   "addPhotos": "Add photos",
   "showPhotos": "View photos",

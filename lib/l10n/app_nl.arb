@@ -273,6 +273,8 @@
   "treeGenerationsTooltip": "Generaties omhoog en omlaag",
   "treeGenerationsCount": "{count, plural, =1{generatie} other{generaties}}",
   "treeGenerationsAll": "Alle – laadt meer",
+  "treeViewTooltip": "Weergave",
+  "treeShowSurnames": "Achternamen tonen",
 
   "addPhotos": "Foto's toevoegen",
   "showPhotos": "Foto's bekijken",

@@ -396,7 +396,7 @@ void main() {
     });
 
     Future<void> pick(WidgetTester tester, String label) async {
-      await tester.tap(find.byKey(const Key('treeGenerationsButton')));
+      await tester.tap(find.byKey(const Key('treeViewButton')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(Key('treeGenerations-$label')));
       await tester.pumpAndSettle();
@@ -461,6 +461,21 @@ void main() {
       await pick(tester, '2');
 
       expect(transform(tester).value.getMaxScaleOnAxis(), 2);
+    });
+
+    testWidgets('surnames show on every card once switched on in the view menu, and stay on', (tester) async {
+      await pumpScreen(tester);
+      // By default only the active person and the partner show a surname.
+      expect(find.text('Muster'), findsNWidgets(2));
+
+      await tester.tap(find.byKey(const Key('treeViewButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('treeSurnamesItem')));
+      await tester.pumpAndSettle();
+
+      // Parents and children too.
+      expect(find.text('Muster'), findsNWidgets(6));
+      expect((await SharedPreferences.getInstance()).getBool('tree_show_surnames'), isTrue);
     });
 
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {

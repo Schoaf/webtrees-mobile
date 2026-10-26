@@ -46,6 +46,38 @@ class TreeGenerationsNotifier extends Notifier<int?> {
 
 final treeGenerationsProvider = NotifierProvider<TreeGenerationsNotifier, int?>(TreeGenerationsNotifier.new);
 
+const _kTreeSurnamesPrefKey = 'tree_show_surnames';
+
+/// Whether every card in the tree shows the surname (#43) - off by default:
+/// in a close family it rarely helps and takes room. Kept across app starts.
+class TreeSurnamesNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    Future.microtask(_load);
+    return false;
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      state = prefs.getBool(_kTreeSurnamesPrefKey) ?? false;
+    } on Exception {
+      // Storage unavailable - stay at the default.
+    }
+  }
+
+  Future<void> set(bool isShowing) async {
+    state = isShowing;
+    try {
+      await (await SharedPreferences.getInstance()).setBool(_kTreeSurnamesPrefKey, isShowing);
+    } on Exception {
+      // Storage unavailable - the choice still applies until the app restarts.
+    }
+  }
+}
+
+final treeSurnamesProvider = NotifierProvider<TreeSurnamesNotifier, bool>(TreeSurnamesNotifier.new);
+
 /// The direct line of one person beyond their parents and children (#42):
 /// ancestors by Kekulé number and the descendants tree, each loaded as deep
 /// as asked so far.

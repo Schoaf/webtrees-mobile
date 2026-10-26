@@ -448,6 +448,8 @@
   "treeGenerationsCount": "{count, plural, =1{Generation} other{Generationen}}",
   "@treeGenerationsCount": {"placeholders": {"count": {"type": "int"}}},
   "treeGenerationsAll": "Alle – lädt nach",
+  "treeViewTooltip": "Ansicht",
+  "treeShowSurnames": "Nachnamen anzeigen",
 
   "addPhotos": "Fotos hinzufügen",
   "showPhotos": "Fotos ansehen",
