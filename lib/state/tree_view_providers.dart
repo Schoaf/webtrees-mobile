@@ -119,6 +119,32 @@ class TreeViewController extends Notifier<TreeViewState> {
     }
   }
 
+  final _prefetching = <String>{};
+
+  /// Loads [xref] into the cache without showing it - the partner beside
+  /// the active person, whose own names (a married name) only their own
+  /// answer has. Tapping them then shows them at once.
+  Future<void> prefetch(String xref) async {
+    if (state.cache.containsKey(xref) || !_prefetching.add(xref)) return;
+    try {
+      final json = await ref.read(webtreesClientProvider).individual(ref.read(treeNameProvider), xref);
+      if (json['ok'] == false) return;
+      final neighborhood = TreeNeighborhood.fromJson(json);
+      state = TreeViewState(
+        history: state.history,
+        pos: state.pos,
+        cache: {...state.cache, xref: neighborhood},
+        loading: state.loading,
+        error: state.error,
+        selectedPartnerXref: state.selectedPartnerXref,
+      );
+    } catch (_) {
+      // Only extra names are missing then - the card shows the summary's.
+    } finally {
+      _prefetching.remove(xref);
+    }
+  }
+
   /// Tapping a card: the tapped person becomes the new active person. A tap
   /// after an undo discards the redo entries (browser-history semantics,
   /// per the spec).

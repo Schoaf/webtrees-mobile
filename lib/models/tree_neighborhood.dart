@@ -127,6 +127,8 @@ class TreePersonDetail {
     required this.birthPlace,
     required this.occupation,
     this.title = '',
+    this.birthSurname = '',
+    this.marriedSurname = '',
   });
 
   factory TreePersonDetail.fromIndividualJson(Map<String, dynamic> json) {
@@ -141,11 +143,26 @@ class TreePersonDetail {
     final occuFact = facts.where((f) => f['tag'] == 'OCCU').firstOrNull;
     final titleFact = facts.where((f) => f['tag'] == 'TITL').firstOrNull;
 
+    // The names: a married name is a NAME of TYPE married, or a `_MARNM`
+    // below the birth name (as webtrees writes it).
+    final names = facts.where((f) => f['tag'] == 'NAME').toList();
+    bool isMarried(Map<String, dynamic> name) => (name['type'] as String? ?? '').toLowerCase() == 'married';
+    final birthName = names.where((n) => !isMarried(n)).firstOrNull;
+    final marriedName = names.where(isMarried).firstOrNull;
+    final marnm = (birthName?['details'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>()
+        .where((d) => d['tag'] == '_MARNM')
+        .firstOrNull;
+
     return TreePersonDetail(
       birthDateText: (birtFact?['date'] as Map<String, dynamic>?)?['text'] as String? ?? '',
       birthPlace: (birtFact?['place'] as Map<String, dynamic>?)?['short'] as String? ?? '',
       occupation: occuFact?['value'] as String? ?? '',
       title: titleFact?['value'] as String? ?? '',
+      birthSurname: surnameOfName(birthName?['value'] as String? ?? ''),
+      marriedSurname: marriedName != null
+          ? surnameOfName(marriedName['value'] as String? ?? '')
+          : _surnameOfShownName(marnm?['value'] as String? ?? '', birthName?['value'] as String? ?? ''),
     );
   }
 
@@ -155,6 +172,31 @@ class TreePersonDetail {
 
   /// The first TITL fact, e.g. "Dr." or "Freiherr".
   final String title;
+
+  /// From the person's own NAME facts - '' when there is none.
+  final String birthSurname;
+  final String marriedSurname;
+
+  /// A married name other than the birth name: shown first, the birth
+  /// name in brackets below it.
+  bool get hasOtherMarriedSurname => marriedSurname.isNotEmpty && marriedSurname != birthSurname;
+}
+
+/// The surname of a GEDCOM name: between the slashes of "Anna /Wagner/".
+String surnameOfName(String name) {
+  final match = RegExp(r'/([^/]*)/').firstMatch(name);
+  return match?.group(1)?.trim() ?? '';
+}
+
+/// The surname of a name as webtrees shows it, without slashes ("Anna
+/// Wagner", a `_MARNM` in the fact details): what follows the given names
+/// of the birth name ("Anna /Muster/").
+String _surnameOfShownName(String shown, String birthName) {
+  if (shown.contains('/')) return surnameOfName(shown);
+  final given = birthName.split('/').first.trim();
+  final text = shown.trim();
+  if (given.isNotEmpty && text.startsWith('$given ')) return text.substring(given.length).trim();
+  return text.contains(' ') ? text.substring(text.lastIndexOf(' ') + 1) : text;
 }
 
 /// One of the current person's partner families — `partner` is `null` for

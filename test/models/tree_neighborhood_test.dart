@@ -198,4 +198,46 @@ void main() {
 
     expect(detail.title, 'Dr.');
   });
+
+  test('TreePersonDetail finds a married name of TYPE married', () {
+    final detail = TreePersonDetail.fromIndividualJson({
+      'facts': [
+        {'tag': 'NAME', 'value': 'Anna /Muster/', 'type': ''},
+        {'tag': 'NAME', 'value': 'Anna /Wagner/', 'type': 'married'},
+      ],
+    });
+
+    expect(detail.birthSurname, 'Muster');
+    expect(detail.marriedSurname, 'Wagner');
+    expect(detail.hasOtherMarriedSurname, isTrue);
+  });
+
+  test('TreePersonDetail finds a married name in _MARNM below the birth name', () {
+    final detail = TreePersonDetail.fromIndividualJson({
+      'facts': [
+        {
+          'tag': 'NAME',
+          'value': 'Anna Maria /Muster/',
+          'type': '',
+          'details': [
+            {'tag': '_MARNM', 'label': 'Ehename', 'value': 'Anna Maria Wagner', 'level': 0},
+          ],
+        },
+      ],
+    });
+
+    expect(detail.marriedSurname, 'Wagner');
+    expect(detail.hasOtherMarriedSurname, isTrue);
+  });
+
+  test('a married name like the birth name is no other married name', () {
+    final detail = TreePersonDetail.fromIndividualJson({
+      'facts': [
+        {'tag': 'NAME', 'value': 'Thomas /Wagner/', 'type': ''},
+        {'tag': 'NAME', 'value': 'Thomas /Wagner/', 'type': 'married'},
+      ],
+    });
+
+    expect(detail.hasOtherMarriedSurname, isFalse);
+  });
 }

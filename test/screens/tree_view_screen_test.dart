@@ -336,6 +336,54 @@ void main() {
     expect(topBarContainerWidth, 1100, reason: 'must match tabletBoundedMaxWidth, same as every other screen');
   });
 
+  testWidgets('the partner card shows a married name with the birth name below it, bold only if not shared', (
+    tester,
+  ) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer(
+      (_) async => {
+        'person': {'xref': 'I1', 'name': 'Thomas Wagner', 'sortName': 'Wagner,Thomas', 'sex': 'M', 'isDead': false},
+        'canEdit': false,
+        'facts': <dynamic>[],
+        'parentFamilies': <dynamic>[],
+        'spouseFamilies': [
+          {
+            'xref': 'F1',
+            'facts': [
+              {'tag': 'MARR'},
+            ],
+            'husband': {'xref': 'I1', 'isDead': false},
+            'wife': {'xref': 'I2', 'isDead': false},
+            'spouse': {'xref': 'I2', 'name': 'Anna Muster', 'sortName': 'Muster,Anna', 'sex': 'F', 'isDead': false},
+            'children': <dynamic>[],
+          },
+        ],
+        'stepFamilies': <dynamic>[],
+        'media': <dynamic>[],
+      },
+    );
+    when(() => client.individual('Famtree', 'I2')).thenAnswer(
+      (_) async => {
+        'person': {'xref': 'I2', 'name': 'Anna Muster', 'sortName': 'Muster,Anna', 'sex': 'F', 'isDead': false},
+        'canEdit': false,
+        'facts': [
+          {'tag': 'NAME', 'value': 'Anna /Muster/', 'type': ''},
+          {'tag': 'NAME', 'value': 'Anna /Wagner/', 'type': 'married'},
+        ],
+        'parentFamilies': <dynamic>[],
+        'spouseFamilies': <dynamic>[],
+        'stepFamilies': <dynamic>[],
+        'media': <dynamic>[],
+      },
+    );
+
+    await pumpScreen(tester);
+
+    // Anna took Thomas's name: the same surname, so not bold.
+    final married = tester.widget<Text>(find.text('Wagner').last);
+    expect(married.style?.fontWeight, FontWeight.w400);
+    expect(find.text('(Muster)'), findsOneWidget);
+  });
+
   group('generations (#42)', () {
     setUp(() {
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());

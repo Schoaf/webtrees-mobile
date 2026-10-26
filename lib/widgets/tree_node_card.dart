@@ -31,6 +31,8 @@ class TreeNodeCard extends StatelessWidget {
     super.key,
     required this.firstName,
     this.surname,
+    this.isSurnameBold = true,
+    this.birthSurname,
     required this.sex,
     required this.isDead,
     required this.birthYear,
@@ -54,10 +56,15 @@ class TreeNodeCard extends StatelessWidget {
 
   final String firstName;
 
-  /// Non-null shows the surname below the first name - with [detail], on
-  /// the active person's card, whose detail shows the full birth date
-  /// instead of the year.
+  /// Non-null shows the surname below the first name.
   final String? surname;
+
+  /// A partner's surname is bold only when it is a married name.
+  final bool isSurnameBold;
+
+  /// Non-null shows it in brackets below [surname]: the birth name of
+  /// someone whose [surname] is a married name.
+  final String? birthSurname;
   final String sex;
   final bool isDead;
   final int? birthYear;
@@ -157,10 +164,17 @@ class TreeNodeCard extends StatelessWidget {
                         color: Color(0xFF111827),
                       ),
                     ),
-                    if (surname != null) _SurnameRow(surname: surname!, titles: [detail?.title ?? '']),
+                    if (surname != null)
+                      _SurnameRow(
+                        surname: surname!,
+                        isBold: isSurnameBold,
+                        birthSurname: birthSurname,
+                        titles: [detail?.title ?? ''],
+                      ),
                     if (partnerNameRow != null)
                       _PartnerNameRow(name: partnerNameRow!),
-                    if (surname == null)
+                    // The active person's detail shows the full birth date instead.
+                    if (detail == null)
                       Text(
                         birthYear?.toString() ?? '',
                         style: const TextStyle(
@@ -249,12 +263,15 @@ class TreeNodeCard extends StatelessWidget {
   }
 }
 
-/// The surname below the first name, and below that, smaller, the person's
-/// titles - several joined by a middle dot: "Dr. · Freiherr".
+/// The surname below the first name - a married name with the birth name
+/// in brackets below it - and below that, smaller, the person's titles,
+/// several joined by a middle dot: "Dr. · Freiherr".
 class _SurnameRow extends StatelessWidget {
-  const _SurnameRow({required this.surname, required this.titles});
+  const _SurnameRow({required this.surname, required this.isBold, required this.birthSurname, required this.titles});
 
   final String surname;
+  final bool isBold;
+  final String? birthSurname;
   final List<String> titles;
 
   @override
@@ -269,7 +286,19 @@ class _SurnameRow extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
+              color: const Color(0xFF111827),
+            ),
+          ),
+        if (birthSurname != null && birthSurname!.isNotEmpty)
+          Text(
+            '($birthSurname)',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF374151)),
           ),
         if (titleLine.isNotEmpty)
           Padding(

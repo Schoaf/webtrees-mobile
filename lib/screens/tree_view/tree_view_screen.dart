@@ -302,6 +302,13 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     }
 
     if (neighborhood != null) {
+      // The partners' own names (a married name) come with their own answer.
+      Future.microtask(() {
+        if (!mounted) return;
+        for (final partner in neighborhood.partners) {
+          if (partner.partner != null) controller.prefetch(partner.partner!.xref);
+        }
+      });
       _maybeCenterOnActivePerson(activeXref!);
       _afterFrame(activeXref);
       final isShowingFewer = pickedGenerations != null &&
@@ -376,6 +383,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           child: _TreeContent(
                             neighborhood: neighborhood,
                             selectedPartnerXref: treeState.selectedPartnerXref,
+                            loaded: treeState.cache,
                             activeCardKey: _activeCardKey,
                             parentsRowKey: _parentsRowKey,
                             siblingsFrameKey: _siblingsFrameKey,
@@ -491,6 +499,7 @@ class _TreeContent extends ConsumerWidget {
   const _TreeContent({
     required this.neighborhood,
     required this.selectedPartnerXref,
+    required this.loaded,
     required this.activeCardKey,
     required this.parentsRowKey,
     required this.siblingsFrameKey,
@@ -506,6 +515,9 @@ class _TreeContent extends ConsumerWidget {
 
   final TreeNeighborhood neighborhood;
   final String? selectedPartnerXref;
+
+  /// Everyone loaded so far by xref - the partner's own names come from here.
+  final Map<String, TreeNeighborhood> loaded;
   final GlobalKey activeCardKey;
 
   /// See _TreeViewScreenState's own doc comments on the fields these are
@@ -564,6 +576,7 @@ class _TreeContent extends ConsumerWidget {
               key: siblingsFrameKey,
               neighborhood: neighborhood,
               partner: partner,
+              partnerDetail: partner?.partner == null ? null : loaded[partner!.partner!.xref]?.personDetail,
               photoHeaders: photoHeaders,
               activeCardKey: activeCardKey,
               onSelectPerson: onSelectPerson,
@@ -901,6 +914,7 @@ class _SiblingsFrame extends StatelessWidget {
     super.key,
     required this.neighborhood,
     required this.partner,
+    required this.partnerDetail,
     required this.photoHeaders,
     required this.activeCardKey,
     required this.onSelectPerson,
@@ -910,6 +924,10 @@ class _SiblingsFrame extends StatelessWidget {
 
   final TreeNeighborhood neighborhood;
   final TreePartnerFamily? partner;
+
+  /// The partner's own names (a married name), once loaded - see
+  /// TreeViewController.prefetch.
+  final TreePersonDetail? partnerDetail;
   final Map<String, String> photoHeaders;
   final GlobalKey activeCardKey;
   final void Function(String xref) onSelectPerson;
@@ -963,6 +981,10 @@ class _SiblingsFrame extends StatelessWidget {
       ),
     );
 
+    final partnerSurname = (partnerDetail?.hasOtherMarriedSurname ?? false)
+        ? partnerDetail!.marriedSurname
+        : partner?.partner?.surname ?? '';
+
     Widget centerGroup;
     if (partner == null) {
       centerGroup = activeCard;
@@ -996,6 +1018,14 @@ class _SiblingsFrame extends StatelessWidget {
                         ? UnknownPersonCard(minHeight: partnerMinHeight)
                         : TreeNodeCard(
                             firstName: p.partner!.firstName,
+                            // A married name other than the birth name first, the
+                            // birth name below it. Bold only when it differs from
+                            // the active person's surname.
+                            surname: partnerSurname,
+                            isSurnameBold: partnerSurname != neighborhood.person.surname,
+                            birthSurname: (partnerDetail?.hasOtherMarriedSurname ?? false)
+                                ? partnerDetail!.birthSurname
+                                : null,
                             sex: p.partner!.sex,
                             isDead: p.partner!.isDead,
                             birthYear: p.partner!.birthYear,
