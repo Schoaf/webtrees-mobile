@@ -237,72 +237,69 @@ void main() {
     expect(find.byType(TextButton), findsNothing);
   });
 
-  testWidgets(
-    'recentering re-runs when visibilitySignal changes - the fix for a bottom-nav tab that never centers',
-    (tester) async {
-      // Regression test: an IndexedStack bottom-nav tab never rebuilds its
-      // offstage children just because the selected index changed - the
-      // old one-shot "center once per xref, ever" logic (gated only by
-      // activeXref) got exactly one chance, often while still offstage,
-      // and never ran again once the tab actually became visible.
-      // visibilitySignal is what MyTreeViewScreen drives from the
-      // selected-tab index to force a re-check.
-      when(() => client.individual('Famtree', 'I1')).thenAnswer(
-        (_) async => {
-          'person': {'xref': 'I1', 'name': 'Elisabeth Muster', 'sortName': 'Muster,Elisabeth', 'sex': 'F', 'isDead': false},
-          'canEdit': false,
-          'facts': <dynamic>[],
-          'parentFamilies': <dynamic>[],
-          'spouseFamilies': <dynamic>[],
-          'extraChildrenByParent': {'father': 0, 'mother': 0},
-          'media': <dynamic>[],
-        },
-      );
+  testWidgets('centering waits until the tab shows, and switching back keeps the view as it was left', (
+    tester,
+  ) async {
+    // The Stammbaum tab stays alive offstage in the bottom bar's
+    // IndexedStack: measured there, the centering landed wrong.
+    when(() => client.individual('Famtree', 'I1')).thenAnswer(
+      (_) async => {
+        'person': {'xref': 'I1', 'name': 'Elisabeth Muster', 'sortName': 'Muster,Elisabeth', 'sex': 'F', 'isDead': false},
+        'canEdit': false,
+        'facts': <dynamic>[],
+        'parentFamilies': <dynamic>[],
+        'spouseFamilies': <dynamic>[],
+        'extraChildrenByParent': {'father': 0, 'mother': 0},
+        'media': <dynamic>[],
+      },
+    );
 
-      tester.view.physicalSize = const Size(800, 1600);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      var signal = 0;
-      late StateSetter setSignal;
+    var isVisible = false;
+    late StateSetter setVisible;
 
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('de'),
-            home: StatefulBuilder(
-              builder: (context, setter) {
-                setSignal = setter;
-                return TreeViewScreen(xref: 'I1', visibilitySignal: signal);
-              },
-            ),
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: StatefulBuilder(
+            builder: (context, setter) {
+              setVisible = setter;
+              return TreeViewScreen(xref: 'I1', isVisible: isVisible);
+            },
           ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final controller = tester.widget<InteractiveViewer>(find.byType(InteractiveViewer)).transformationController!;
-      final centeredValue = controller.value.clone();
-      expect(centeredValue, isNot(Matrix4.identity()), reason: 'sanity check: it must have actually centered once');
+    final controller = tester.widget<InteractiveViewer>(find.byType(InteractiveViewer)).transformationController!;
+    expect(controller.value, Matrix4.identity(), reason: 'not centered while offstage');
 
-      // Reset the transform, as if the first centering had landed wrong (or
-      // the user had panned away) - without a visibilitySignal change,
-      // nothing should touch it again.
-      controller.value = Matrix4.identity();
-      await tester.pumpAndSettle();
-      expect(controller.value, Matrix4.identity());
+    setVisible(() => isVisible = true);
+    await tester.pumpAndSettle();
+    expect(controller.value, isNot(Matrix4.identity()), reason: 'centered once the tab shows');
 
-      // Simulate switching into this tab.
-      setSignal(() => signal = 1);
-      await tester.pumpAndSettle();
+    // Zoomed and panned by the user, then to another tab and back.
+    final panned = Matrix4.identity()
+      ..translateByDouble(-120, -80, 0, 1)
+      ..scaleByDouble(1.7, 1.7, 1.7, 1);
+    controller.value = panned.clone();
+    await tester.pumpAndSettle();
+    setVisible(() => isVisible = false);
+    await tester.pumpAndSettle();
+    setVisible(() => isVisible = true);
+    await tester.pumpAndSettle();
 
-      expect(controller.value, centeredValue);
-    },
-  );
+    expect(controller.value, panned);
+  });
 
   testWidgets('the top bar matches every other screen\'s width on a wide landscape tablet, not the full screen', (
     tester,

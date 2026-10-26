@@ -55,7 +55,7 @@ const _kFrameLabelTopOffset = -8.0 - _kFrameTopPadding;
 /// `stammbaum-ansicht-spec.md` for the exact layout and suppression rules
 /// this implements.
 class TreeViewScreen extends ConsumerStatefulWidget {
-  const TreeViewScreen({super.key, required this.xref, this.visibilitySignal, this.isEnteringOnlyWhenEmpty = false});
+  const TreeViewScreen({super.key, required this.xref, this.isVisible = true, this.isEnteringOnlyWhenEmpty = false});
 
   /// The person this view was opened for: entered into the app's one tree
   /// history when the view opens (see TreeViewController.enter), and where
@@ -67,14 +67,12 @@ class TreeViewScreen extends ConsumerStatefulWidget {
   /// stands (the tab is expected to look as it was left).
   final bool isEnteringOnlyWhenEmpty;
 
-  /// Set this when the screen can be built while genuinely invisible (e.g.
-  /// kept alive offstage inside an `IndexedStack` bottom-nav tab, as
-  /// `MyTreeViewScreen` does) and change it to a new value whenever the
-  /// screen actually becomes visible - see the centering fields below for
-  /// why. Leave null for a screen that's always visible once built (a
-  /// plain `Navigator.push`, e.g. from `PersonDetailScreen`'s tree
-  /// button), where this doesn't apply.
-  final Object? visibilitySignal;
+  /// False while kept alive offstage, as the Stammbaum tab is in the
+  /// bottom bar's `IndexedStack` while another tab shows: centering on a
+  /// new person waits until the tab shows - measured offstage, it landed
+  /// wrong. Switching back to the tab keeps the view exactly as it was
+  /// left, zoom and pan included.
+  final bool isVisible;
 
   @override
   ConsumerState<TreeViewScreen> createState() => _TreeViewScreenState();
@@ -122,7 +120,6 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   @override
   void initState() {
     super.initState();
-    _lastVisibilitySignal = widget.visibilitySignal;
     _transformController.addListener(_maybeLoadMoreGenerations);
     // After this frame: changing a provider while widgets build is not allowed.
     Future.microtask(() {
@@ -132,29 +129,6 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
         controller.enter(widget.xref);
       }
     });
-  }
-
-  // Bug this fixes: an IndexedStack bottom-nav tab never rebuilds its
-  // offstage children just because the selected index changed elsewhere -
-  // Flutter reuses the same Element untouched. So the postFrameCallback
-  // below, gated only by activeXref, got exactly one chance to measure and
-  // center - typically the moment the tree data first finished loading,
-  // often while this tab was still offstage (built eagerly by
-  // IndexedStack at app launch, long before anyone tapped it) - and never
-  // ran again once actually visible, even though nothing was visibly
-  // wrong with the *first* computation itself. widget.visibilitySignal
-  // changing is this screen's only signal that it might finally be worth
-  // re-measuring; see MyTreeViewScreen, which drives it from the
-  // selected-tab index.
-  Object? _lastVisibilitySignal;
-
-  @override
-  void didUpdateWidget(covariant TreeViewScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.visibilitySignal != _lastVisibilitySignal) {
-      _lastVisibilitySignal = widget.visibilitySignal;
-      _centeredForXref = null;
-    }
   }
 
   @override
@@ -171,7 +145,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   /// canvas's dead center - that wasted space above the parents row and
   /// often cut off siblings on a narrow phone screen.
   void _maybeCenterOnActivePerson(String activeXref) {
-    if (_centeredForXref == activeXref) return;
+    if (_centeredForXref == activeXref || !widget.isVisible) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
