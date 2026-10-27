@@ -1,5 +1,5 @@
-- Achternamen in de stamboom tonen of verbergen
-- Dubbeltik op de geselecteerde persoon om die te openen; de zoom blijft bij het wisselen van persoon
-- Werkt nu ook met webtrees in een submap
-- De app start in de taal van je webtrees-account
-- Duidelijkere foutmeldingen bij het verbinden
+- Kleur de stamboom per familie – met een legenda om afzonderlijke families te laten opvallen
+- Vergelijkbare spellingen van een achternaam samenvoegen (instelling in je profiel)
+- Volledig scherm voor de stamboom, automatisch in liggende stand
+- Het datumveld spreekt nu jouw taal
+- Herziene Nederlandse vertaling

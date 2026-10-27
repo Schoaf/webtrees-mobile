@@ -1,5 +1,5 @@
-- Nachnamen im Stammbaum ein- und ausblenden
-- Doppeltipp auf die ausgewählte Person öffnet sie, beim Personenwechsel bleibt der Zoom
-- Funktioniert jetzt auch mit webtrees in einem Unterordner
-- Die App startet in der Sprache deines webtrees-Kontos
-- Klarere Fehlermeldungen beim Verbinden
+- Stammbaum nach Familien einfärben – mit Legende, um einzelne Familien hervorzuheben
+- Ähnliche Schreibweisen eines Nachnamens zusammenfassen (Einstellung im Profil)
+- Vollbild für den Stammbaum, im Querformat automatisch
+- Das Datumsfeld spricht jetzt deine Sprache
+- Überarbeitete niederländische Übersetzung
