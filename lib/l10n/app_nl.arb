@@ -239,7 +239,7 @@
   "serverUrlHint": "bijv. stamboom.voorbeeld.nl",
   "serverConnectButton": "Verder",
   "serverErrorInvalidUrl": "Voer een geldig adres in.",
-  "serverErrorNoApi": "Op dit adres is geen webtrees-site gevonden. Voer het adres in waarmee je webtrees in de browser opent, bijv. https://example.org/webtrees.",
+  "serverErrorNoApi": "Op dit adres is geen webtrees-site gevonden. Voer het adres in waarmee u webtrees in de browser opent, bijv. https://example.org/webtrees.",
   "serverErrorNoTrees": "Deze server biedt geen stamboom aan voor de app.",
   "@serverLabel": {"placeholders": {"host": {"type": "String"}}},
   "welcomeTitle": "Welkom",
