@@ -1667,15 +1667,40 @@ class _ViewButton extends StatelessWidget {
   static const _kInfinity = 0;
   static const _kSurnames = -1;
   static const _kColours = -2;
+  static const _kActiveItemColor = Color(0xFFF0F1F3);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     String label(int? value) => value == null ? '∞' : '$value';
+    // An option on or off: marked like the picked generations while on.
+    PopupMenuItem<int> toggleItem({
+      required Key key,
+      required int value,
+      required Widget icon,
+      required String text,
+      required bool isActive,
+    }) => PopupMenuItem(
+      key: key,
+      value: value,
+      padding: EdgeInsets.zero,
+      child: Container(
+        color: isActive ? _kActiveItemColor : null,
+        constraints: const BoxConstraints(minHeight: kMinInteractiveDimension),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children: [
+            SizedBox(width: 20, child: Center(child: icon)),
+            const SizedBox(width: 12),
+            Flexible(child: Text(text)),
+          ],
+        ),
+      ),
+    );
     // The current choice on a light grey - the menu's own selection colour
     // is too dark on its white background.
     return Theme(
-      data: Theme.of(context).copyWith(highlightColor: const Color(0xFFF0F1F3)),
+      data: Theme.of(context).copyWith(highlightColor: _kActiveItemColor),
       child: PopupMenuButton<int>(
         key: const Key('treeViewButton'),
         tooltip: l10n.treeViewTooltip,
@@ -1707,35 +1732,19 @@ class _ViewButton extends StatelessWidget {
               ),
             ),
           const PopupMenuDivider(),
-          PopupMenuItem(
+          toggleItem(
             key: const Key('treeSurnamesItem'),
             value: _kSurnames,
-            child: Row(
-              children: [
-                Icon(
-                  isShowingSurnames ? Icons.check_box_outlined : Icons.check_box_outline_blank,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.treeShowSurnames)),
-              ],
-            ),
+            icon: const Icon(Icons.badge_outlined, size: 20, color: AppColors.textSecondary),
+            text: l10n.treeShowSurnames,
+            isActive: isShowingSurnames,
           ),
-          PopupMenuItem(
+          toggleItem(
             key: const Key('treeSurnameColorsItem'),
             value: _kColours,
-            child: Row(
-              children: [
-                Icon(
-                  isColouringSurnames ? Icons.check_box_outlined : Icons.check_box_outline_blank,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.treeSurnameColors)),
-              ],
-            ),
+            icon: const SurnameColorsIcon(),
+            text: l10n.treeSurnameColors,
+            isActive: isColouringSurnames,
           ),
         ],
         child: Container(

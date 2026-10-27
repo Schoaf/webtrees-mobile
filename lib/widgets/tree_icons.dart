@@ -242,3 +242,43 @@ class _RingsPainter extends CustomPainter {
   bool shouldRepaint(covariant _RingsPainter oldDelegate) =>
       oldDelegate.color != color || oldDelegate.status != status;
 }
+
+/// Three overlapping circles like a Venn diagram, each in a surname
+/// colour - the menu entry for colouring the tree by family (#43).
+class SurnameColorsIcon extends StatelessWidget {
+  const SurnameColorsIcon({super.key, this.size = 20});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(width: size, height: size, child: CustomPaint(painter: _VennPainter()));
+  }
+}
+
+class _VennPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width / 20;
+    final radius = 5.6 * s;
+    final centers = [Offset(6.6 * s, 12.4 * s), Offset(13.4 * s, 12.4 * s), Offset(10 * s, 6.6 * s)];
+    const colors = [Color(0xFFE3A99A), Color(0xFFB9D0A8), Color(0xFFA9BCD6)];
+    // Multiplied, so where the circles overlap reads as an overlap, not as
+    // one circle above another.
+    canvas.saveLayer(Offset.zero & size, Paint());
+    for (var i = 0; i < 3; i++) {
+      canvas.drawCircle(centers[i], radius, Paint()..color = colors[i]..blendMode = BlendMode.multiply);
+    }
+    canvas.restore();
+    final outline = Paint()
+      ..color = const Color(0xFF6B7280)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2 * s;
+    for (final center in centers) {
+      canvas.drawCircle(center, radius, outline);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_VennPainter oldDelegate) => false;
+}
