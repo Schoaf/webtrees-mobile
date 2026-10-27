@@ -4,7 +4,7 @@ import '../models/tree_neighborhood.dart';
 import '../theme/app_theme.dart';
 import 'person_avatar.dart';
 import 'tree_icons.dart';
-import 'tree_lineage_chart.dart' show treeOutlineColor;
+import 'tree_lineage_chart.dart' show treeCanvasColor, treeOutlineColor;
 
 // The content Column's own padding - deliberately asymmetric (generous
 // bottom padding so the descendants-count badge has somewhere to sit
@@ -55,6 +55,7 @@ class TreeNodeCard extends StatelessWidget {
     this.width = 90,
     this.minHeight,
     this.backgroundColor,
+    this.isFaded = false,
   });
 
   final String firstName;
@@ -115,6 +116,10 @@ class TreeNodeCard extends StatelessWidget {
   /// surname (#43).
   final Color? backgroundColor;
 
+  /// Drawn pale: someone outside the surnames picked in the legend (#43).
+  /// Still there, so the layout and the lines stay.
+  final bool isFaded;
+
   @override
   Widget build(BuildContext context) {
     // The card's own banderole below spans the whole card, not just this
@@ -128,7 +133,7 @@ class TreeNodeCard extends StatelessWidget {
       showBanderole: false,
     );
 
-    return GestureDetector(
+    final card = GestureDetector(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
       child: Container(
@@ -276,6 +281,12 @@ class TreeNodeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (!isFaded) return card;
+    // On the canvas colour, not see-through: the lines run on below the cards.
+    return DecoratedBox(
+      decoration: BoxDecoration(color: treeCanvasColor, borderRadius: BorderRadius.circular(12)),
+      child: Opacity(opacity: 0.35, child: card),
     );
   }
 }

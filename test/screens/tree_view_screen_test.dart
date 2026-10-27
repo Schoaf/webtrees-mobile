@@ -8,6 +8,7 @@ import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/tree_view/tree_view_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 import 'package:webtrees_mobile/utils/tab_navigation.dart';
+import 'package:webtrees_mobile/widgets/tree_node_card.dart';
 
 import '../fixtures/tree_lineage.dart';
 
@@ -532,6 +533,32 @@ void main() {
       // Everyone in the fixture is a Muster: the person, parents, partner, children.
       expect(find.text('Muster 6'), findsOneWidget);
       expect((await SharedPreferences.getInstance()).getBool('tree_surname_colors'), isTrue);
+    });
+
+    testWidgets('picking surnames in the legend fades everyone else', (tester) async {
+      SharedPreferences.setMockInitialValues({'tree_surname_colors': true});
+      final json = individualJson();
+      final spouseFamily = (json['spouseFamilies'] as List).first as Map<String, dynamic>;
+      spouseFamily['spouse'] = {
+        ...spouseFamily['spouse'] as Map<String, dynamic>,
+        'name': 'Thomas Wagner',
+        'sortName': 'Wagner,Thomas',
+      };
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+      await pumpScreen(tester);
+      bool isFaded(String firstName) =>
+          tester.widget<TreeNodeCard>(find.widgetWithText(TreeNodeCard, firstName)).isFaded;
+
+      await tester.tap(find.byKey(const Key('surnameLegend')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('surnameLegend_Muster')));
+      await tester.pumpAndSettle();
+      expect(isFaded('Thomas'), isTrue);
+      expect(isFaded('Elisabeth'), isFalse);
+
+      await tester.tap(find.byKey(const Key('surnameLegend_Muster')));
+      await tester.pumpAndSettle();
+      expect(isFaded('Thomas'), isFalse);
     });
 
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {

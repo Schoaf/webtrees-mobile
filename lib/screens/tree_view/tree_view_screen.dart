@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -122,6 +123,9 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   // a family keeps its colour when moving to another person.
   final _surnameColors = SurnameColors();
   bool _isLegendOpen = false;
+
+  /// Surnames tapped in the legend (#43): everyone else is drawn pale.
+  Set<String> _pickedSurnames = {};
 
   @override
   void initState() {
@@ -336,6 +340,8 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
           )
         : null;
     final surnameColors = surnamesInView == null ? null : _surnameColors.assign(surnamesInView);
+    // Only those still with a colour in view count.
+    final pickedSurnames = {..._pickedSurnames.where((s) => surnameColors?.containsKey(s) ?? false)};
 
     if (neighborhood != null) {
       // The partners' own names (a married name) come with their own answer.
@@ -347,7 +353,8 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
       });
       _maybeCenterOnActivePerson(activeXref!);
       _afterFrame(activeXref);
-      final isShowingFewer = pickedGenerations != null &&
+      final isShowingFewer =
+          pickedGenerations != null &&
           _shownForXref == activeXref &&
           (generationsUp < (_shownUp ?? 0) || generationsDown < (_shownDown ?? 0));
       if (isShowingFewer) _maybeFitAfterFewerGenerations();
@@ -389,11 +396,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (neighborhood == null && treeState.error != null) {
-                    return LoadErrorView(
-                      message: l10n.couldNotLoad(
-                        treeState.error ?? l10n.genericErrorFallback,
-                      ),
-                    );
+                    return LoadErrorView(message: l10n.couldNotLoad(treeState.error ?? l10n.genericErrorFallback));
                   }
                   if (neighborhood == null) {
                     // Shouldn't be reachable (build() always starts loading,
@@ -420,22 +423,23 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                             isShowing: isShowingSurnames,
                             child: _SurnameColorsScope(
                               colors: surnameColors,
+                              picked: pickedSurnames,
                               child: _TreeContent(
-                              neighborhood: neighborhood,
-                              selectedPartnerXref: treeState.selectedPartnerXref,
-                              loaded: treeState.cache,
-                              activeCardKey: _activeCardKey,
-                              parentsRowKey: _parentsRowKey,
-                              siblingsFrameKey: _siblingsFrameKey,
-                              topRowKey: _topRowKey,
-                              bottomRowKey: _bottomRowKey,
-                              generationsUp: generationsUp,
-                              generationsDown: generationsDown,
-                              lineage: lineage,
-                              onSelectPerson: controller.selectPerson,
-                              onSelectPartner: controller.selectPartner,
-                              onOpenProfile: (xref) => openPerson(context, xref),
-                            ),
+                                neighborhood: neighborhood,
+                                selectedPartnerXref: treeState.selectedPartnerXref,
+                                loaded: treeState.cache,
+                                activeCardKey: _activeCardKey,
+                                parentsRowKey: _parentsRowKey,
+                                siblingsFrameKey: _siblingsFrameKey,
+                                topRowKey: _topRowKey,
+                                bottomRowKey: _bottomRowKey,
+                                generationsUp: generationsUp,
+                                generationsDown: generationsDown,
+                                lineage: lineage,
+                                onSelectPerson: controller.selectPerson,
+                                onSelectPartner: controller.selectPartner,
+                                onOpenProfile: (xref) => openPerson(context, xref),
+                              ),
                             ),
                           ),
                         ),
@@ -454,8 +458,13 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           child: _SurnameLegend(
                             colors: surnameColors,
                             surnames: surnamesInView!,
+                            picked: pickedSurnames,
                             isOpen: _isLegendOpen,
                             onToggle: () => setState(() => _isLegendOpen = !_isLegendOpen),
+                            onPick: (surname) => setState(() {
+                              _pickedSurnames = {...pickedSurnames};
+                              if (!_pickedSurnames.remove(surname)) _pickedSurnames.add(surname);
+                            }),
                           ),
                         ),
                       Positioned(
@@ -755,6 +764,7 @@ class _AncestorsSection extends StatelessWidget {
               firstName: node.firstName,
               surname: _SurnamesShown.of(context) ? node.surname : null,
               backgroundColor: _SurnameColorsScope.of(context, node.surname),
+              isFaded: _SurnameColorsScope.isFaded(context, node.surname),
               isSurnameBold: false,
               sex: node.sex,
               isDead: node.isDead,
@@ -824,7 +834,10 @@ class _ParentsForkPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ParentsForkPainter old) =>
-      old.gap != gap || old.fatherColor != fatherColor || old.motherColor != motherColor || old.childColor != childColor;
+      old.gap != gap ||
+      old.fatherColor != fatherColor ||
+      old.motherColor != motherColor ||
+      old.childColor != childColor;
 }
 
 class _ParentsRow extends StatelessWidget {
@@ -930,6 +943,7 @@ class _ParentCard extends StatelessWidget {
           firstName: node.firstName,
           surname: _SurnamesShown.of(context) ? node.surname : null,
           backgroundColor: _SurnameColorsScope.of(context, node.surname),
+          isFaded: _SurnameColorsScope.isFaded(context, node.surname),
           isSurnameBold: false,
           sex: node.sex,
           isDead: node.isDead,
@@ -1044,6 +1058,7 @@ class _SiblingsFrame extends StatelessWidget {
         firstName: node.firstName,
         surname: _SurnamesShown.of(context) ? node.surname : null,
         backgroundColor: _SurnameColorsScope.of(context, node.surname),
+        isFaded: _SurnameColorsScope.isFaded(context, node.surname),
         isSurnameBold: false,
         sex: node.sex,
         isDead: node.isDead,
@@ -1066,6 +1081,7 @@ class _SiblingsFrame extends StatelessWidget {
         firstName: neighborhood.person.firstName,
         surname: neighborhood.person.surname,
         backgroundColor: _SurnameColorsScope.of(context, neighborhood.person.surname),
+        isFaded: _SurnameColorsScope.isFaded(context, neighborhood.person.surname),
         sex: neighborhood.person.sex,
         isDead: neighborhood.person.isDead,
         birthYear: neighborhood.person.birthYear,
@@ -1089,6 +1105,9 @@ class _SiblingsFrame extends StatelessWidget {
 
     final partnerSurname = (partnerDetail?.hasOtherMarriedSurname ?? false)
         ? partnerDetail!.marriedSurname
+        : partner?.partner?.surname ?? '';
+    final partnerFamilySurname = (partnerDetail?.birthSurname.isNotEmpty ?? false)
+        ? partnerDetail!.birthSurname
         : partner?.partner?.surname ?? '';
 
     Widget centerGroup;
@@ -1130,12 +1149,8 @@ class _SiblingsFrame extends StatelessWidget {
                             surname: partnerSurname,
                             isSurnameBold: partnerSurname != neighborhood.person.surname,
                             // The colour of the family they come from.
-                            backgroundColor: _SurnameColorsScope.of(
-                              context,
-                              (partnerDetail?.birthSurname.isNotEmpty ?? false)
-                                  ? partnerDetail!.birthSurname
-                                  : p.partner!.surname,
-                            ),
+                            backgroundColor: _SurnameColorsScope.of(context, partnerFamilySurname),
+                            isFaded: _SurnameColorsScope.isFaded(context, partnerFamilySurname),
                             birthSurname: (partnerDetail?.hasOtherMarriedSurname ?? false)
                                 ? partnerDetail!.birthSurname
                                 : null,
@@ -1201,14 +1216,18 @@ class _SiblingsFrame extends StatelessWidget {
             children: [
               Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [for (final s in left) Padding(padding: const EdgeInsets.only(bottom: 10), child: siblingCard(s))],
+                children: [
+                  for (final s in left) Padding(padding: const EdgeInsets.only(bottom: 10), child: siblingCard(s)),
+                ],
               ),
               const SizedBox(width: 8),
               centerGroup,
               const SizedBox(width: 8),
               Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [for (final s in right) Padding(padding: const EdgeInsets.only(bottom: 10), child: siblingCard(s))],
+                children: [
+                  for (final s in right) Padding(padding: const EdgeInsets.only(bottom: 10), child: siblingCard(s)),
+                ],
               ),
             ],
           ),
@@ -1232,7 +1251,12 @@ class _SiblingsFrame extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
               child: Text(
                 AppLocalizations.of(context)!.siblingsLabel.toUpperCase(),
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF9CA3AF),
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
@@ -1380,7 +1404,13 @@ class _ChildrenFrameSection extends StatelessWidget {
             // (forgetting it here once put the chip a full 12px too high -
             // not on the line at all). The extra -3 matches the exact
             // pre-hit-test-bug position, the last one visually approved.
-            top: _connectorTopGap + _connectorHeight + _connectorBottomGap + _kFrameTopPadding + _kFrameLabelTopOffset - 3,
+            top:
+                _connectorTopGap +
+                _connectorHeight +
+                _connectorBottomGap +
+                _kFrameTopPadding +
+                _kFrameLabelTopOffset -
+                3,
             // _ChildrenFrame's own chip anchor (right: 6, relative to its
             // padded content) plus its horizontal padding (10) and outer
             // margin (6), to land at the same spot relative to the frame's
@@ -1435,7 +1465,12 @@ class _ChildrenFrame extends StatelessWidget {
   final GlobalKey bottomRowKey;
   final void Function(String xref) onSelectPerson;
 
-  static const _mainLabelStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF), letterSpacing: 0.5);
+  static const _mainLabelStyle = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: Color(0xFF9CA3AF),
+    letterSpacing: 0.5,
+  );
   // Same muted grey as the (non-interactive) main label - a chip's own
   // border/pill shape is what signals it's tappable here, not blue text.
   static const _chipTextStyle = TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF6B7280));
@@ -1452,7 +1487,11 @@ class _ChildrenFrame extends StatelessWidget {
   static const _chipChrome = 6 + 6 + _chipBorderWidth * 2 + 6;
 
   double _textWidth(String text, TextStyle style) {
-    final painter = TextPainter(text: TextSpan(text: text, style: style), textDirection: TextDirection.ltr, maxLines: 1)..layout();
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
     return painter.width;
   }
 
@@ -1460,10 +1499,11 @@ class _ChildrenFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final children = partner.children;
-    final mainLabelText = (partner.partner == null
-            ? l10n.childrenUnknownParentLabel
-            : l10n.childrenWithPartnerLabel(partner.partner!.firstName))
-        .toUpperCase();
+    final mainLabelText =
+        (partner.partner == null
+                ? l10n.childrenUnknownParentLabel
+                : l10n.childrenWithPartnerLabel(partner.partner!.firstName))
+            .toUpperCase();
 
     return Container(
       constraints: BoxConstraints(
@@ -1527,6 +1567,7 @@ class _ChildrenFrame extends StatelessWidget {
                 firstName: d.node.firstName,
                 surname: _SurnamesShown.of(context) ? d.node.surname : null,
                 backgroundColor: _SurnameColorsScope.of(context, d.node.surname),
+                isFaded: _SurnameColorsScope.isFaded(context, d.node.surname),
                 isSurnameBold: false,
                 sex: d.node.sex,
                 isDead: d.node.isDead,
@@ -1549,6 +1590,7 @@ class _ChildrenFrame extends StatelessWidget {
                     firstName: child.firstName,
                     surname: _SurnamesShown.of(context) ? child.surname : null,
                     backgroundColor: _SurnameColorsScope.of(context, child.surname),
+                    isFaded: _SurnameColorsScope.isFaded(context, child.surname),
                     isSurnameBold: false,
                     sex: child.sex,
                     isDead: child.isDead,
@@ -1588,12 +1630,7 @@ class _ChildrenFrame extends StatelessWidget {
                 // on the right than the left. Shorting the right side by
                 // that same 0.5 cancels it out.
                 padding: const EdgeInsets.fromLTRB(6, 0, 5.5, 0),
-                child: Text(
-                  mainLabelText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _mainLabelStyle,
-                ),
+                child: Text(mainLabelText, maxLines: 1, overflow: TextOverflow.ellipsis, style: _mainLabelStyle),
               ),
             ),
           ),
@@ -1739,26 +1776,40 @@ class _SurnamesShown extends InheritedWidget {
 /// The colours of the surnames in view (#43), or null when they're off -
 /// set once around the tree instead of handed to every card's builder.
 class _SurnameColorsScope extends InheritedWidget {
-  const _SurnameColorsScope({required this.colors, required super.child});
+  const _SurnameColorsScope({required this.colors, required this.picked, required super.child});
 
   final Map<String, Color>? colors;
 
+  /// The surnames tapped in the legend - empty for all.
+  final Set<String> picked;
+
+  static _SurnameColorsScope? _scope(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_SurnameColorsScope>();
+
+  /// Whether a card with [surname] is drawn pale: other surnames are picked.
+  static bool isFaded(BuildContext context, String surname) {
+    final picked = _scope(context)?.picked ?? const {};
+    return picked.isNotEmpty && !picked.contains(surname);
+  }
+
   /// The card colour for [surname]: its own, or the one for all others.
   static Color? of(BuildContext context, String surname) {
-    final colors = context.dependOnInheritedWidgetOfExactType<_SurnameColorsScope>()?.colors;
+    final colors = _scope(context)?.colors;
     if (colors == null) return null;
     return colors[surname] ?? otherSurnameColor;
   }
 
   /// The colour of the lines to a person with [surname] - null for the
-  /// plain grey: colours off, or a surname without a colour of its own.
+  /// plain grey: colours off, a surname without a colour of its own, or
+  /// one not picked - the picked lines stand out.
   static Color? lineOf(BuildContext context, String surname) {
-    final color = context.dependOnInheritedWidgetOfExactType<_SurnameColorsScope>()?.colors?[surname];
+    if (isFaded(context, surname)) return null;
+    final color = _scope(context)?.colors?[surname];
     return color == null ? null : lineColorFor(color);
   }
 
   @override
-  bool updateShouldNotify(_SurnameColorsScope old) => old.colors != colors;
+  bool updateShouldNotify(_SurnameColorsScope old) => old.colors != colors || !setEquals(old.picked, picked);
 }
 
 /// The surname of everyone in view - the person, parents, siblings, the
@@ -1776,7 +1827,9 @@ List<String> _surnamesInView(
       ? neighborhood.defaultPartner
       : neighborhood.partners.where((p) => p.familyXref == selectedPartnerXref).firstOrNull ??
             neighborhood.defaultPartner;
-  final partnerBirthName = partner?.partner == null ? '' : loaded[partner!.partner!.xref]?.personDetail.birthSurname ?? '';
+  final partnerBirthName = partner?.partner == null
+      ? ''
+      : loaded[partner!.partner!.xref]?.personDetail.birthSurname ?? '';
 
   final surnames = [
     neighborhood.person.surname,
@@ -1804,16 +1857,26 @@ List<String> _surnamesInView(
 }
 
 /// The legend of the surname colours (#43): a small pill at the bottom of
-/// the tree, opening to the surnames in view with their colours.
+/// the tree, opening to the surnames in view with their colours. Tapping
+/// surnames there picks them; everyone else is drawn pale.
 class _SurnameLegend extends StatelessWidget {
-  const _SurnameLegend({required this.colors, required this.surnames, required this.isOpen, required this.onToggle});
+  const _SurnameLegend({
+    required this.colors,
+    required this.surnames,
+    required this.picked,
+    required this.isOpen,
+    required this.onToggle,
+    required this.onPick,
+  });
 
   final Map<String, Color> colors;
 
   /// One entry per person in view, for the counts.
   final List<String> surnames;
+  final Set<String> picked;
   final bool isOpen;
   final VoidCallback onToggle;
+  final ValueChanged<String> onPick;
 
   @override
   Widget build(BuildContext context) {
@@ -1847,40 +1910,68 @@ class _SurnameLegend extends StatelessWidget {
             child: isOpen
                 ? SingleChildScrollView(
                     child: Wrap(
-                      spacing: 12,
-                      runSpacing: 6,
+                      spacing: 4,
+                      runSpacing: 2,
                       children: [
                         for (final entry in colors.entries)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              dot(entry.value),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${entry.key} ${surnames.where((s) => s == entry.key).length}',
-                                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                          InkWell(
+                            key: Key('surnameLegend_${entry.key}'),
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => onPick(entry.key),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: picked.contains(entry.key) ? treeOutlineColor : Colors.transparent,
+                                ),
                               ),
-                            ],
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  dot(entry.value),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${entry.key} ${surnames.where((s) => s == entry.key).length}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: picked.contains(entry.key) ? FontWeight.w600 : FontWeight.normal,
+                                      color: picked.isEmpty || picked.contains(entry.key)
+                                          ? AppColors.textPrimary
+                                          : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         if (surnames.any((s) => !colors.containsKey(s)))
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            dot(otherSurnameColor),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${l10n.treeOtherSurnames} ${surnames.where((s) => !colors.containsKey(s)).length}',
-                              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                dot(otherSurnameColor),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${l10n.treeOtherSurnames} ${surnames.where((s) => !colors.containsKey(s)).length}',
+                                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      for (final color in colors.values.take(5)) ...[dot(color), const SizedBox(width: 3)],
+                      // The picked ones only, while there are any.
+                      for (final entry
+                          in colors.entries.where((e) => picked.isEmpty || picked.contains(e.key)).take(5)) ...[
+                        dot(entry.value),
+                        const SizedBox(width: 3),
+                      ],
                       const SizedBox(width: 5),
                       Text(
                         l10n.treeSurnameLegend,

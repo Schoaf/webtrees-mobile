@@ -298,6 +298,9 @@ class _CardRow extends StatelessWidget {
 /// wide - with a thin grey edge on both sides, like the cards' edge.
 const colouredLineWidth = 6.0;
 const treeOutlineColor = Color(0xFF8A919C);
+
+/// The tree's background.
+const treeCanvasColor = Color(0xFFF4F5F7);
 const _kLineEdgeColor = Color(0xFFB8BEC6);
 
 /// Draws tree lines from one point to another: plain grey ones, or wide ones
