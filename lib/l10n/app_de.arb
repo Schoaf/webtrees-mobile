@@ -436,7 +436,7 @@
   "languageDevice": "Wie Gerät",
   "surnameGroupingSetting": "Farben nach Nachnamen",
   "surnameGroupingHint": "Welche Nachnamen im Stammbaum eine Farbe teilen",
-  "surnameGroupingExact": "Gleicher Name",
+  "surnameGroupingExact": "Nur gleicher Name",
   "surnameGroupingSpelling": "Ähnliche Schreibweise",
   "surnameGroupingSound": "Gleicher Klang",
   "askForHelpNoPersonalMessage": "(keine persönliche Nachricht)",

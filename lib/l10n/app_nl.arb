@@ -271,7 +271,7 @@
   "languageDevice": "Taal van het apparaat",
   "surnameGroupingSetting": "Kleuren per achternaam",
   "surnameGroupingHint": "Welke achternamen in de stamboom een kleur delen",
-  "surnameGroupingExact": "Zelfde naam",
+  "surnameGroupingExact": "Alleen dezelfde naam",
   "surnameGroupingSpelling": "Vergelijkbare spelling",
   "surnameGroupingSound": "Zelfde klank",
   "treeCenterTooltip": "Terug naar de startpersoon",

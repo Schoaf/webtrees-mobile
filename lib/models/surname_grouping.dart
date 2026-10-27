@@ -80,23 +80,3 @@ String _soundCode(String surname) {
   final result = code.isEmpty ? '' : code[0] + code.substring(1).replaceAll('0', '');
   return result.isEmpty ? surname.toLowerCase() : result;
 }
-
-/// The name a group of surnames shows in the legend: its most frequent
-/// spelling in [surnames] (one entry per person), alphabetically first on
-/// a tie.
-Map<String, String> surnameGroupLabels(Iterable<String> surnames, String Function(String) keyOf) {
-  final counts = <String, Map<String, int>>{};
-  for (final surname in surnames) {
-    if (surname.isEmpty) continue;
-    final spellings = counts.putIfAbsent(keyOf(surname), () => {});
-    spellings[surname] = (spellings[surname] ?? 0) + 1;
-  }
-  return {
-    for (final MapEntry(:key, :value) in counts.entries)
-      key: (value.keys.toList()..sort((a, b) {
-            final byCount = value[b]!.compareTo(value[a]!);
-            return byCount != 0 ? byCount : a.compareTo(b);
-          }))
-          .first,
-  };
-}

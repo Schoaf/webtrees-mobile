@@ -1,11 +1,12 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show setEquals;
+import 'package:flutter/foundation.dart' show mapEquals, setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/surname_colors.dart';
+import '../../models/family_lines.dart';
 import '../../models/surname_grouping.dart';
 import '../../models/tree_lineage.dart';
 import '../../models/tree_neighborhood.dart';
@@ -329,22 +330,21 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
       });
     }
 
-    // Colours by surname (#43): the people in view, counted once each.
-    final surnamesInView = isColouringSurnames && neighborhood != null
-        ? _surnamesInView(
+    // Colours by family line (#43): the people in view, counted once each,
+    // their surnames grouped as set in the profile.
+    final surnameGrouping = ref.watch(treeSurnameGroupingProvider);
+    final familyLines = isColouringSurnames && neighborhood != null
+        ? _familyLinesInView(
             neighborhood,
             treeState.selectedPartnerXref,
             lineage,
             generationsUp,
             generationsDown,
             treeState.cache,
+            (surname) => surnameGroupKey(surname, surnameGrouping),
           )
         : null;
-    // Spellings grouped as set in the profile: colours, legend and picks go by the group.
-    final surnameGrouping = ref.watch(treeSurnameGroupingProvider);
-    String surnameKeyOf(String surname) => surnameGroupKey(surname, surnameGrouping);
-    final surnameKeysInView = surnamesInView?.map(surnameKeyOf).toList();
-    final surnameColors = surnameKeysInView == null ? null : _surnameColors.assign(surnameKeysInView);
+    final surnameColors = familyLines == null ? null : _surnameColors.assign(familyLines.lines);
     // Only those still with a colour in view count.
     final pickedSurnames = {..._pickedSurnames.where((s) => surnameColors?.containsKey(s) ?? false)};
 
@@ -429,7 +429,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                             child: _SurnameColorsScope(
                               colors: surnameColors,
                               picked: pickedSurnames,
-                              keyOf: surnameKeyOf,
+                              lines: familyLines?.lineOf ?? const {},
                               child: _TreeContent(
                                 neighborhood: neighborhood,
                                 selectedPartnerXref: treeState.selectedPartnerXref,
@@ -463,8 +463,8 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           bottom: 8,
                           child: _SurnameLegend(
                             colors: surnameColors,
-                            surnames: surnameKeysInView!,
-                            labels: surnameGroupLabels(surnamesInView!, surnameKeyOf),
+                            surnames: familyLines!.lines,
+                            labels: familyLines.labels,
                             picked: pickedSurnames,
                             isOpen: _isLegendOpen,
                             onToggle: () => setState(() => _isLegendOpen = !_isLegendOpen),
@@ -646,7 +646,7 @@ class _TreeContent extends ConsumerWidget {
               // _ParentsRow) or the only parent's card down to the siblings frame.
               Builder(
                 builder: (context) {
-                  final color = _SurnameColorsScope.lineOf(context, neighborhood.person.familySurname);
+                  final color = _SurnameColorsScope.lineOf(context, neighborhood.person.xref);
                   if (color == null) return Container(width: 2, height: 34, color: const Color(0xFFD1D5DB));
                   // Wide in the person's colour, with a grey edge on both sides.
                   return Container(
@@ -756,8 +756,8 @@ class _AncestorsSection extends StatelessWidget {
       bottomBandHeight: 48,
       parentsRowKey: parentsRowKey,
       topRowKey: topRowKey,
-      lineColorOf: (node) => _SurnameColorsScope.lineOf(context, node.familySurname),
-      rootLineColor: _SurnameColorsScope.lineOf(context, neighborhood.person.familySurname),
+      lineColorOf: (node) => _SurnameColorsScope.lineOf(context, node.xref),
+      rootLineColor: _SurnameColorsScope.lineOf(context, neighborhood.person.xref),
       cardBuilder: (n, node, {required isShowingParents}) => n <= 3
           ? _ParentCard(
               neighborhood: neighborhood,
@@ -770,8 +770,8 @@ class _AncestorsSection extends StatelessWidget {
           : TreeNodeCard(
               firstName: node.firstName,
               surname: _SurnamesShown.of(context) ? node.surname : null,
-              backgroundColor: _SurnameColorsScope.of(context, node.familySurname),
-              isFaded: _SurnameColorsScope.isFaded(context, node.familySurname),
+              backgroundColor: _SurnameColorsScope.of(context, node.xref),
+              isFaded: _SurnameColorsScope.isFaded(context, node.xref),
               isSurnameBold: false,
               sex: node.sex,
               isDead: node.isDead,
@@ -894,9 +894,9 @@ class _ParentsRow extends StatelessWidget {
               child: CustomPaint(
                 painter: _ParentsForkPainter(
                   gap: _kParentsGap,
-                  fatherColor: _SurnameColorsScope.lineOf(context, father.familySurname),
-                  motherColor: _SurnameColorsScope.lineOf(context, mother.familySurname),
-                  childColor: _SurnameColorsScope.lineOf(context, neighborhood.person.familySurname),
+                  fatherColor: _SurnameColorsScope.lineOf(context, father.xref),
+                  motherColor: _SurnameColorsScope.lineOf(context, mother.xref),
+                  childColor: _SurnameColorsScope.lineOf(context, neighborhood.person.xref),
                 ),
               ),
             ),
@@ -949,8 +949,8 @@ class _ParentCard extends StatelessWidget {
         TreeNodeCard(
           firstName: node.firstName,
           surname: _SurnamesShown.of(context) ? node.surname : null,
-          backgroundColor: _SurnameColorsScope.of(context, node.familySurname),
-          isFaded: _SurnameColorsScope.isFaded(context, node.familySurname),
+          backgroundColor: _SurnameColorsScope.of(context, node.xref),
+          isFaded: _SurnameColorsScope.isFaded(context, node.xref),
           isSurnameBold: false,
           sex: node.sex,
           isDead: node.isDead,
@@ -1064,8 +1064,8 @@ class _SiblingsFrame extends StatelessWidget {
       return TreeNodeCard(
         firstName: node.firstName,
         surname: _SurnamesShown.of(context) ? node.surname : null,
-        backgroundColor: _SurnameColorsScope.of(context, node.familySurname),
-        isFaded: _SurnameColorsScope.isFaded(context, node.familySurname),
+        backgroundColor: _SurnameColorsScope.of(context, node.xref),
+        isFaded: _SurnameColorsScope.isFaded(context, node.xref),
         isSurnameBold: false,
         sex: node.sex,
         isDead: node.isDead,
@@ -1087,8 +1087,8 @@ class _SiblingsFrame extends StatelessWidget {
       child: TreeNodeCard(
         firstName: neighborhood.person.firstName,
         surname: neighborhood.person.surname,
-        backgroundColor: _SurnameColorsScope.of(context, neighborhood.person.familySurname),
-        isFaded: _SurnameColorsScope.isFaded(context, neighborhood.person.familySurname),
+        backgroundColor: _SurnameColorsScope.of(context, neighborhood.person.xref),
+        isFaded: _SurnameColorsScope.isFaded(context, neighborhood.person.xref),
         sex: neighborhood.person.sex,
         isDead: neighborhood.person.isDead,
         birthYear: neighborhood.person.birthYear,
@@ -1113,7 +1113,6 @@ class _SiblingsFrame extends StatelessWidget {
     final partnerSurname = (partnerDetail?.hasOtherMarriedSurname ?? false)
         ? partnerDetail!.marriedSurname
         : partner?.partner?.surname ?? '';
-    final partnerFamilySurname = _familySurnameOfPartner(partner?.partner, partnerDetail);
 
     Widget centerGroup;
     if (partner == null) {
@@ -1154,8 +1153,8 @@ class _SiblingsFrame extends StatelessWidget {
                             surname: partnerSurname,
                             isSurnameBold: partnerSurname != neighborhood.person.surname,
                             // The colour of the family they come from.
-                            backgroundColor: _SurnameColorsScope.of(context, partnerFamilySurname),
-                            isFaded: _SurnameColorsScope.isFaded(context, partnerFamilySurname),
+                            backgroundColor: _SurnameColorsScope.of(context, p.partner!.xref),
+                            isFaded: _SurnameColorsScope.isFaded(context, p.partner!.xref),
                             birthSurname: (partnerDetail?.hasOtherMarriedSurname ?? false)
                                 ? partnerDetail!.birthSurname
                                 : null,
@@ -1567,12 +1566,12 @@ class _ChildrenFrame extends StatelessWidget {
               children: descendants!,
               generations: generations,
               bottomRowKey: bottomRowKey,
-              lineColorOf: (node) => _SurnameColorsScope.lineOf(context, node.familySurname),
+              lineColorOf: (node) => _SurnameColorsScope.lineOf(context, node.xref),
               cardBuilder: (d, {required isShowingChildren}) => TreeNodeCard(
                 firstName: d.node.firstName,
                 surname: _SurnamesShown.of(context) ? d.node.surname : null,
-                backgroundColor: _SurnameColorsScope.of(context, d.node.familySurname),
-                isFaded: _SurnameColorsScope.isFaded(context, d.node.familySurname),
+                backgroundColor: _SurnameColorsScope.of(context, d.node.xref),
+                isFaded: _SurnameColorsScope.isFaded(context, d.node.xref),
                 isSurnameBold: false,
                 sex: d.node.sex,
                 isDead: d.node.isDead,
@@ -1594,8 +1593,8 @@ class _ChildrenFrame extends StatelessWidget {
                   TreeNodeCard(
                     firstName: child.firstName,
                     surname: _SurnamesShown.of(context) ? child.surname : null,
-                    backgroundColor: _SurnameColorsScope.of(context, child.familySurname),
-                    isFaded: _SurnameColorsScope.isFaded(context, child.familySurname),
+                    backgroundColor: _SurnameColorsScope.of(context, child.xref),
+                    isFaded: _SurnameColorsScope.isFaded(context, child.xref),
                     isSurnameBold: false,
                     sex: child.sex,
                     isDead: child.isDead,
@@ -1781,48 +1780,48 @@ class _SurnamesShown extends InheritedWidget {
 /// The colours of the surnames in view (#43), or null when they're off -
 /// set once around the tree instead of handed to every card's builder.
 class _SurnameColorsScope extends InheritedWidget {
-  const _SurnameColorsScope({required this.colors, required this.picked, required this.keyOf, required super.child});
+  const _SurnameColorsScope({required this.colors, required this.picked, required this.lines, required super.child});
 
-  /// By the key of a group of surnames, see [keyOf].
+  /// By family line, see [lines].
   final Map<String, Color>? colors;
 
-  /// The groups tapped in the legend - empty for all.
+  /// The lines tapped in the legend - empty for all.
   final Set<String> picked;
 
-  /// The group of a surname - spellings that share a colour.
-  final String Function(String surname) keyOf;
+  /// The family line of each person in view, by xref.
+  final Map<String, String> lines;
 
   static _SurnameColorsScope? _scope(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<_SurnameColorsScope>();
 
   /// Whether a card with [surname] is drawn pale: other surnames are picked.
-  static bool isFaded(BuildContext context, String surname) {
+  static bool isFaded(BuildContext context, String xref) {
     final scope = _scope(context);
     if (scope == null || scope.picked.isEmpty) return false;
-    return !scope.picked.contains(scope.keyOf(surname));
+    return !scope.picked.contains(scope.lines[xref]);
   }
 
   /// The card colour for [surname]: its own, or the one for all others.
-  static Color? of(BuildContext context, String surname) {
+  static Color? of(BuildContext context, String xref) {
     final scope = _scope(context);
     final colors = scope?.colors;
     if (colors == null) return null;
-    return colors[scope!.keyOf(surname)] ?? otherSurnameColor;
+    return colors[scope!.lines[xref]] ?? otherSurnameColor;
   }
 
   /// The colour of the lines to a person with [surname] - null for the
   /// plain grey: colours off, a surname without a colour of its own, or
   /// one not picked - the picked lines stand out.
-  static Color? lineOf(BuildContext context, String surname) {
-    if (isFaded(context, surname)) return null;
+  static Color? lineOf(BuildContext context, String xref) {
+    if (isFaded(context, xref)) return null;
     final scope = _scope(context);
-    final color = scope?.colors?[scope.keyOf(surname)];
+    final color = scope?.colors?[scope.lines[xref]];
     return color == null ? null : lineColorFor(color);
   }
 
   @override
   bool updateShouldNotify(_SurnameColorsScope old) =>
-      old.colors != colors || !setEquals(old.picked, picked) || old.keyOf != keyOf;
+      old.colors != colors || !setEquals(old.picked, picked) || !mapEquals(old.lines, lines);
 }
 
 /// The surname of the family a partner comes from: their birth name where
@@ -1836,45 +1835,77 @@ String _familySurnameOfPartner(TreeNode? partner, TreePersonDetail? detail) {
 /// The surname of everyone in view - the person, parents, siblings, the
 /// shown partner (their birth name, the family they come from), children,
 /// and further generations as far as shown.
-List<String> _surnamesInView(
+FamilyLines _familyLinesInView(
   TreeNeighborhood neighborhood,
   String? selectedPartnerXref,
   TreeLineage lineage,
   int generationsUp,
   int generationsDown,
   Map<String, TreeNeighborhood> loaded,
+  String Function(String surname) keyOf,
 ) {
   final partner = selectedPartnerXref == null
       ? neighborhood.defaultPartner
       : neighborhood.partners.where((p) => p.familyXref == selectedPartnerXref).firstOrNull ??
             neighborhood.defaultPartner;
-  final partnerFamilySurname = partner?.partner == null
-      ? ''
-      : _familySurnameOfPartner(partner!.partner, loaded[partner.partner!.xref]?.personDetail);
+  final person = neighborhood.person;
+  final father = neighborhood.father;
+  final mother = neighborhood.mother;
 
-  final surnames = [
-    neighborhood.person.familySurname,
-    ?neighborhood.father?.familySurname,
-    ?neighborhood.mother?.familySurname,
-    for (final sibling in neighborhood.siblings) sibling.familySurname,
-    if (partner?.partner != null) partnerFamilySurname,
-    for (final child in partner?.children ?? const <TreeNode>[]) child.familySurname,
-  ];
+  final surnameOf = <String, String>{};
+  final parentLinks = <(String, String)>[];
+  void add(TreeNode node, {String? surname}) => surnameOf[node.xref] = surname ?? node.familySurname;
+  void link(TreeNode child, TreeNode? parent) {
+    if (parent != null) parentLinks.add((child.xref, parent.xref));
+  }
+
+  add(person);
+  for (final parent in [?father, ?mother]) {
+    add(parent);
+    link(person, parent);
+  }
+  for (final sibling in neighborhood.siblings) {
+    add(sibling);
+    link(sibling, father);
+    link(sibling, mother);
+  }
+  if (partner?.partner != null) {
+    add(
+      partner!.partner!,
+      surname: _familySurnameOfPartner(partner.partner, loaded[partner.partner!.xref]?.personDetail),
+    );
+  }
+  for (final child in partner?.children ?? const <TreeNode>[]) {
+    add(child);
+    link(child, person);
+    link(child, partner!.partner);
+  }
   if (generationsUp > 1) {
+    final byNumber = <int, TreeNode>{1: person, 2: ?father, 3: ?mother};
     for (final entry in lineage.ancestors.entries) {
       final generation = kekuleGeneration(entry.key);
-      if (generation >= 2 && generation <= generationsUp) surnames.add(entry.value.familySurname);
+      if (generation >= 2 && generation <= generationsUp) byNumber[entry.key] = entry.value;
+    }
+    for (final MapEntry(key: number, value: node) in byNumber.entries) {
+      if (number < 4) continue;
+      add(node);
+      link(byNumber[number ~/ 2] ?? node, node);
     }
   }
   if (generationsDown > 1 && partner != null) {
     final family = lineage.descendants?.families.where((f) => f.familyXref == partner.familyXref).firstOrNull;
-    var row = [for (final child in family?.children ?? const <TreeDescendant>[]) ...child.children];
+    var row = family?.children ?? const <TreeDescendant>[];
     for (var level = 2; level <= generationsDown && row.isNotEmpty; level++) {
-      surnames.addAll(row.map((d) => d.node.familySurname));
+      for (final parent in row) {
+        for (final child in parent.children) {
+          add(child.node);
+          link(child.node, parent.node);
+        }
+      }
       row = [for (final d in row) ...d.children];
     }
   }
-  return surnames;
+  return FamilyLines.build(surnameOf: surnameOf, parentLinks: parentLinks, keyOf: keyOf);
 }
 
 /// The legend of the surname colours (#43): a small pill at the bottom of

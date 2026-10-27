@@ -26,12 +26,4 @@ void main() {
     expect(key('Hummer', sound), key('Humer', sound));
     expect(key('Meier', sound), key('Mohr', sound));
   });
-
-  test('a group shows its most frequent spelling', () {
-    final labels = surnameGroupLabels(
-      ['Humer', 'Hummer', 'Hummer', 'Mohr'],
-      (s) => surnameGroupKey(s, SurnameGrouping.spelling),
-    );
-    expect(labels.values, unorderedEquals(['Hummer', 'Mohr']));
-  });
 }

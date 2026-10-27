@@ -263,7 +263,7 @@
   "languageDevice": "Device language",
   "surnameGroupingSetting": "Colours by surname",
   "surnameGroupingHint": "Which surnames share a colour in the tree",
-  "surnameGroupingExact": "Same name",
+  "surnameGroupingExact": "Only the same name",
   "surnameGroupingSpelling": "Similar spelling",
   "surnameGroupingSound": "Same sound",
   "askForHelpNoPersonalMessage": "(no personal message)",
