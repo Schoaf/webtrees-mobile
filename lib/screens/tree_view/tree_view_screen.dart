@@ -116,6 +116,10 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   Offset? _anchor;
   String? _anchorXref;
 
+  // The view's size last frame: when it changes (turning the phone, full
+  // screen), what was in its middle moves to the new middle.
+  Size? _viewportSize;
+
   // The generations up and down shown last, for this person - to notice
   // when fewer are picked.
   int? _shownUp;
@@ -314,6 +318,14 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
       }
       _anchor = anchor;
       _anchorXref = activeXref;
+      final viewportSize = (_viewportKey.currentContext?.findRenderObject() as RenderBox?)?.size;
+      final previousSize = _viewportSize;
+      if (viewportSize != null && previousSize != null && viewportSize != previousSize) {
+        final shift = (viewportSize - previousSize) as Offset;
+        // On the screen, not in the content: before the zoom.
+        _transformController.value = Matrix4.translationValues(shift.dx / 2, shift.dy / 2, 0) * _transformController.value;
+      }
+      _viewportSize = viewportSize;
       _maybeLoadMoreGenerations();
     });
   }

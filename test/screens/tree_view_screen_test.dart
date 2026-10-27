@@ -420,6 +420,23 @@ void main() {
       expect(find.byKey(const Key('treeFullScreenButton')), findsOneWidget);
     });
 
+    testWidgets('turning the phone keeps what was in the middle in the middle', (tester) async {
+      await pumpScreen(tester);
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
+      Offset offCentre() =>
+          tester.getCenter(find.text('Elisabeth')) - tester.getCenter(find.byType(InteractiveViewer));
+      final before = offCentre();
+
+      tester.view.physicalSize = const Size(844, 390);
+      await tester.pumpAndSettle();
+      expect((offCentre() - before).distance, lessThan(1));
+
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
+      expect((offCentre() - before).distance, lessThan(1));
+    });
+
     testWidgets('a phone turned to landscape goes full screen, back to portrait leaves it', (tester) async {
       await pumpScreen(tester);
       tester.view.physicalSize = const Size(844, 390);
