@@ -386,6 +386,52 @@ void main() {
     expect(find.text('(Muster)'), findsOneWidget);
   });
 
+  group('full screen', () {
+    setUp(() {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());
+    });
+
+    double overlayOpacity(WidgetTester tester) => tester
+        .widget<AnimatedOpacity>(
+          find.ancestor(of: find.byKey(const Key('treeViewButton')), matching: find.byType(AnimatedOpacity)),
+        )
+        .opacity;
+
+    testWidgets('hides the bars, fades the overlays while idle and leaves again', (tester) async {
+      await pumpScreen(tester);
+      await tester.tap(find.byKey(const Key('treeFullScreenButton')));
+      await tester.pumpAndSettle();
+      expect(container.read(treeFullScreenProvider), isTrue);
+      expect(find.byKey(const Key('treeFullScreenButton')), findsNothing);
+      expect(overlayOpacity(tester), 1);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(overlayOpacity(tester), 0);
+
+      // A touch on the tree brings them back.
+      await tester.tapAt(const Offset(400, 900));
+      await tester.pump();
+      expect(overlayOpacity(tester), 1);
+
+      await tester.tap(find.byKey(const Key('treeExitFullScreenButton')));
+      await tester.pumpAndSettle();
+      expect(container.read(treeFullScreenProvider), isFalse);
+      expect(find.byKey(const Key('treeFullScreenButton')), findsOneWidget);
+    });
+
+    testWidgets('a phone turned to landscape goes full screen, back to portrait leaves it', (tester) async {
+      await pumpScreen(tester);
+      tester.view.physicalSize = const Size(844, 390);
+      await tester.pumpAndSettle();
+      expect(container.read(treeFullScreenProvider), isTrue);
+
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.pumpAndSettle();
+      expect(container.read(treeFullScreenProvider), isFalse);
+    });
+  });
+
   group('generations (#42)', () {
     setUp(() {
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());

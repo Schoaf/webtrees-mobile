@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show mapEquals, setEquals;
@@ -129,6 +130,16 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
   /// Surnames tapped in the legend (#43): everyone else is drawn pale.
   Set<String> _pickedSurnames = {};
 
+  // Full screen: the overlays (view menu, legend, leaving full screen) fade
+  // out after a while without touching the tree, and come back with it.
+  static const _kOverlayIdle = Duration(seconds: 5);
+  bool _isOverlayShown = true;
+  Timer? _overlayTimer;
+
+  // The orientation last seen while the tree showed - turning a phone
+  // switches full screen on (landscape) and off (portrait).
+  Orientation? _orientation;
+
   @override
   void initState() {
     super.initState();
@@ -143,8 +154,46 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     });
   }
 
+  /// Shows the overlays and hides them again after [_kOverlayIdle] - in
+  /// full screen only.
+  void _wakeOverlays() {
+    _overlayTimer?.cancel();
+    if (!ref.read(treeFullScreenProvider)) return;
+    if (!_isOverlayShown) setState(() => _isOverlayShown = true);
+    _overlayTimer = Timer(_kOverlayIdle, () {
+      if (mounted) setState(() => _isOverlayShown = false);
+    });
+  }
+
+  void _setFullScreen(bool isFullScreen) {
+    ref.read(treeFullScreenProvider.notifier).set(isFullScreen);
+    if (isFullScreen) {
+      _wakeOverlays();
+    } else {
+      _overlayTimer?.cancel();
+      setState(() => _isOverlayShown = true);
+    }
+  }
+
+  /// On a phone, landscape leaves no room for the bars: turning it switches
+  /// full screen on, turning it back off. Tablets keep their bars.
+  void _followOrientation() {
+    if (!widget.isVisible || isTabletDevice(context)) return;
+    final orientation = MediaQuery.orientationOf(context);
+    if (orientation == _orientation) return;
+    final isFirst = _orientation == null;
+    _orientation = orientation;
+    // Opened in portrait: nothing to switch off.
+    if (isFirst && orientation == Orientation.portrait) return;
+    // After this frame: changing a provider while widgets build is not allowed.
+    Future.microtask(() {
+      if (mounted) _setFullScreen(orientation == Orientation.landscape);
+    });
+  }
+
   @override
   void dispose() {
+    _overlayTimer?.cancel();
     _transformController.removeListener(_maybeLoadMoreGenerations);
     _transformController.dispose();
     super.dispose();
@@ -368,11 +417,24 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
       _shownForXref = activeXref;
     }
 
+    _followOrientation();
+    final isFullScreen = ref.watch(treeFullScreenProvider) && widget.isVisible;
+    // Hidden overlays let touches through to the tree - the touch brings them back.
+    Widget overlay(Widget child) => IgnorePointer(
+      ignoring: isFullScreen && !_isOverlayShown,
+      child: AnimatedOpacity(
+        opacity: !isFullScreen || _isOverlayShown ? 1 : 0,
+        duration: _isOverlayShown ? const Duration(milliseconds: 200) : const Duration(seconds: 2),
+        child: child,
+      ),
+    );
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F5F7),
       body: SafeArea(
         child: Column(
           children: [
+            if (!isFullScreen)
             // Matches every other screen's own top-bar width - the canvas
             // below stays full-width, deliberately (see TabletBoundedBody's
             // own doc comment): panning into extra tablet space there is
@@ -392,6 +454,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                 onCenter: treeState.activeXref == null || treeState.activeXref == widget.xref
                     ? null
                     : () => controller.enter(widget.xref),
+                onFullScreen: () => _setFullScreen(true),
               ),
             ),
             Expanded(
@@ -412,7 +475,12 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                     return Center(child: Text(l10n.unknownStateMessage));
                   }
 
-                  return Stack(
+                  // Zooming, panning, tapping: everything starts with a touch.
+                  return Listener(
+                    onPointerDown: (_) => _wakeOverlays(),
+                    onPointerMove: (_) => _wakeOverlays(),
+                    onPointerSignal: (_) => _wakeOverlays(),
+                    child: Stack(
                     key: _viewportKey,
                     children: [
                       InteractiveViewer(
@@ -451,17 +519,22 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                         ),
                       ),
                       if (treeState.loading || lineage.isLoadingAncestors || lineage.isLoadingDescendants)
-                        const Positioned(
+                        Positioned(
                           top: 12,
-                          left: 12,
-                          child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                          // Beside the button leaving full screen.
+                          left: isFullScreen ? 60 : 12,
+                          child: const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         ),
                       if (surnameColors != null && surnameColors.isNotEmpty)
                         Positioned(
                           left: 8,
                           right: 8,
                           bottom: 8,
-                          child: _SurnameLegend(
+                          child: overlay(_SurnameLegend(
                             colors: surnameColors,
                             surnames: familyLines!.lines,
                             labels: familyLines.labels,
@@ -472,21 +545,28 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                               _pickedSurnames = {...pickedSurnames};
                               if (!_pickedSurnames.remove(surname)) _pickedSurnames.add(surname);
                             }),
-                          ),
+                          )),
+                        ),
+                      if (isFullScreen)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: overlay(_ExitFullScreenButton(onPressed: () => _setFullScreen(false))),
                         ),
                       Positioned(
                         top: 8,
                         right: 8,
-                        child: _ViewButton(
+                        child: overlay(_ViewButton(
                           generations: pickedGenerations,
                           isShowingSurnames: isShowingSurnames,
                           isColouringSurnames: isColouringSurnames,
                           onSelectGenerations: ref.read(treeGenerationsProvider.notifier).set,
                           onToggleSurnames: () => ref.read(treeSurnamesProvider.notifier).set(!isShowingSurnames),
                           onToggleColours: () => ref.read(treeSurnameColorsProvider.notifier).set(!isColouringSurnames),
-                        ),
+                        )),
                       ),
                     ],
+                  ),
                   );
                 },
               ),
@@ -506,9 +586,11 @@ class _TopBar extends StatelessWidget {
     required this.onUndo,
     required this.onRedo,
     required this.onCenter,
+    required this.onFullScreen,
   });
 
   final VoidCallback? onCenter;
+  final VoidCallback onFullScreen;
   final bool canUndo;
   final bool canRedo;
   final VoidCallback? onBack;
@@ -563,7 +645,44 @@ class _TopBar extends StatelessWidget {
             tooltip: l10n.nextPersonTooltip,
             onPressed: canRedo ? onRedo : null,
           ),
+          IconButton(
+            key: const Key('treeFullScreenButton'),
+            icon: const Icon(Icons.fullscreen, size: 22),
+            color: const Color(0xFF374151),
+            tooltip: l10n.treeFullScreenTooltip,
+            onPressed: onFullScreen,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// Leaves full screen - top left in the tree, styled like the view menu's
+/// pill top right.
+class _ExitFullScreenButton extends StatelessWidget {
+  const _ExitFullScreenButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: AppLocalizations.of(context)!.treeExitFullScreenTooltip,
+      child: Material(
+        color: Colors.white,
+        shape: const StadiumBorder(side: BorderSide(color: Color(0xFFE5E7EB))),
+        elevation: 1,
+        shadowColor: const Color(0x1F111827),
+        child: InkWell(
+          key: const Key('treeExitFullScreenButton'),
+          customBorder: const StadiumBorder(),
+          onTap: onPressed,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: Icon(Icons.fullscreen_exit, size: 22, color: Color(0xFF374151)),
+          ),
+        ),
       ),
     );
   }

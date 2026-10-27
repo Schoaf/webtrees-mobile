@@ -1,6 +1,7 @@
 import 'package:app_links/app_links.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
@@ -377,7 +378,14 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
       for (var i = 0; i < _screens.length; i++)
         TabNavigator(navigatorKey: tabNavigatorKeys[i], observers: [_observers[i]], child: _screens[i]),
     ];
-    final isBarVisible = ref.watch(bottomBarVisibleProvider);
+    // The full-screen tree hides the bar, and the system's bars too.
+    final isTreeFullScreen = ref.watch(treeFullScreenProvider) && index == kTreeTabIndex;
+    ref.listen(treeFullScreenProvider, (_, isFullScreen) {
+      SystemChrome.setEnabledSystemUIMode(
+        isFullScreen ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      );
+    });
+    final isBarVisible = ref.watch(bottomBarVisibleProvider) && !isTreeFullScreen;
     return Scaffold(
       body: IndexedStack(index: index, children: screens),
       bottomNavigationBar: !isBarVisible ? null : NavigationBar(

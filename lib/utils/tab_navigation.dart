@@ -36,6 +36,17 @@ class BottomBarVisibility extends Notifier<bool> {
 
 final bottomBarVisibleProvider = NotifierProvider<BottomBarVisibility, bool>(BottomBarVisibility.new);
 
+/// Whether the tree fills the whole screen: no top bar, no bottom bar, no
+/// system bars. Turned on and off in the tree, and by turning a phone.
+class TreeFullScreen extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool isFullScreen) => state = isFullScreen;
+}
+
+final treeFullScreenProvider = NotifierProvider<TreeFullScreen, bool>(TreeFullScreen.new);
+
 /// Drives [bottomBarVisibleProvider] from a tab's own Navigator.
 class BottomBarObserver extends NavigatorObserver {
   BottomBarObserver(this.container);
@@ -96,4 +107,6 @@ void _switchToTab(ProviderContainer container, int index) {
   tabNavigatorKeys[index].currentState?.popUntil((route) => route.isFirst);
   container.read(selectedTabProvider.notifier).select(index);
   container.read(bottomBarVisibleProvider.notifier).set(true);
+  // Opening a person from the full-screen tree leaves it.
+  container.read(treeFullScreenProvider.notifier).set(false);
 }

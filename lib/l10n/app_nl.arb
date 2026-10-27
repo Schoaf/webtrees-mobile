@@ -275,6 +275,8 @@
   "surnameGroupingSpelling": "Vergelijkbare spelling",
   "surnameGroupingSound": "Zelfde klank",
   "treeCenterTooltip": "Terug naar de startpersoon",
+  "treeFullScreenTooltip": "Volledig scherm",
+  "treeExitFullScreenTooltip": "Volledig scherm sluiten",
   "treeGenerationsTooltip": "Generaties omhoog en omlaag",
   "treeGenerationsCount": "{count, plural, =1{generatie} other{generaties}}",
   "treeGenerationsAll": "Alle – laadt meer",

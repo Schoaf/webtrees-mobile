@@ -275,6 +275,8 @@
   "askForHelpSend": "Send",
   "askForHelpSendFailed": "Sending failed: {error}",
   "treeCenterTooltip": "Back to the starting person",
+  "treeFullScreenTooltip": "Full screen",
+  "treeExitFullScreenTooltip": "Exit full screen",
   "treeGenerationsTooltip": "Generations up and down",
   "treeGenerationsCount": "{count, plural, =1{generation} other{generations}}",
   "treeGenerationsAll": "All – loads more",

@@ -449,6 +449,8 @@
   "askForHelpSendFailed": "Senden fehlgeschlagen: {error}",
   "@askForHelpSendFailed": {"placeholders": {"error": {"type": "String"}}},
   "treeCenterTooltip": "Zur Ausgangsperson",
+  "treeFullScreenTooltip": "Vollbild",
+  "treeExitFullScreenTooltip": "Vollbild beenden",
   "treeGenerationsTooltip": "Generationen nach oben und unten",
   "treeGenerationsCount": "{count, plural, =1{Generation} other{Generationen}}",
   "@treeGenerationsCount": {"placeholders": {"count": {"type": "int"}}},
