@@ -29,6 +29,9 @@ lane :submit_ios do |options|
     api_key: asc_api_key,
     app_version: options[:version],
     build_number: options[:build],
+    # Still needed with nothing to upload: deliver checks the folders.
+    metadata_path: "./fastlane/metadata/ios",
+    screenshots_path: "./fastlane/screenshots/ios",
     skip_binary_upload: true,
     skip_metadata: true,
     skip_screenshots: true,
