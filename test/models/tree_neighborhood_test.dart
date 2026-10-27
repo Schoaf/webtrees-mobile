@@ -240,4 +240,19 @@ void main() {
 
     expect(detail.hasOtherMarriedSurname, isFalse);
   });
+
+  test('the colours go by SURN - the surname of sortName - not the spelling', () {
+    final node = TreeNode.fromJson({
+      'xref': 'I5',
+      'name': 'Johann Humer',
+      'sortName': 'Hummer,Johann',
+      'surname': 'Humer',
+      'sex': 'M',
+    });
+    expect(node.surname, 'Humer');
+    expect(node.familySurname, 'Hummer');
+
+    final unknown = TreeNode.fromJson({'xref': 'I6', 'name': 'Anna', 'sortName': '…,Anna', 'sex': 'F'});
+    expect(unknown.familySurname, '');
+  });
 }

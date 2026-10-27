@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/surname_grouping.dart';
 import '../models/tree_lineage.dart';
 import '../models/tree_neighborhood.dart';
 import 'app_providers.dart';
@@ -109,6 +110,41 @@ class TreeSurnameColorsNotifier extends Notifier<bool> {
 }
 
 final treeSurnameColorsProvider = NotifierProvider<TreeSurnameColorsNotifier, bool>(TreeSurnameColorsNotifier.new);
+
+const _kTreeSurnameGroupingPrefKey = 'tree_surname_grouping';
+
+/// Which surnames share a colour in the tree (#43), set in the profile.
+/// Kept across app starts.
+class TreeSurnameGroupingNotifier extends Notifier<SurnameGrouping> {
+  @override
+  SurnameGrouping build() {
+    Future.microtask(_load);
+    return SurnameGrouping.exact;
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getString(_kTreeSurnameGroupingPrefKey);
+      state = SurnameGrouping.values.where((g) => g.name == stored).firstOrNull ?? SurnameGrouping.exact;
+    } on Exception {
+      // Storage unavailable - stay at the default.
+    }
+  }
+
+  Future<void> set(SurnameGrouping grouping) async {
+    state = grouping;
+    try {
+      await (await SharedPreferences.getInstance()).setString(_kTreeSurnameGroupingPrefKey, grouping.name);
+    } on Exception {
+      // Storage unavailable - the choice still applies until the app restarts.
+    }
+  }
+}
+
+final treeSurnameGroupingProvider = NotifierProvider<TreeSurnameGroupingNotifier, SurnameGrouping>(
+  TreeSurnameGroupingNotifier.new,
+);
 
 /// The direct line of one person beyond their parents and children (#42):
 /// ancestors by Kekulé number and the descendants tree, each loaded as deep

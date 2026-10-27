@@ -535,6 +535,23 @@ void main() {
       expect((await SharedPreferences.getInstance()).getBool('tree_surname_colors'), isTrue);
     });
 
+    testWidgets('similar spellings share a colour when set in the profile', (tester) async {
+      SharedPreferences.setMockInitialValues({'tree_surname_colors': true, 'tree_surname_grouping': 'spelling'});
+      final json = individualJson();
+      final spouseFamily = (json['spouseFamilies'] as List).first as Map<String, dynamic>;
+      spouseFamily['spouse'] = {
+        ...spouseFamily['spouse'] as Map<String, dynamic>,
+        'name': 'Thomas Musster',
+        'sortName': 'Musster,Thomas',
+      };
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+      await pumpScreen(tester);
+
+      await tester.tap(find.byKey(const Key('surnameLegend')));
+      await tester.pumpAndSettle();
+      expect(find.text('Muster 6'), findsOneWidget);
+    });
+
     testWidgets('picking surnames in the legend fades everyone else', (tester) async {
       SharedPreferences.setMockInitialValues({'tree_surname_colors': true});
       final json = individualJson();

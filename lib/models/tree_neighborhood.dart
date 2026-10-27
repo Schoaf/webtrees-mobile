@@ -66,6 +66,17 @@ String _surnameFrom(Map<String, dynamic> json) {
   return comma == -1 ? '' : sortName.substring(0, comma).trim();
 }
 
+/// The surname webtrees files a person under: the SURN of the name (or the
+/// NAME's surname without prefixes like "van"), the part of `sortName`
+/// before the comma - one spelling for all where SURN is kept up (#43).
+String _indexSurnameFrom(Map<String, dynamic> json) {
+  final sortName = json['sortName'] as String? ?? '';
+  final comma = sortName.indexOf(',');
+  final surname = comma == -1 ? '' : sortName.substring(0, comma).trim();
+  // The API shows an unknown surname as "…".
+  return surname == '…' ? '' : surname;
+}
+
 /// One person as shown on a tree-view card — parent, sibling, partner or
 /// child. `hasParents`/`partnersCount`/`childrenCount` are only present
 /// when the server was asked for them (`personSummary(..., withCounts:
@@ -75,6 +86,7 @@ class TreeNode {
     required this.xref,
     required this.firstName,
     this.surname = '',
+    this.indexSurname = '',
     required this.sex,
     required this.isDead,
     required this.birthYear,
@@ -93,6 +105,7 @@ class TreeNode {
         sortName: json['sortName'] as String? ?? '',
       ),
       surname: _surnameFrom(json),
+      indexSurname: _indexSurnameFrom(json),
       sex: json['sex'] as String? ?? 'U',
       isDead: json['isDead'] as bool? ?? false,
       birthYear: _yearFromEvent(json['birth'] as Map<String, dynamic>?),
@@ -109,6 +122,12 @@ class TreeNode {
 
   /// Shown on the active person's card only.
   final String surname;
+
+  /// The surname webtrees files the person under (SURN) - what the tree's
+  /// colours go by. Falls back to [surname].
+  final String indexSurname;
+
+  String get familySurname => indexSurname.isNotEmpty || surname == '…' ? indexSurname : surname;
   final String sex;
   final bool isDead;
   final int? birthYear;

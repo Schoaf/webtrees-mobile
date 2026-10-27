@@ -4,8 +4,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/surname_grouping.dart';
 import '../../state/app_providers.dart';
 import '../../state/language.dart';
+import '../../state/tree_generations.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../utils/device_size.dart';
@@ -430,6 +432,43 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                               ],
                               onChanged: (code) =>
                                   ref.read(languageProvider.notifier).set(code),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Which spellings share a colour in the tree (#43).
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              l10n.surnameGroupingSetting,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            subtitle: Text(
+                              l10n.surnameGroupingHint,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            trailing: DropdownButton<SurnameGrouping>(
+                              key: const Key('surnameGroupingSetting'),
+                              value: ref.watch(treeSurnameGroupingProvider),
+                              underline: const SizedBox.shrink(),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textPrimary),
+                              items: [
+                                for (final grouping in SurnameGrouping.values)
+                                  DropdownMenuItem(
+                                    value: grouping,
+                                    child: Text(switch (grouping) {
+                                      SurnameGrouping.exact =>
+                                        l10n.surnameGroupingExact,
+                                      SurnameGrouping.spelling =>
+                                        l10n.surnameGroupingSpelling,
+                                      SurnameGrouping.sound =>
+                                        l10n.surnameGroupingSound,
+                                    }),
+                                  ),
+                              ],
+                              onChanged: (grouping) => ref
+                                  .read(treeSurnameGroupingProvider.notifier)
+                                  .set(grouping!),
                             ),
                           ),
                           if (_biometricSupported) ...[
