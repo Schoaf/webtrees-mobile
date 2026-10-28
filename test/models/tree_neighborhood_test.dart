@@ -208,8 +208,8 @@ void main() {
     });
 
     expect(detail.birthSurname, 'Muster');
-    expect(detail.marriedSurname, 'Wagner');
-    expect(detail.hasOtherMarriedSurname, isTrue);
+    expect(detail.currentSurname, 'Wagner');
+    expect(detail.hasOtherCurrentSurname, isTrue);
   });
 
   test('TreePersonDetail finds a married name in _MARNM below the birth name', () {
@@ -226,8 +226,21 @@ void main() {
       ],
     });
 
-    expect(detail.marriedSurname, 'Wagner');
-    expect(detail.hasOtherMarriedSurname, isTrue);
+    expect(detail.currentSurname, 'Wagner');
+    expect(detail.hasOtherCurrentSurname, isTrue);
+  });
+
+  test('the current name is the last: born A, married B, after the divorce A-B', () {
+    final detail = TreePersonDetail.fromIndividualJson({
+      'facts': [
+        {'tag': 'NAME', 'value': 'Anna /Muster/', 'type': ''},
+        {'tag': 'NAME', 'value': 'Anna /Wagner/', 'type': 'married'},
+        {'tag': 'NAME', 'value': 'Anna /Muster-Wagner/', 'type': 'change'},
+      ],
+    });
+
+    expect(detail.birthSurname, 'Muster');
+    expect(detail.currentSurname, 'Muster-Wagner');
   });
 
   test('a married name like the birth name is no other married name', () {
@@ -238,7 +251,7 @@ void main() {
       ],
     });
 
-    expect(detail.hasOtherMarriedSurname, isFalse);
+    expect(detail.hasOtherCurrentSurname, isFalse);
   });
 
   test('the colours go by SURN - the surname of sortName - not the spelling', () {

@@ -147,7 +147,7 @@ class TreePersonDetail {
     required this.occupation,
     this.title = '',
     this.birthSurname = '',
-    this.marriedSurname = '',
+    this.currentSurname = '',
   });
 
   factory TreePersonDetail.fromIndividualJson(Map<String, dynamic> json) {
@@ -162,16 +162,23 @@ class TreePersonDetail {
     final occuFact = facts.where((f) => f['tag'] == 'OCCU').firstOrNull;
     final titleFact = facts.where((f) => f['tag'] == 'TITL').firstOrNull;
 
-    // The names: a married name is a NAME of TYPE married, or a `_MARNM`
-    // below the birth name (as webtrees writes it).
+    // The names in their order: the birth name the first not of TYPE
+    // married, the current one the last - a later NAME (married name,
+    // change of name) or a `_MARNM` below one (as webtrees writes it).
     final names = facts.where((f) => f['tag'] == 'NAME').toList();
     bool isMarried(Map<String, dynamic> name) => (name['type'] as String? ?? '').toLowerCase() == 'married';
     final birthName = names.where((n) => !isMarried(n)).firstOrNull;
-    final marriedName = names.where(isMarried).firstOrNull;
-    final marnm = (birthName?['details'] as List<dynamic>? ?? [])
-        .cast<Map<String, dynamic>>()
-        .where((d) => d['tag'] == '_MARNM')
-        .firstOrNull;
+    var currentSurname = '';
+    for (final name in names) {
+      final value = name['value'] as String? ?? '';
+      final surname = surnameOfName(value);
+      if (surname.isNotEmpty) currentSurname = surname;
+      for (final detail in (name['details'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>()) {
+        if (detail['tag'] != '_MARNM') continue;
+        final married = _surnameOfShownName(detail['value'] as String? ?? '', value);
+        if (married.isNotEmpty) currentSurname = married;
+      }
+    }
 
     return TreePersonDetail(
       birthDateText: (birtFact?['date'] as Map<String, dynamic>?)?['text'] as String? ?? '',
@@ -179,9 +186,7 @@ class TreePersonDetail {
       occupation: occuFact?['value'] as String? ?? '',
       title: titleFact?['value'] as String? ?? '',
       birthSurname: surnameOfName(birthName?['value'] as String? ?? ''),
-      marriedSurname: marriedName != null
-          ? surnameOfName(marriedName['value'] as String? ?? '')
-          : _surnameOfShownName(marnm?['value'] as String? ?? '', birthName?['value'] as String? ?? ''),
+      currentSurname: currentSurname,
     );
   }
 
@@ -194,11 +199,14 @@ class TreePersonDetail {
 
   /// From the person's own NAME facts - '' when there is none.
   final String birthSurname;
-  final String marriedSurname;
+  /// The surname of the last name: after a marriage, a divorce, a change of
+  /// name - the one in use now. Those in between only show under "Mehr
+  /// anzeigen".
+  final String currentSurname;
 
-  /// A married name other than the birth name: shown first, the birth
+  /// A current name other than the birth name: shown first, the birth
   /// name in brackets below it.
-  bool get hasOtherMarriedSurname => marriedSurname.isNotEmpty && marriedSurname != birthSurname;
+  bool get hasOtherCurrentSurname => currentSurname.isNotEmpty && currentSurname != birthSurname;
 }
 
 /// The surname of a GEDCOM name: between the slashes of "Anna /Wagner/".

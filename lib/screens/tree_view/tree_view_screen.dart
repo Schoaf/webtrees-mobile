@@ -1217,7 +1217,13 @@ class _SiblingsFrame extends StatelessWidget {
       key: activeCardKey,
       child: TreeNodeCard(
         firstName: neighborhood.person.firstName,
-        surname: neighborhood.person.surname,
+        // The name in use now, the birth name in brackets below it.
+        surname: neighborhood.personDetail.hasOtherCurrentSurname
+            ? neighborhood.personDetail.currentSurname
+            : neighborhood.person.surname,
+        birthSurname: neighborhood.personDetail.hasOtherCurrentSurname
+            ? neighborhood.personDetail.birthSurname
+            : null,
         backgroundColor: _SurnameColorsScope.of(context, neighborhood.person.xref),
         isFaded: _SurnameColorsScope.isFaded(context, neighborhood.person.xref),
         sex: neighborhood.person.sex,
@@ -1241,8 +1247,8 @@ class _SiblingsFrame extends StatelessWidget {
       ),
     );
 
-    final partnerSurname = (partnerDetail?.hasOtherMarriedSurname ?? false)
-        ? partnerDetail!.marriedSurname
+    final partnerSurname = (partnerDetail?.hasOtherCurrentSurname ?? false)
+        ? partnerDetail!.currentSurname
         : partner?.partner?.surname ?? '';
 
     Widget centerGroup;
@@ -1286,7 +1292,7 @@ class _SiblingsFrame extends StatelessWidget {
                             // The colour of the family they come from.
                             backgroundColor: _SurnameColorsScope.of(context, p.partner!.xref),
                             isFaded: _SurnameColorsScope.isFaded(context, p.partner!.xref),
-                            birthSurname: (partnerDetail?.hasOtherMarriedSurname ?? false)
+                            birthSurname: (partnerDetail?.hasOtherCurrentSurname ?? false)
                                 ? partnerDetail!.birthSurname
                                 : null,
                             sex: p.partner!.sex,
