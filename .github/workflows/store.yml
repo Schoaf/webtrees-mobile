@@ -63,7 +63,7 @@ jobs:
       - name: Render screenshots
         run: flutter test test/screenshots/store_screenshots_test.dart --dart-define=RENDER_SCREENSHOTS=true
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
 
