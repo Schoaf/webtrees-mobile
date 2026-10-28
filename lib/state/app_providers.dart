@@ -132,6 +132,17 @@ final selectedTabProvider = NotifierProvider<SelectedTabNotifier, int>(
   SelectedTabNotifier.new,
 );
 
+/// Asks the Search tab to put the cursor into its field, keyboard up -
+/// counts up with each request (the Home page's search field).
+class SearchFocusRequest extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void request() => state++;
+}
+
+final searchFocusRequestProvider = NotifierProvider<SearchFocusRequest, int>(SearchFocusRequest.new);
+
 final webtreesClientProvider = Provider<WebtreesClient>((ref) {
   final url = ref.watch(serverUrlProvider);
   String effective(String? picked) =>

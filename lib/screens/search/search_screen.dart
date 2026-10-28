@@ -37,6 +37,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    // From the Home page's search field: the cursor goes into this one -
+    // once the tab shows, a hidden field takes no focus.
+    ref.listenManual(searchFocusRequestProvider, (_, _) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    });
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _queryController.dispose();

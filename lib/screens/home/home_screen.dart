@@ -177,9 +177,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         // own (it's meant to live inside the tab bar), so
                         // pushing it stranded people with no way back to
                         // the main menu.
-                        onTap: () => ref
-                            .read(selectedTabProvider.notifier)
-                            .select(kSearchTabIndex),
+                        // Looks like a search field: typing starts right
+                        // away, the keyboard up.
+                        onTap: () {
+                          ref
+                              .read(selectedTabProvider.notifier)
+                              .select(kSearchTabIndex);
+                          ref.read(searchFocusRequestProvider.notifier).request();
+                        },
                       ),
                       rest: [
                         if (data.startPerson != null) ...[

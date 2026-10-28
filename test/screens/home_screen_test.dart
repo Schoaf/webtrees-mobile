@@ -184,6 +184,8 @@ void main() {
     // itself would.
     expect(container.read(selectedTabProvider), kSearchTabIndex);
     expect(find.byType(BackButton), findsNothing);
+    // ...and the search field gets the keyboard right away.
+    expect(container.read(searchFocusRequestProvider), 1);
   });
 
   testWidgets('shows the unread-responses card with correct singular/plural text and navigates on tap', (

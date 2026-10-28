@@ -39,6 +39,17 @@ void main() {
     );
   }
 
+  testWidgets('a request from the Home page puts the cursor into the field', (tester) async {
+    await pumpSearchScreen(tester);
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    container.read(searchFocusRequestProvider.notifier).request();
+    await tester.pump();
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+  });
+
   testWidgets('shows a prompt before any search has been made', (tester) async {
     await pumpSearchScreen(tester);
     expect(find.text('Suche nach einem Namen.'), findsOneWidget);
