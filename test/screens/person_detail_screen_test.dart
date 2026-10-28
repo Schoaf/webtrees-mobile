@@ -514,6 +514,33 @@ void main() {
     },
   );
 
+  testWidgets('further names - married name, change of name - show under "Mehr anzeigen"', (tester) async {
+    final json = personJson('I1');
+    json['facts'] = <dynamic>[
+      ...json['facts'] as List,
+      {
+        'tag': 'NAME',
+        'label': 'Name',
+        'value': 'Anna /Muster/',
+        'details': [
+          {'tag': '_MARNM', 'label': 'Ehename', 'value': 'Anna /Beispiel/', 'level': 0},
+        ],
+      },
+      {'tag': 'NAME', 'label': 'Name', 'type': 'change', 'typeLabel': 'Namensänderung', 'value': 'Anna /Muster-Beispiel/'},
+    ];
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+
+    await pumpScreen(tester);
+    expect(find.text('Anna Beispiel'), findsNothing);
+    await tester.tap(find.textContaining('Mehr anzeigen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ehename'), findsOneWidget);
+    expect(find.text('Anna Beispiel'), findsOneWidget);
+    expect(find.text('Namensänderung'), findsOneWidget);
+    expect(find.text('Anna Muster-Beispiel'), findsOneWidget);
+  });
+
   group('AddFactSheet (Fakt hinzufügen)', () {
     testWidgets('the tag picker, value field, and (once a tag is chosen) date field can all be filled and are sent on save', (
       tester,

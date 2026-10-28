@@ -108,6 +108,27 @@ List<Map<String, dynamic>> _givenSurnameRows(
   ];
 }
 
+/// Every name besides the one up top, for "Mehr anzeigen": a married name
+/// below a name (`2 _MARNM`, as webtrees writes it) and further NAME facts
+/// (married name, change of name ...), each labelled by its kind.
+List<Map<String, dynamic>> _otherNameRows(List<Map<String, dynamic>> facts) {
+  String shown(String gedcomName) => gedcomName.replaceAll('/', ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  final names = facts.where((f) => f['tag'] == 'NAME').toList();
+  return [
+    for (final (i, name) in names.indexed) ...[
+      if (i > 0)
+        {
+          'tag': '_OTHER_NAME',
+          'label': name['typeLabel'] as String? ?? name['label'] as String? ?? '',
+          'value': shown(name['value'] as String? ?? ''),
+        },
+      for (final detail in (name['details'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>())
+        if (detail['tag'] == '_MARNM')
+          {'tag': '_MARNM', 'label': detail['label'] as String? ?? '', 'value': shown(detail['value'] as String? ?? '')},
+    ],
+  ];
+}
+
 enum _ShareChoice { link, data }
 
 enum _AskForHelpChoice { copyLink, shareLink, email }
@@ -1232,7 +1253,10 @@ class _FactsCardState extends State<_FactsCard> {
     // name is already up top next to the photo - but under "Mehr anzeigen"
     // they're useful on their own (e.g. to see exactly what will split into
     // which field before editing).
-    final nameRows = nameFact == null ? <Map<String, dynamic>>[] : _givenSurnameRows(nameFact, l10n);
+    final nameRows = [
+      if (nameFact != null) ..._givenSurnameRows(nameFact, l10n),
+      ..._otherNameRows(widget.facts),
+    ];
 
     final visible = widget.facts.where((f) => f['tag'] != 'NAME').toList();
     final primary = _sortedByFieldOrder(
