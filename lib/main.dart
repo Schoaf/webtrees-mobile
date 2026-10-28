@@ -17,6 +17,8 @@ import 'state/app_providers.dart';
 import 'state/language.dart';
 import 'theme/app_theme.dart';
 import 'utils/connect_deep_link.dart';
+import 'utils/open_deep_link.dart';
+import 'utils/open_links_offer.dart';
 import 'utils/person_deep_link.dart';
 import 'utils/share_review_deep_link.dart';
 import 'utils/tab_navigation.dart';
@@ -135,6 +137,14 @@ class _AppRootState extends ConsumerState<_AppRoot> {
 
       if (!ref.read(authControllerProvider).loggedIn) return;
 
+      // A page opened from outside on the website, offered to the app
+      // (api4webtrees "Open links in the app").
+      final openLink = openLinkFrom(uri);
+      if (openLink != null) {
+        _handleOpenLink(openLink);
+        return;
+      }
+
       final xref = personXrefFromLink(uri);
       if (xref != null) {
         openPerson(context, xref);
@@ -155,6 +165,27 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     // 6+) - calling getInitialLink() as well handled it twice, which spent a
     // "Verbinden" code twice: the second attempt answered pair-invalid.
     _appLinks.uriLinkStream.listen(handle);
+  }
+
+  /// Shows a page from the website: a person, or a chart as the tree. Only
+  /// for the connected server - its tree switched if needed.
+  Future<void> _handleOpenLink(OpenLink link) async {
+    final dialogContext = rootNavigatorKey.currentContext;
+    if (!link.isOnServer(ref.read(serverUrlProvider))) {
+      if (dialogContext == null) return;
+      final l10n = AppLocalizations.of(dialogContext)!;
+      await showDialog<void>(
+        context: dialogContext,
+        builder: (context) => AlertDialog(
+          content: Text(l10n.openLinkOtherServer(link.pageUrl.host)),
+          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l10n.ok))],
+        ),
+      );
+      return;
+    }
+    if (link.tree != ref.read(treeNameProvider)) await ref.read(treeNameProvider.notifier).set(link.tree);
+    if (!mounted) return;
+    link.isChart ? openTreeView(context, link.xref) : openPerson(context, link.xref);
   }
 
   /// Redeems a "Verbinden" pairing code: repoints this device at the
@@ -364,6 +395,15 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
   late final _observers = [
     for (var i = 0; i < _screens.length; i++) BottomBarObserver(ProviderScope.containerOf(context, listen: false)),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Once per server, if its module can: open its links in the app?
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) offerOpenLinksOnce(context, ref);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

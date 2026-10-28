@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../utils/open_deep_link.dart';
 import '../utils/webtrees_url.dart';
 
 /// [RequestOptions.extra] key marking a request as already having gone
@@ -192,6 +193,22 @@ class WebtreesClient {
       usePrettyUrls: usePrettyUrls,
       query: {for (final e in (query ?? const {}).entries) e.key: '${e.value}'},
     );
+  }
+
+  /// The api4webtrees "App" page for [tree], asking to open this server's
+  /// links in this app ("Open links in the app") - opened in the browser,
+  /// since the choice is a cookie of the browser.
+  Uri openLinksSetupUri(String tree) => _moduleUri('App', tree, {'open-in': openLinksAppId});
+
+  /// Whether this server's module offers opening links in the app: its
+  /// "App" page then has the set-up for this app. Older modules show the
+  /// page without it.
+  Future<bool> canOpenLinksInApp(String tree) async {
+    final response = await _dio.getUri<String>(
+      openLinksSetupUri(tree),
+      options: Options(responseType: ResponseType.plain),
+    );
+    return (response.data ?? '').contains('name="all" value="always"');
   }
 
   Uri _shareModuleUri(

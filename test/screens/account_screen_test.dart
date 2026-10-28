@@ -120,6 +120,17 @@ void main() {
     expect(find.text('Linked One', findRichText: true), findsNothing);
   });
 
+  testWidgets('offers opening links in the app only where the server can', (tester) async {
+    when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(defaultXref: ''));
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1'));
+    when(() => client.canOpenLinksInApp('Famtree')).thenAnswer((_) async => true);
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const Key('openLinksSetting')), 200);
+    expect(find.text('Links in der App öffnen'), findsOneWidget);
+  });
+
   testWidgets('shows username, real name, role, linked person and Startperson once loaded', (tester) async {
     when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse());
     when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personResponse('I1', name: 'Linked One'));

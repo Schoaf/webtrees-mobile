@@ -57,6 +57,17 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="webtreesmobile" android:host="connect"/>
             </intent-filter>
+            <!-- Open link: a webtrees page opened from outside, offered to
+                 the app by api4webtrees ("Open links in the app") - see
+                 lib/utils/open_deep_link.dart. open-in: back from setting
+                 it up on the website. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="webtreesmobile" android:host="open"/>
+                <data android:scheme="webtreesmobile" android:host="open-in"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

@@ -11,6 +11,7 @@ import '../../state/tree_generations.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/copy_to_clipboard.dart';
 import '../../utils/device_size.dart';
+import '../../utils/open_links_offer.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/copyable_error_text.dart';
 import '../../widgets/person_card.dart';
@@ -50,6 +51,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   String? _appVersion;
   bool _biometricSupported = false;
   bool _biometricEnabled = false;
+  late final Future<bool> _canOpenLinks = canOpenLinksInApp(ref);
 
   final _realNameController = TextEditingController();
   Map<String, dynamic>? _pendingStartPerson;
@@ -470,6 +472,27 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                                   .read(treeSurnameGroupingProvider.notifier)
                                   .set(grouping!),
                             ),
+                          ),
+                          // Only where the server's module can (api4webtrees
+                          // "Open links in the app").
+                          FutureBuilder<bool>(
+                            future: _canOpenLinks,
+                            builder: (context, snapshot) => snapshot.data != true
+                                ? const SizedBox.shrink()
+                                : ListTile(
+                                    key: const Key('openLinksSetting'),
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text(
+                                      l10n.openLinksSettingTitle,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                    subtitle: Text(
+                                      l10n.openLinksSettingSubtitle,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    trailing: const Icon(Icons.open_in_new, size: 18),
+                                    onTap: () => setUpOpenLinks(ref),
+                                  ),
                           ),
                           if (_biometricSupported) ...[
                             const SizedBox(height: 12),
