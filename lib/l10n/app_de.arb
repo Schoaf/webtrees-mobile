@@ -355,6 +355,7 @@
   },
   "factValueHint": "z. B. Bäckerin",
   "dateOptionalLabel": "Datum (optional)",
+  "placeOptionalLabel": "Ort (optional)",
 
   "noPersonalMessagePlaceholder": "(keine persönliche Nachricht)",
   "pleaseEnterValidEmail": "Bitte eine gültige E-Mail-Adresse angeben.",

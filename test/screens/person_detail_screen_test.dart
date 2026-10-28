@@ -551,6 +551,8 @@ void main() {
       await tester.tap(find.text('Beruf'));
       await tester.pump();
 
+      // The value field is named like the fact.
+      expect(find.widgetWithText(TextField, 'Beruf'), findsOneWidget);
       await tester.enterText(find.byType(TextField), 'Bäcker');
 
       expect(find.text('Datum wählen'), findsOneWidget);
@@ -565,6 +567,41 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(() => client.postFact('Famtree', 'I1', tag: 'OCCU', value: 'Bäcker', date: any(named: 'date'))).called(1);
+    });
+
+    testWidgets('an event asks for its place, not a value', (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+      when(() => client.tags('Famtree', type: 'INDI')).thenAnswer(
+        (_) async => {
+          'data': [
+            {'tag': 'BIRT', 'label': 'Geburt', 'isEvent': true},
+          ],
+        },
+      );
+      when(
+        () => client.postFact('Famtree', 'I1', tag: 'BIRT', place: 'Wien'),
+      ).thenAnswer((_) async => {'ok': true});
+      when(() => client.placeAutocomplete('Famtree', any())).thenAnswer((_) async => <String>[]);
+
+      await pumpScreen(tester);
+      await tester.tap(find.textContaining('Mehr anzeigen'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Fakt hinzufügen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fakt hinzufügen'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Geburt'));
+      await tester.pump();
+      expect(find.text('Wert'), findsNothing);
+      expect(find.text('Ort (optional)'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Wien');
+      await tester.tap(find.widgetWithText(FilledButton, 'Speichern'));
+      await tester.pumpAndSettle();
+
+      verify(() => client.postFact('Famtree', 'I1', tag: 'BIRT', place: 'Wien')).called(1);
     });
 
     testWidgets('record-metadata tags (Aktualisiert am, Datensatz-ID, ...) never appear as addable, even if the server sends them', (

@@ -7,6 +7,7 @@ import '../repositories/quick_note_store.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
 import 'gedcom_date_field.dart';
+import 'place_autocomplete_field.dart';
 
 /// Result of the sheet: whether a fact was actually posted to webtrees, or
 /// only saved locally because the server couldn't be reached.
@@ -39,6 +40,7 @@ class AddFactSheet extends ConsumerStatefulWidget {
 class _AddFactSheetState extends ConsumerState<AddFactSheet> {
   final _valueController = TextEditingController();
   final _dateController = TextEditingController();
+  final _placeController = TextEditingController();
   List<Map<String, dynamic>> _tags = [];
   String? _selectedTag;
   bool _loadingTags = true;
@@ -49,6 +51,14 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
   void initState() {
     super.initState();
     _loadTags();
+  }
+
+  @override
+  void dispose() {
+    _valueController.dispose();
+    _dateController.dispose();
+    _placeController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTags() async {
@@ -73,10 +83,16 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
     }
   }
 
+  /// An event (birth, death, baptism ...) has a place, an attribute
+  /// (occupation, religion ...) a value of its own.
+  bool _isEvent(String tag) => _tags.any((t) => t['tag'] == tag && t['isEvent'] == true);
+
   Future<void> _save() async {
     final tag = _selectedTag;
-    final value = _valueController.text.trim();
     if (tag == null) return;
+    final isEvent = _isEvent(tag);
+    final value = isEvent ? '' : _valueController.text.trim();
+    final place = isEvent ? _placeController.text.trim() : '';
     final l10n = AppLocalizations.of(context)!;
 
     setState(() {
@@ -92,6 +108,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
         widget.xref,
         tag: tag,
         value: value.isEmpty ? null : value,
+        place: place.isEmpty ? null : place,
         date: _dateController.text.trim().isEmpty
             ? null
             : _dateController.text.trim(),
@@ -118,7 +135,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
           personGuess: widget.personName,
           xref: widget.xref,
           text:
-              '${_tagLabel(tag)}: $value${_dateController.text.trim().isEmpty ? '' : ' (${_dateController.text.trim()})'}',
+              '${_tagLabel(tag)}: ${isEvent ? place : value}${_dateController.text.trim().isEmpty ? '' : ' (${_dateController.text.trim()})'}',
           createdAt: DateTime.now(),
         ),
       );
@@ -202,17 +219,24 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                         ),
                     ],
                   ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _valueController,
-                  decoration: InputDecoration(
-                    labelText: l10n.value,
-                    hintText: l10n.factValueHint,
-                  ),
-                  minLines: 1,
-                  maxLines: 3,
-                ),
                 if (_selectedTag != null) ...[
+                  const SizedBox(height: 16),
+                  if (_isEvent(_selectedTag!))
+                    PlaceAutocompleteField(
+                      controller: _placeController,
+                      labelText: l10n.placeOptionalLabel,
+                    )
+                  else
+                    // Named like the fact: "Beruf", "Religion" ...
+                    TextField(
+                      controller: _valueController,
+                      decoration: InputDecoration(
+                        labelText: _tagLabel(_selectedTag!),
+                        hintText: _selectedTag == 'OCCU' ? l10n.factValueHint : null,
+                      ),
+                      minLines: 1,
+                      maxLines: 3,
+                    ),
                   const SizedBox(height: 12),
                   GedcomDateField(
                     controller: _dateController,

@@ -197,6 +197,7 @@
   "couldNotLoadFactTypesError": "Kon feittypen niet laden: {error}",
   "factValueHint": "bijv. bakker",
   "dateOptionalLabel": "Datum (optioneel)",
+  "placeOptionalLabel": "Plaats (optioneel)",
 
   "noPersonalMessagePlaceholder": "(geen persoonlijk bericht)",
   "pleaseEnterValidEmail": "Voer een geldig e-mailadres in.",

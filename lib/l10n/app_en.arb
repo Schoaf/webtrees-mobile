@@ -197,6 +197,7 @@
   "couldNotLoadFactTypesError": "Couldn't load fact types: {error}",
   "factValueHint": "e.g. Baker",
   "dateOptionalLabel": "Date (optional)",
+  "placeOptionalLabel": "Place (optional)",
 
   "noPersonalMessagePlaceholder": "(no personal message)",
   "pleaseEnterValidEmail": "Please enter a valid email address.",
