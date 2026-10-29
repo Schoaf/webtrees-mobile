@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:dio/dio.dart';
 
 import '../utils/open_deep_link.dart';
@@ -202,11 +204,15 @@ class WebtreesClient {
 
   /// Whether this server's module offers opening links in the app: its
   /// "App" page then has the set-up for this app. Older modules show the
-  /// page without it.
+  /// page without it. The page offers only apps for the device it sees in
+  /// the User-Agent - Dart's own names none, so we name this platform.
   Future<bool> canOpenLinksInApp(String tree) async {
     final response = await _dio.getUri<String>(
       openLinksSetupUri(tree),
-      options: Options(responseType: ResponseType.plain),
+      options: Options(
+        responseType: ResponseType.plain,
+        headers: {'User-Agent': 'webtrees-mobile (${Platform.isIOS ? 'iPhone' : Platform.operatingSystem})'},
+      ),
     );
     return (response.data ?? '').contains('name="all" value="always"');
   }
