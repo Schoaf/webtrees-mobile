@@ -36,6 +36,7 @@ void main() {
     List<Map<String, dynamic>> photos, {
     bool canEdit = true,
     int? apiLevel,
+    Future<List<Map<String, dynamic>>?> Function()? onAddPhotos,
   }) async {
     final image = (await tester.runAsync(() => createTestImage(width: 400, height: 300)))!;
     container = ProviderContainer(
@@ -63,6 +64,7 @@ void main() {
                       personName: 'Anna Muster',
                       photos: photos,
                       canEdit: canEdit,
+                      onAddPhotos: onAddPhotos,
                     ),
                   ),
                 );
@@ -88,11 +90,25 @@ void main() {
     expect(find.text('2 / 3'), findsOneWidget);
   });
 
+  testWidgets('adds photos from the gallery and shows the first new one', (tester) async {
+    await pumpViewer(
+      tester,
+      [_photo('M1', isPrimary: true), _photo('M2')],
+      onAddPhotos: () async => [_photo('M1', isPrimary: true), _photo('M2'), _photo('M3'), _photo('M4')],
+    );
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('addPhotosButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('3 / 4'), findsOneWidget);
+  });
+
   testWidgets('no edit buttons without edit rights', (tester) async {
     await pumpViewer(tester, [_photo('M1', isPrimary: true), _photo('M2')], canEdit: false);
 
     expect(find.byKey(const Key('photoMenu')), findsNothing);
     expect(find.byKey(const Key('removePhotoItem')), findsNothing);
+    expect(find.byKey(const Key('addPhotosButton')), findsNothing);
   });
 
   testWidgets('makes the photo in view the profile photo, from the menu only', (tester) async {

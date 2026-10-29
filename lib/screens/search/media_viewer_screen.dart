@@ -27,6 +27,7 @@ class MediaViewerScreen extends ConsumerStatefulWidget {
     required this.photos,
     this.initialIndex = 0,
     this.canEdit = false,
+    this.onAddPhotos,
   });
 
   final String personXref;
@@ -36,6 +37,10 @@ class MediaViewerScreen extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> photos;
   final int initialIndex;
   final bool canEdit;
+
+  /// Picks and uploads more photos of the person; the photos afterwards, or
+  /// null when nothing was added.
+  final Future<List<Map<String, dynamic>>?> Function()? onAddPhotos;
 
   @override
   ConsumerState<MediaViewerScreen> createState() => _MediaViewerScreenState();
@@ -48,7 +53,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     for (final photo in widget.photos) {...photo},
   ];
   late int _index = widget.initialIndex.clamp(0, _photos.length - 1);
-  late final _pageController = PageController(initialPage: _index);
+  late var _pageController = PageController(initialPage: _index);
   final _thumbController = ScrollController();
   bool _isBusy = false;
   bool _hasChanged = false;
@@ -364,6 +369,26 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     return isNew ?? false;
   }
 
+  /// More photos of the person: afterwards the gallery shows the first new one.
+  Future<void> _addPhotos() async {
+    final before = {for (final photo in _photos) photo['xref']};
+    final photos = await widget.onAddPhotos!();
+    if (photos == null || !mounted) return;
+    final firstNew = photos.indexWhere((photo) => !before.contains(photo['xref']));
+    setState(() {
+      _photos
+        ..clear()
+        ..addAll([for (final photo in photos) {...photo}]);
+      _index = firstNew < 0 ? _index.clamp(0, _photos.length - 1) : firstNew;
+      _hasChanged = true;
+      // A new controller starts on that photo - jumping in the old one still
+      // stopped at the end of the old list.
+      final old = _pageController;
+      _pageController = PageController(initialPage: _index);
+      WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    });
+  }
+
   /// A frame tapped while marking: adjust it, or go to the person.
   /// A name under the photo tapped: show (or hide again) their frame on it; without one, their menu.
   void _showFrameOf(Map<String, dynamic> person) {
@@ -628,6 +653,14 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                   ),
                 ]
               : [
+                  // As in the person's ⋮ menu.
+                  if (widget.onAddPhotos != null)
+                    IconButton(
+                      key: const Key('addPhotosButton'),
+                      tooltip: l10n.addPhotos,
+                      onPressed: _isBusy ? null : _addPhotos,
+                      icon: const Icon(Icons.add_photo_alternate_outlined),
+                    ),
                   // Also in the ⋮ menu - as a symbol for those who mark often.
                   if (canMark)
                     IconButton(

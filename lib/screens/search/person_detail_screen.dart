@@ -350,6 +350,17 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           photos: photos,
           initialIndex: primaryIndex < 0 ? 0 : primaryIndex,
           canEdit: canEdit,
+          // Add more right in the gallery, then show the new list.
+          onAddPhotos: canEdit
+              ? () async {
+                  if (!await _pickAndUploadPhoto(isAdding: true)) return null;
+                  final data = await _future;
+                  return (data['media'] as List<dynamic>? ?? [])
+                      .cast<Map<String, dynamic>>()
+                      .where((m) => m['isImage'] == true)
+                      .toList();
+                }
+              : null,
         ),
       ),
     );
@@ -362,7 +373,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
 
   /// Uploads a photo as the person's main photo (#34), or - [isAdding] -
   /// one or more further photos from the ⋮ menu (#35).
-  Future<void> _pickAndUploadPhoto({bool isAdding = false}) async {
+  /// Whether a photo was uploaded.
+  Future<bool> _pickAndUploadPhoto({bool isAdding = false}) async {
     final l10n = AppLocalizations.of(context)!;
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -384,19 +396,19 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         ),
       ),
     );
-    if (source == null || !mounted) return;
+    if (source == null || !mounted) return false;
 
     final picker = ImagePicker();
     final files = isAdding && source == ImageSource.gallery
         ? await picker.pickMultiImage(maxWidth: 2000, imageQuality: 85)
         : [?await picker.pickImage(source: source, maxWidth: 2000, imageQuality: 85)];
-    if (files.isEmpty || !mounted) return;
+    if (files.isEmpty || !mounted) return false;
 
     final allBytes = [for (final file in files) await file.readAsBytes()];
-    if (!mounted) return;
+    if (!mounted) return false;
     // Title, description, photo or document (#38) - all optional.
     final description = await showPhotoDescriptionSheet(context, allBytes);
-    if (description == null || !mounted) return;
+    if (description == null || !mounted) return false;
 
     final client = ref.read(webtreesClientProvider);
     final tree = ref.read(treeNameProvider);
@@ -418,7 +430,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final media = result['media'] as String?;
         if (!isAdding && media != null) await client.postPrimaryMedia(tree, _xref, media: media);
       }
-      if (!mounted) return;
+      if (!mounted) return false;
       if (result['ok'] == true) {
         // Braced, not `setState(() => _future = _load())`: an assignment
         // expression's value is the assigned value, so an arrow-bodied
@@ -432,6 +444,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.photosUploaded(files.length))));
+        return true;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -440,11 +453,12 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         );
       }
     } on Exception catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.uploadFailedError('$e'))),
       );
     }
+    return false;
   }
 
   Future<void> _openShareMenu({
