@@ -383,6 +383,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              title: Text(l10n.addPictureTitle, style: const TextStyle(fontWeight: FontWeight.w500)),
+            ),
+            ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: Text(l10n.chooseFromPhotos),
               onTap: () => Navigator.of(context).pop(ImageSource.gallery),

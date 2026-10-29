@@ -260,6 +260,7 @@
   "factSaved": "Fakt gespeichert.",
   "savedLocallyOffline": "Server nicht erreichbar — lokal gespeichert, später synchronisieren.",
   "chooseFromPhotos": "Aus Fotos wählen",
+  "addPictureTitle": "Bild hinzufügen",
   "takePhoto": "Foto aufnehmen",
   "photoUploaded": "Foto hochgeladen.",
   "uploadFailedError": "Upload fehlgeschlagen: {error}",

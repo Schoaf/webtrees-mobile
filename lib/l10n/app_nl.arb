@@ -159,6 +159,7 @@
   "factSaved": "Feit opgeslagen.",
   "savedLocallyOffline": "Server niet bereikbaar — lokaal opgeslagen, synchroniseer later.",
   "chooseFromPhotos": "Uit foto's kiezen",
+  "addPictureTitle": "Afbeelding toevoegen",
   "takePhoto": "Foto maken",
   "photoUploaded": "Foto geüpload.",
   "uploadFailedError": "Upload mislukt: {error}",

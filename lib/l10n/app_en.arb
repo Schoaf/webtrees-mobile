@@ -159,6 +159,7 @@
   "factSaved": "Fact saved.",
   "savedLocallyOffline": "Server unreachable — saved locally, sync later.",
   "chooseFromPhotos": "Choose from photos",
+  "addPictureTitle": "Add picture",
   "takePhoto": "Take photo",
   "photoUploaded": "Photo uploaded.",
   "uploadFailedError": "Upload failed: {error}",
