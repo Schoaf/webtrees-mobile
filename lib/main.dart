@@ -97,6 +97,10 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   // already sitting on the login screen when the link arrived).
   bool _connecting = false;
   final _redeemedConnectCodes = <String>{};
+
+  // A page from the website that arrived before the app was ready - still
+  // restoring the session, locked, or not signed in yet: opened once it is.
+  OpenLink? _pendingOpenLink;
   String? _connectError;
 
   @override
@@ -135,15 +139,19 @@ class _AppRootState extends ConsumerState<_AppRoot> {
         return;
       }
 
-      if (!ref.read(authControllerProvider).loggedIn) return;
-
       // A page opened from outside on the website, offered to the app
-      // (api4webtrees "Open links in the app").
+      // (api4webtrees "Open links in the app") - kept for after signing in.
       final openLink = openLinkFrom(uri);
       if (openLink != null) {
-        _handleOpenLink(openLink);
+        if (ref.read(authControllerProvider).loggedIn && !_restoring && !_needsBiometricUnlock) {
+          _handleOpenLink(openLink);
+        } else {
+          setState(() => _pendingOpenLink = openLink);
+        }
         return;
       }
+
+      if (!ref.read(authControllerProvider).loggedIn) return;
 
       final xref = personXrefFromLink(uri);
       if (xref != null) {
@@ -291,6 +299,14 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     if (ref.watch(serverUrlProvider).isEmpty) return const ServerScreen();
 
     final auth = ref.watch(authControllerProvider);
+    final pendingOpenLink = _pendingOpenLink;
+    if (auth.loggedIn && pendingOpenLink != null) {
+      _pendingOpenLink = null;
+      // After this frame: the tabs it opens in are built with it.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _handleOpenLink(pendingOpenLink);
+      });
+    }
     // Keyed by tree: switching trees ("Stammbaum wechseln") throws away
     // every tab, nested navigation and tree-view state, so the new tree
     // starts exactly like a first load instead of showing the old one's.
