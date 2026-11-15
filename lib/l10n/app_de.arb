@@ -537,5 +537,11 @@
   "earlyOnsetExplained": "Früh: Diagnose vor dem Alter von {age} Jahren.",
   "@earlyOnsetExplained": {"placeholders": {"age": {"type": "int"}}},
   "familyHealthShowInTree": "Im Stammbaum zeigen",
-  "familyHealthLeaveTree": "Familiengesundheit ausblenden"
+  "familyHealthLeaveTree": "Familiengesundheit ausblenden",
+  "illnessLabel": "Erkrankung",
+  "illnessYearLabel": "Jahr der Diagnose (optional)",
+  "illnessCategoryLabel": "Kategorie",
+  "illnessCategoryHint": "Neu in der Liste – wählen Sie eine Kategorie, damit sie richtig eingeordnet wird.",
+  "illnessConfidentialHint": "Wird vertraulich gespeichert: Nur Blutsverwandte der Person sehen es in der Familiengesundheit.",
+  "illnessYearInvalid": "Bitte ein Jahr wie 1980 eingeben."
 }

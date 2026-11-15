@@ -667,5 +667,133 @@ void main() {
       expect(find.text('Datensatz-ID (Server)'), findsNothing);
       expect(find.text('Quellenangabe (Server)'), findsNothing);
     });
+
+    group('illness (family-health, #54)', () {
+      const catalog = {
+        'categories': [
+          {'id': 'cardiovascular', 'name': 'Herz und Kreislauf'},
+          {'id': 'cancer', 'name': 'Krebs'},
+        ],
+        'illnesses': [
+          {'name': 'Brustkrebs', 'category': 'cancer', 'icd': 'C50'},
+          {'name': 'Darmkrebs', 'category': 'cancer', 'icd': 'C18'},
+          {'name': 'Herzinfarkt', 'category': 'cardiovascular', 'icd': 'I21'},
+        ],
+      };
+
+      Future<void> openSheet(WidgetTester tester, {List<String> modules = const ['_family-health_']}) async {
+        when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+        when(() => client.tags('Famtree', type: 'INDI')).thenAnswer(
+          (_) async => {
+            'data': [
+              {'tag': 'OCCU', 'label': 'Beruf'},
+            ],
+          },
+        );
+        when(() => client.info('Famtree')).thenAnswer(
+          (_) async => {
+            'trees': [
+              {'name': 'Famtree', 'availableModules': modules},
+            ],
+          },
+        );
+        when(() => client.familyHealthCatalog('Famtree')).thenAnswer((_) async => catalog);
+        await pumpScreen(tester);
+        await tester.tap(find.textContaining('Mehr anzeigen'));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Fakt hinzufügen'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Fakt hinzufügen'));
+        await tester.pumpAndSettle();
+      }
+
+      // The sheet is a lazy list: scroll to the button before tapping it.
+      Future<void> scrollTo(WidgetTester tester, Finder finder) => tester.scrollUntilVisible(
+        finder,
+        100,
+        scrollable: find.descendant(of: find.byType(DraggableScrollableSheet), matching: find.byType(Scrollable)).first,
+      );
+
+      Future<void> save(WidgetTester tester) async {
+        final button = find.widgetWithText(FilledButton, 'Speichern');
+        await scrollTo(tester, button);
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('a name from the catalog is suggested and sent with the year, without a category', (tester) async {
+        when(
+          () => client.postFamilyHealthIllness('Famtree', 'I1', illness: 'Darmkrebs', date: '1980'),
+        ).thenAnswer((_) async => {'ok': true});
+        await openSheet(tester);
+
+        await tester.tap(find.byKey(const Key('illnessChip')));
+        await tester.pumpAndSettle();
+        expect(find.textContaining('vertraulich'), findsOneWidget);
+        // Nothing typed: nothing to save.
+        expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Speichern')).onPressed, isNull);
+
+        await tester.enterText(find.byKey(const Key('illnessName')), 'krebs');
+        await tester.pump();
+        expect(find.text('Brustkrebs'), findsOneWidget);
+        await tester.tap(find.text('Darmkrebs'));
+        await tester.pump();
+        // Known: its category shows, no choice to make.
+        expect(find.text('Krebs'), findsOneWidget);
+        expect(find.byKey(const Key('illnessCategory')), findsNothing);
+
+        await tester.enterText(find.byKey(const Key('illnessYear')), '1980');
+        await save(tester);
+
+        verify(() => client.postFamilyHealthIllness('Famtree', 'I1', illness: 'Darmkrebs', date: '1980')).called(1);
+        expect(find.text('Fakt gespeichert.'), findsOneWidget);
+      });
+
+      testWidgets('a new name asks for its category and sends it', (tester) async {
+        when(
+          () => client.postFamilyHealthIllness('Famtree', 'I1', illness: 'Mukoviszidose', category: 'cardiovascular'),
+        ).thenAnswer((_) async => {'ok': true});
+        await openSheet(tester);
+        await tester.tap(find.byKey(const Key('illnessChip')));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byKey(const Key('illnessName')), 'Mukoviszidose');
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('illnessCategory')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Herz und Kreislauf').last);
+        await tester.pumpAndSettle();
+        await save(tester);
+
+        verify(
+          () => client.postFamilyHealthIllness('Famtree', 'I1', illness: 'Mukoviszidose', category: 'cardiovascular'),
+        ).called(1);
+      });
+
+      testWidgets('the module rejecting it and a wrong year show, a wrong year is not sent', (tester) async {
+        when(
+          () => client.postFamilyHealthIllness('Famtree', 'I1', illness: 'Herzinfarkt'),
+        ).thenAnswer((_) async => {'ok': false, 'error': 'Sie dürfen diese Person nicht ändern.'});
+        await openSheet(tester);
+        await tester.tap(find.byKey(const Key('illnessChip')));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byKey(const Key('illnessName')), 'Herzinfarkt');
+
+        await tester.enterText(find.byKey(const Key('illnessYear')), '80er');
+        await save(tester);
+        await scrollTo(tester, find.text('Bitte ein Jahr wie 1980 eingeben.'));
+        verifyNever(() => client.postFamilyHealthIllness(any(), any(), illness: any(named: 'illness'), date: any(named: 'date')));
+
+        await tester.enterText(find.byKey(const Key('illnessYear')), '');
+        await save(tester);
+        await scrollTo(tester, find.textContaining('Sie dürfen diese Person nicht ändern.'));
+      });
+
+      testWidgets('no illness chip without the module', (tester) async {
+        await openSheet(tester, modules: []);
+        expect(find.byKey(const Key('illnessChip')), findsNothing);
+        expect(find.text('Beruf'), findsOneWidget);
+      });
+    });
   });
 }

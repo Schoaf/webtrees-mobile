@@ -352,5 +352,11 @@
   "earlyOnset": "early",
   "earlyOnsetExplained": "Early: diagnosed before the age of {age}.",
   "familyHealthShowInTree": "Show in the tree",
-  "familyHealthLeaveTree": "Hide family health"
+  "familyHealthLeaveTree": "Hide family health",
+  "illnessLabel": "Illness",
+  "illnessYearLabel": "Year of diagnosis (optional)",
+  "illnessCategoryLabel": "Category",
+  "illnessCategoryHint": "New to the list – choose a category so it is sorted in right.",
+  "illnessConfidentialHint": "Saved as confidential: only blood relatives of the individual see it in family health.",
+  "illnessYearInvalid": "Please enter a year like 1980."
 }

@@ -352,5 +352,11 @@
   "earlyOnset": "vroeg",
   "earlyOnsetExplained": "Vroeg: diagnose vóór de leeftijd van {age} jaar.",
   "familyHealthShowInTree": "In de stamboom tonen",
-  "familyHealthLeaveTree": "Gezondheid in de familie verbergen"
+  "familyHealthLeaveTree": "Gezondheid in de familie verbergen",
+  "illnessLabel": "Ziekte",
+  "illnessYearLabel": "Jaar van diagnose (optioneel)",
+  "illnessCategoryLabel": "Categorie",
+  "illnessCategoryHint": "Nieuw in de lijst – kies een categorie zodat ze goed wordt ingedeeld.",
+  "illnessConfidentialHint": "Wordt vertrouwelijk opgeslagen: alleen bloedverwanten van de persoon zien het bij gezondheid in de familie.",
+  "illnessYearInvalid": "Voer een jaar in zoals 1980."
 }

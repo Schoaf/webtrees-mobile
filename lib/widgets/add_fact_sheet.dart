@@ -24,6 +24,12 @@ enum AddFactResult { posted, savedLocally, cancelled }
 /// own facts instead, and _nonEditableFactTags there for RIN/SOUR/REFN.
 const _nonAddableFactTags = {'RIN', 'CHAN', 'SOUR', 'REFN'};
 
+/// The chip for an illness (#54) - not a GEDCOM tag: the family-health module writes the fact itself.
+const _illnessChip = '_family-health_';
+
+/// How many catalog names are suggested at once while typing an illness.
+const _maxIllnessSuggestions = 6;
+
 /// The fast fact-capture flow (originally its own "Quick Capture" screen),
 /// now reached from a person's own detail page since every fact needs a
 /// person anyway — one less step than picking a person first.
@@ -41,11 +47,18 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
   final _valueController = TextEditingController();
   final _dateController = TextEditingController();
   final _placeController = TextEditingController();
+  final _illnessController = TextEditingController();
+  final _yearController = TextEditingController();
   List<Map<String, dynamic>> _tags = [];
   String? _selectedTag;
   bool _loadingTags = true;
   bool _saving = false;
   String? _error;
+
+  // Illness (#54): the module's catalog, loaded when the chip is picked.
+  List<({String name, String category})> _catalog = [];
+  Map<String, String> _categories = {};
+  String? _illnessCategory;
 
   @override
   void initState() {
@@ -58,6 +71,8 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
     _valueController.dispose();
     _dateController.dispose();
     _placeController.dispose();
+    _illnessController.dispose();
+    _yearController.dispose();
     super.dispose();
   }
 
@@ -83,6 +98,80 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
     }
   }
 
+  Future<void> _loadCatalog() async {
+    if (_categories.isNotEmpty) return;
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+    try {
+      final response = await client.familyHealthCatalog(tree);
+      if (!mounted) return;
+      setState(() {
+        _categories = {
+          for (final c in (response['categories'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>())
+            c['id'] as String: c['name'] as String? ?? '',
+        };
+        _catalog = [
+          for (final i in (response['illnesses'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>())
+            (name: i['name'] as String? ?? '', category: i['category'] as String? ?? ''),
+        ];
+      });
+    } on Exception {
+      // Suggestions are best-effort - a name can still be typed.
+    }
+  }
+
+  /// The catalog entry for the typed name, ignoring case - null for a new name.
+  ({String name, String category})? get _knownIllness {
+    final typed = _illnessController.text.trim().toLowerCase();
+    return _catalog.where((i) => i.name.toLowerCase() == typed).firstOrNull;
+  }
+
+  List<String> get _illnessSuggestions {
+    final typed = _illnessController.text.trim().toLowerCase();
+    if (typed.isEmpty || _knownIllness != null) return const [];
+    return _catalog.where((i) => i.name.toLowerCase().contains(typed)).take(_maxIllnessSuggestions).map((i) => i.name).toList();
+  }
+
+  Future<void> _saveIllness() async {
+    final l10n = AppLocalizations.of(context)!;
+    final year = _yearController.text.trim();
+    if (year.isNotEmpty && !RegExp(r'^[0-9]{3,4}$').hasMatch(year)) {
+      setState(() => _error = l10n.illnessYearInvalid);
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+    try {
+      final result = await client.postFamilyHealthIllness(
+        tree,
+        widget.xref,
+        illness: _illnessController.text.trim(),
+        date: year.isEmpty ? null : year,
+        category: _knownIllness == null ? _illnessCategory : null,
+      );
+      if (!mounted) return;
+      if (result['ok'] == true) {
+        Navigator.of(context).pop(AddFactResult.posted);
+      } else {
+        setState(() {
+          _saving = false;
+          _error = l10n.rejectedError((result['error'] as String?) ?? l10n.unknownError);
+        });
+      }
+    } on Exception catch (e) {
+      // No local note to fall back on: health data stays off the phone.
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = l10n.connectionFailedError('$e');
+      });
+    }
+  }
+
   /// An event (birth, death, baptism ...) has a place, an attribute
   /// (occupation, religion ...) a value of its own.
   bool _isEvent(String tag) => _tags.any((t) => t['tag'] == tag && t['isEvent'] == true);
@@ -90,6 +179,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
   Future<void> _save() async {
     final tag = _selectedTag;
     if (tag == null) return;
+    if (tag == _illnessChip) return _saveIllness();
     final isEvent = _isEvent(tag);
     final value = isEvent ? '' : _valueController.text.trim();
     final place = isEvent ? _placeController.text.trim() : '';
@@ -157,9 +247,75 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
     return tag;
   }
 
+  List<Widget> _illnessFields(AppLocalizations l10n) {
+    final known = _knownIllness;
+    final isNew = _illnessController.text.trim().isNotEmpty && known == null;
+    return [
+      TextField(
+        key: const Key('illnessName'),
+        controller: _illnessController,
+        onChanged: (_) => setState(() {}),
+        maxLength: 120,
+        decoration: InputDecoration(labelText: l10n.illnessLabel, counterText: ''),
+      ),
+      for (final name in _illnessSuggestions)
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.healing_outlined, size: 18, color: AppColors.textTertiary),
+          title: Text(name),
+          onTap: () => setState(() => _illnessController.text = name),
+        ),
+      if (known != null && _categories[known.category] != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            _categories[known.category]!,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+        ),
+      if (isNew && _categories.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          key: const Key('illnessCategory'),
+          initialValue: _illnessCategory,
+          decoration: InputDecoration(labelText: l10n.illnessCategoryLabel, helperText: l10n.illnessCategoryHint, helperMaxLines: 3),
+          items: [
+            for (final entry in _categories.entries) DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+          ],
+          onChanged: (value) => setState(() => _illnessCategory = value),
+        ),
+      ],
+      const SizedBox(height: 12),
+      TextField(
+        key: const Key('illnessYear'),
+        controller: _yearController,
+        keyboardType: TextInputType.number,
+        maxLength: 4,
+        decoration: InputDecoration(labelText: l10n.illnessYearLabel, counterText: ''),
+      ),
+      const SizedBox(height: 12),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_outline, size: 16, color: AppColors.textTertiary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(l10n.illnessConfidentialHint, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  bool get _canSave =>
+      _selectedTag != null && !_saving && (_selectedTag != _illnessChip || _illnessController.text.trim().isNotEmpty);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // Only when the server says it has family-health (#54).
+    final hasFamilyHealth = ref.watch(availableModulesProvider).value?.contains(familyHealthModule) == true;
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -207,6 +363,17 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      if (hasFamilyHealth)
+                        ChoiceChip(
+                          key: const Key('illnessChip'),
+                          avatar: const Icon(Icons.health_and_safety_outlined, size: 18),
+                          label: Text(l10n.illnessLabel),
+                          selected: _selectedTag == _illnessChip,
+                          onSelected: (_) {
+                            setState(() => _selectedTag = _illnessChip);
+                            _loadCatalog();
+                          },
+                        ),
                       for (final tag in _tags)
                         ChoiceChip(
                           label: Text(
@@ -219,7 +386,10 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                         ),
                     ],
                   ),
-                if (_selectedTag != null) ...[
+                if (_selectedTag == _illnessChip) ...[
+                  const SizedBox(height: 16),
+                  ..._illnessFields(l10n),
+                ] else if (_selectedTag != null) ...[
                   const SizedBox(height: 16),
                   if (_isEvent(_selectedTag!))
                     PlaceAutocompleteField(
@@ -245,7 +415,7 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
                 ],
                 const SizedBox(height: 20),
                 FilledButton(
-                  onPressed: _selectedTag == null || _saving ? null : _save,
+                  onPressed: _canSave ? _save : null,
                   child: _saving
                       ? const SizedBox(
                           height: 18,

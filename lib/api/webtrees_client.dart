@@ -618,6 +618,24 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// Records an illness of [xref] (family-health `Illness`, editors only): the module writes the fact itself -
+  /// confidential, through pending changes - and adds a new name with [category] to its catalog.
+  /// `{ok: true}`, or `{ok: false, error}` with the reason in the user's language.
+  Future<Map<String, dynamic>> postFamilyHealthIllness(
+    String tree,
+    String xref, {
+    required String illness,
+    String? date,
+    String? category,
+  }) async {
+    final response = await _dio.postUri(
+      _moduleUri('Illness', tree, null, familyHealthModuleSlug),
+      data: {'xref': xref, 'illness': illness, 'date': ?date, 'category': ?category},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
   /// The module's categories (`[{id, name}]`, names in the user's language) and its catalog of illnesses.
   Future<Map<String, dynamic>> familyHealthCatalog(String tree) async {
     final response = await _dio.getUri(_moduleUri('Catalog', tree, null, familyHealthModuleSlug));
