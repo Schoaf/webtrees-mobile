@@ -12,6 +12,7 @@ import '../../models/surname_grouping.dart';
 import '../../models/tree_lineage.dart';
 import '../../models/tree_neighborhood.dart';
 import '../../state/app_providers.dart';
+import '../../state/family_health_overlay.dart';
 import '../../state/tree_generations.dart';
 import '../../state/tree_view_providers.dart';
 import '../../theme/app_theme.dart';
@@ -408,6 +409,8 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     final surnameColors = familyLines == null ? null : _surnameColors.assign(familyLines.lines);
     // Only those still with a colour in view count.
     final pickedSurnames = {..._pickedSurnames.where((s) => surnameColors?.containsKey(s) ?? false)};
+    // Familiengesundheit (#54): pale without an illness, the category large on the others.
+    final health = ref.watch(familyHealthOverlayProvider);
 
     if (neighborhood != null) {
       // The partners' own names (a married name) come with their own answer.
@@ -510,6 +513,8 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                               colors: surnameColors,
                               picked: pickedSurnames,
                               lines: familyLines?.lineOf ?? const {},
+                              child: _FamilyHealthScope(
+                              overlay: health,
                               child: _TreeContent(
                                 neighborhood: neighborhood,
                                 selectedPartnerXref: treeState.selectedPartnerXref,
@@ -526,6 +531,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                                 onSelectPartner: controller.selectPartner,
                                 onOpenProfile: (xref) => openPerson(context, xref),
                               ),
+                              ),
                             ),
                           ),
                         ),
@@ -541,7 +547,18 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
-                      if (surnameColors != null && surnameColors.isNotEmpty)
+                      if (health != null)
+                        Positioned(
+                          left: 8,
+                          right: 8,
+                          bottom: 8,
+                          child: overlay(_FamilyHealthBar(
+                            overlay: health,
+                            onPick: ref.read(familyHealthOverlayProvider.notifier).pickCategory,
+                            onClose: ref.read(familyHealthOverlayProvider.notifier).hide,
+                          )),
+                        )
+                      else if (surnameColors != null && surnameColors.isNotEmpty)
                         Positioned(
                           left: 8,
                           right: 8,
@@ -902,7 +919,8 @@ class _AncestorsSection extends StatelessWidget {
               firstName: node.firstName,
               surname: _SurnamesShown.of(context) ? node.surname : null,
               backgroundColor: _SurnameColorsScope.of(context, node.xref),
-              isFaded: _SurnameColorsScope.isFaded(context, node.xref),
+              isFaded: _SurnameColorsScope.isFaded(context, node.xref) || _FamilyHealthScope.isFaded(context, node.xref),
+              healthLabel: _FamilyHealthScope.labelOf(context, node.xref),
               isSurnameBold: false,
               sex: node.sex,
               isDead: node.isDead,
@@ -1081,7 +1099,8 @@ class _ParentCard extends StatelessWidget {
           firstName: node.firstName,
           surname: _SurnamesShown.of(context) ? node.surname : null,
           backgroundColor: _SurnameColorsScope.of(context, node.xref),
-          isFaded: _SurnameColorsScope.isFaded(context, node.xref),
+          isFaded: _SurnameColorsScope.isFaded(context, node.xref) || _FamilyHealthScope.isFaded(context, node.xref),
+          healthLabel: _FamilyHealthScope.labelOf(context, node.xref),
           isSurnameBold: false,
           sex: node.sex,
           isDead: node.isDead,
@@ -1196,7 +1215,8 @@ class _SiblingsFrame extends StatelessWidget {
         firstName: node.firstName,
         surname: _SurnamesShown.of(context) ? node.surname : null,
         backgroundColor: _SurnameColorsScope.of(context, node.xref),
-        isFaded: _SurnameColorsScope.isFaded(context, node.xref),
+        isFaded: _SurnameColorsScope.isFaded(context, node.xref) || _FamilyHealthScope.isFaded(context, node.xref),
+        healthLabel: _FamilyHealthScope.labelOf(context, node.xref),
         isSurnameBold: false,
         sex: node.sex,
         isDead: node.isDead,
@@ -1225,7 +1245,8 @@ class _SiblingsFrame extends StatelessWidget {
             ? neighborhood.personDetail.birthSurname
             : null,
         backgroundColor: _SurnameColorsScope.of(context, neighborhood.person.xref),
-        isFaded: _SurnameColorsScope.isFaded(context, neighborhood.person.xref),
+        isFaded: _SurnameColorsScope.isFaded(context, neighborhood.person.xref) || _FamilyHealthScope.isFaded(context, neighborhood.person.xref),
+        healthLabel: _FamilyHealthScope.labelOf(context, neighborhood.person.xref),
         sex: neighborhood.person.sex,
         isDead: neighborhood.person.isDead,
         birthYear: neighborhood.person.birthYear,
@@ -1291,7 +1312,8 @@ class _SiblingsFrame extends StatelessWidget {
                             isSurnameBold: partnerSurname != neighborhood.person.surname,
                             // The colour of the family they come from.
                             backgroundColor: _SurnameColorsScope.of(context, p.partner!.xref),
-                            isFaded: _SurnameColorsScope.isFaded(context, p.partner!.xref),
+                            isFaded: _SurnameColorsScope.isFaded(context, p.partner!.xref) || _FamilyHealthScope.isFaded(context, p.partner!.xref),
+                            healthLabel: _FamilyHealthScope.labelOf(context, p.partner!.xref),
                             birthSurname: (partnerDetail?.hasOtherCurrentSurname ?? false)
                                 ? partnerDetail!.birthSurname
                                 : null,
@@ -1708,7 +1730,8 @@ class _ChildrenFrame extends StatelessWidget {
                 firstName: d.node.firstName,
                 surname: _SurnamesShown.of(context) ? d.node.surname : null,
                 backgroundColor: _SurnameColorsScope.of(context, d.node.xref),
-                isFaded: _SurnameColorsScope.isFaded(context, d.node.xref),
+                isFaded: _SurnameColorsScope.isFaded(context, d.node.xref) || _FamilyHealthScope.isFaded(context, d.node.xref),
+                healthLabel: _FamilyHealthScope.labelOf(context, d.node.xref),
                 isSurnameBold: false,
                 sex: d.node.sex,
                 isDead: d.node.isDead,
@@ -1731,7 +1754,8 @@ class _ChildrenFrame extends StatelessWidget {
                     firstName: child.firstName,
                     surname: _SurnamesShown.of(context) ? child.surname : null,
                     backgroundColor: _SurnameColorsScope.of(context, child.xref),
-                    isFaded: _SurnameColorsScope.isFaded(context, child.xref),
+                    isFaded: _SurnameColorsScope.isFaded(context, child.xref) || _FamilyHealthScope.isFaded(context, child.xref),
+                    healthLabel: _FamilyHealthScope.labelOf(context, child.xref),
                     isSurnameBold: false,
                     sex: child.sex,
                     isDead: child.isDead,
@@ -1968,6 +1992,80 @@ class _SurnameColorsScope extends InheritedWidget {
   @override
   bool updateShouldNotify(_SurnameColorsScope old) =>
       old.colors != colors || !setEquals(old.picked, picked) || !mapEquals(old.lines, lines);
+}
+
+/// Familiengesundheit in the tree (#54), or null when it's off - set once around the tree like
+/// [_SurnameColorsScope].
+class _FamilyHealthScope extends InheritedWidget {
+  const _FamilyHealthScope({required this.overlay, required super.child});
+
+  final FamilyHealthOverlay? overlay;
+
+  static FamilyHealthOverlay? _of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_FamilyHealthScope>()?.overlay;
+
+  static bool isFaded(BuildContext context, String xref) => _of(context)?.isFaded(xref) ?? false;
+
+  static String? labelOf(BuildContext context, String xref) => _of(context)?.labelOf(xref);
+
+  @override
+  bool updateShouldNotify(_FamilyHealthScope old) => old.overlay != overlay;
+}
+
+/// The filter bar of Familiengesundheit in the tree (#54): one category or all, and leaving it.
+class _FamilyHealthBar extends StatelessWidget {
+  const _FamilyHealthBar({required this.overlay, required this.onPick, required this.onClose});
+
+  final FamilyHealthOverlay overlay;
+  final void Function(String? category) onPick;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    Widget chip(String label, String? category) => Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        key: Key('familyHealthChip_${category ?? 'all'}'),
+        label: Text(label),
+        selected: overlay.category == category,
+        onSelected: (_) => onPick(category),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+    return Material(
+      key: const Key('familyHealthBar'),
+      color: Colors.white,
+      elevation: 3,
+      borderRadius: BorderRadius.circular(24),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.health_and_safety_outlined, size: 20, color: kHealthLabelColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    chip(l10n.allCategories, null),
+                    for (final id in overlay.usedCategories) chip(overlay.categoryNames[id] ?? id, id),
+                  ],
+                ),
+              ),
+            ),
+            IconButton(
+              key: const Key('familyHealthClose'),
+              tooltip: l10n.familyHealthLeaveTree,
+              onPressed: onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// The surname of the family a partner comes from: their birth name where

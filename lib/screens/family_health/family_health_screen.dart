@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
+import '../../state/family_health_overlay.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/tablet_bounded_body.dart';
@@ -42,6 +43,29 @@ class _FamilyHealthScreenState extends ConsumerState<FamilyHealthScreen> {
       client.familyHealthCatalog(tree),
     ).wait;
     return _History.fromJson(history, catalog);
+  }
+
+  bool _isOpeningTree = false;
+
+  /// The tree with everyone without an illness faded (#54), from [xref] - every illness the account may see, not
+  /// only this history's: the person's own too.
+  Future<void> _showInTree(String? xref, String? category) async {
+    if (xref == null) return;
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isOpeningTree = true);
+    try {
+      final (illnesses, catalog) = await (client.familyHealthIllnesses(tree), client.familyHealthCatalog(tree)).wait;
+      if (!mounted) return;
+      ref.read(familyHealthOverlayProvider.notifier).show(FamilyHealthOverlay.fromJson(illnesses, catalog).withCategory(category));
+      openTreeView(context, xref);
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.couldNotLoad('$error'))));
+    } finally {
+      if (mounted) setState(() => _isOpeningTree = false);
+    }
   }
 
   void _showSubject(String xref) => setState(() {
@@ -137,6 +161,14 @@ class _FamilyHealthScreenState extends ConsumerState<FamilyHealthScreen> {
           ),
           const SizedBox(height: 8),
         ],
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            onPressed: _isOpeningTree ? null : () => _showInTree(history.xref, category),
+            icon: const Icon(Icons.account_tree_outlined),
+            label: Text(l10n.familyHealthShowInTree),
+          ),
+        ),
         if (shown.isEmpty) _Message(l10n.familyHealthNoIllnesses),
         for (final id in history.categories.keys)
           if (shown.any((i) => i.category == id)) ...[

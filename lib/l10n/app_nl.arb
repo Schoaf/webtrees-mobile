@@ -350,5 +350,7 @@
   "degreeOfRelationship": "{degree}e graad",
   "ageAtDiagnosis": "op {age}-jarige leeftijd",
   "earlyOnset": "vroeg",
-  "earlyOnsetExplained": "Vroeg: diagnose vóór de leeftijd van {age} jaar."
+  "earlyOnsetExplained": "Vroeg: diagnose vóór de leeftijd van {age} jaar.",
+  "familyHealthShowInTree": "In de stamboom tonen",
+  "familyHealthLeaveTree": "Gezondheid in de familie verbergen"
 }

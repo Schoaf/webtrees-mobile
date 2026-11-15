@@ -6,6 +6,8 @@ import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/family_health/family_health_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/state/family_health_overlay.dart';
+import 'package:webtrees_mobile/utils/tab_navigation.dart';
 
 class MockWebtreesClient extends Mock implements WebtreesClient {}
 
@@ -172,6 +174,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Diabetes Typ 2'), findsOneWidget);
     verify(() => client.familyHistory('Famtree', xref: 'I6')).called(1);
+  });
+
+  testWidgets('"Im Stammbaum zeigen" turns on family health in the tree, with the picked category', (tester) async {
+    when(() => client.familyHistory('Famtree')).thenAnswer(
+      (_) async => {
+        'subjects': [
+          {'xref': 'I3', 'name': 'Paul Gesund'},
+        ],
+        'xref': 'I3',
+        'earlyAge': 50,
+        'illnesses': [illness('Brustkrebs', 'cancer')],
+      },
+    );
+    when(() => client.familyHealthIllnesses('Famtree')).thenAnswer(
+      (_) async => {
+        'illnesses': [
+          {'xref': 'I2', 'category': 'cancer'},
+          {'xref': 'I3', 'category': 'other'},
+        ],
+      },
+    );
+
+    await pumpScreen(tester);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Krebs'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Im Stammbaum zeigen'));
+    await tester.pumpAndSettle();
+
+    final overlay = container.read(familyHealthOverlayProvider)!;
+    expect(overlay.category, 'cancer');
+    expect(overlay.isFaded('I2'), isFalse);
+    expect(overlay.isFaded('I3'), isTrue); // only "Sonstiges", and Krebs is picked
+    expect(container.read(selectedTabProvider), kTreeTabIndex);
   });
 
   testWidgets('without a linked individual: a hint', (tester) async {

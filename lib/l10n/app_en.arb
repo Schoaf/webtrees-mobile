@@ -350,5 +350,7 @@
   "degreeOfRelationship": "degree {degree}",
   "ageAtDiagnosis": "at age {age}",
   "earlyOnset": "early",
-  "earlyOnsetExplained": "Early: diagnosed before the age of {age}."
+  "earlyOnsetExplained": "Early: diagnosed before the age of {age}.",
+  "familyHealthShowInTree": "Show in the tree",
+  "familyHealthLeaveTree": "Hide family health"
 }

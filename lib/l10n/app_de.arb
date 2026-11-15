@@ -535,5 +535,7 @@
   "@ageAtDiagnosis": {"placeholders": {"age": {"type": "int"}}},
   "earlyOnset": "früh",
   "earlyOnsetExplained": "Früh: Diagnose vor dem Alter von {age} Jahren.",
-  "@earlyOnsetExplained": {"placeholders": {"age": {"type": "int"}}}
+  "@earlyOnsetExplained": {"placeholders": {"age": {"type": "int"}}},
+  "familyHealthShowInTree": "Im Stammbaum zeigen",
+  "familyHealthLeaveTree": "Familiengesundheit ausblenden"
 }

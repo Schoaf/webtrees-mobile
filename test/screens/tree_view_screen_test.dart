@@ -7,6 +7,7 @@ import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/screens/tree_view/tree_view_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
+import 'package:webtrees_mobile/state/family_health_overlay.dart';
 import 'package:webtrees_mobile/utils/tab_navigation.dart';
 import 'package:webtrees_mobile/widgets/tree_node_card.dart';
 
@@ -639,6 +640,41 @@ void main() {
       await tester.tap(find.byKey(const Key('surnameLegend_Muster')));
       await tester.pumpAndSettle();
       expect(isFaded('Thomas'), isFalse);
+    });
+
+    testWidgets('family health fades everyone without an illness and shows the category large (#54)', (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());
+      container
+          .read(familyHealthOverlayProvider.notifier)
+          .show(
+            const FamilyHealthOverlay(
+              categoriesByXref: {
+                'I1': {'cancer'},
+                'I3': {'cardiovascular', 'cancer'},
+              },
+              categoryNames: {'cardiovascular': 'Herz und Kreislauf', 'cancer': 'Krebs', 'other': 'Sonstiges'},
+            ),
+          );
+      await pumpScreen(tester);
+      TreeNodeCard card(String firstName) => tester.widget<TreeNodeCard>(find.widgetWithText(TreeNodeCard, firstName));
+
+      expect(card('Thomas').isFaded, isTrue);
+      expect(card('Thomas').healthLabel, isNull);
+      expect(card('Elisabeth').isFaded, isFalse);
+      expect(card('Maria').healthLabel, 'Herz und Kreislauf · Krebs');
+      // The filter bar has the categories in use only.
+      expect(find.byKey(const Key('familyHealthChip_other')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('familyHealthChip_cardiovascular')));
+      await tester.pumpAndSettle();
+      expect(card('Elisabeth').isFaded, isTrue);
+      expect(card('Maria').healthLabel, 'Herz und Kreislauf');
+
+      await tester.tap(find.byKey(const Key('familyHealthClose')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('familyHealthBar')), findsNothing);
+      expect(card('Thomas').isFaded, isFalse);
+      expect(card('Maria').healthLabel, isNull);
     });
 
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {

@@ -23,6 +23,9 @@ const _kRelationshipBadgeSize = 33.0;
 // background in tree_view_screen.dart.
 const _kBadgeBackground = Color(0xFFF8F9FA);
 
+/// The colour of the illness categories on a card (#54).
+const kHealthLabelColor = Color(0xFFB3261E);
+
 /// One card in the family-tree view (`PersonCardV4d` in the design). Purely
 /// presentational — which badges to show is a per-role decision made by
 /// whoever builds the tree layout (see `treeCardSuppression` doc in
@@ -56,6 +59,7 @@ class TreeNodeCard extends StatelessWidget {
     this.minHeight,
     this.backgroundColor,
     this.isFaded = false,
+    this.healthLabel,
   });
 
   final String firstName;
@@ -119,6 +123,9 @@ class TreeNodeCard extends StatelessWidget {
   /// Drawn pale: someone outside the surnames picked in the legend (#43).
   /// Still there, so the layout and the lines stay.
   final bool isFaded;
+
+  /// Non-null shows it large below the name: the illness categories of the person in the family-health view (#54).
+  final String? healthLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +202,18 @@ class TreeNodeCard extends StatelessWidget {
                       ),
                     if (partnerNameRow != null)
                       _PartnerNameRow(name: partnerNameRow!),
+                    if (healthLabel != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          healthLabel!,
+                          key: const Key('treeCardHealthLabel'),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 13, height: 1.15, fontWeight: FontWeight.w700, color: kHealthLabelColor),
+                        ),
+                      ),
                     // The active person's detail shows the full birth date instead.
                     if (detail == null)
                       Text(

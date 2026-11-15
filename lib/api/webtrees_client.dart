@@ -611,6 +611,13 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// Every illness the account may see (family-health `Illnesses`): `{illnesses: [{xref, name, illness, category,
+  /// date, degree}]}` - for the tree view.
+  Future<Map<String, dynamic>> familyHealthIllnesses(String tree) async {
+    final response = await _dio.getUri(_moduleUri('Illnesses', tree, null, familyHealthModuleSlug));
+    return _json(response);
+  }
+
   /// The module's categories (`[{id, name}]`, names in the user's language) and its catalog of illnesses.
   Future<Map<String, dynamic>> familyHealthCatalog(String tree) async {
     final response = await _dio.getUri(_moduleUri('Catalog', tree, null, familyHealthModuleSlug));
