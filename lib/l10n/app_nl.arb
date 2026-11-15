@@ -341,5 +341,14 @@
   "setFrame": "Kader plaatsen",
   "withoutFrame": "Zonder kader",
   "useAsProfilePhotoInstead": "Als profielfoto gebruiken (in plaats van de huidige)",
-  "removeFrame": "Kader verwijderen"
+  "removeFrame": "Kader verwijderen",
+  "familyHealthTitle": "Gezondheid in de familie",
+  "familyHealthSubtitle": "Ziekten in de familie, voor de arts",
+  "familyHealthNotLinked": "Uw account is niet gekoppeld aan een persoon in deze stamboom, dus er zijn geen verwanten om te tonen. Een beheerder kan de koppeling maken.",
+  "familyHealthNoIllnesses": "Voor de bloedverwanten zijn geen ziekten vastgelegd.",
+  "allCategories": "Alle",
+  "degreeOfRelationship": "{degree}e graad",
+  "ageAtDiagnosis": "op {age}-jarige leeftijd",
+  "earlyOnset": "vroeg",
+  "earlyOnsetExplained": "Vroeg: diagnose vóór de leeftijd van {age} jaar."
 }

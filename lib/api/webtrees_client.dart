@@ -10,6 +10,9 @@ import '../utils/webtrees_url.dart';
 /// below.
 const _kRetriedKey = 'webtreesClient.retriedStaleConnection';
 
+/// Route name of the family-health module (folder `family-health`).
+const familyHealthModuleSlug = '_family-health_';
+
 /// Talks to a webtrees instance's `api4webtrees` module.
 ///
 /// webtrees uses session-cookie auth (`GET Info` for a CSRF token, `POST
@@ -596,6 +599,22 @@ class WebtreesClient {
     final data = _json(response)['data'];
     if (data is! List) return [];
     return data.whereType<String>().toList();
+  }
+
+  // --- family-health: illnesses in the family (separate, optional module) ---
+
+  /// The family history from the family-health module: `{subjects: [{xref, name}], xref, earlyAge,
+  /// illnesses: [{xref, name, relationship, degree, illness, category, icd, date, dateText, age, isEarly}]}`
+  /// for [xref] - the account's own individual (default) or one of its children under 18.
+  Future<Map<String, dynamic>> familyHistory(String tree, {String? xref}) async {
+    final response = await _dio.getUri(_moduleUri('FamilyHistory', tree, {'xref': ?xref}, familyHealthModuleSlug));
+    return _json(response);
+  }
+
+  /// The module's categories (`[{id, name}]`, names in the user's language) and its catalog of illnesses.
+  Future<Map<String, dynamic>> familyHealthCatalog(String tree) async {
+    final response = await _dio.getUri(_moduleUri('Catalog', tree, null, familyHealthModuleSlug));
+    return _json(response);
   }
 
   // --- webtrees-contribution-request: "ask a relative to help" (separate, optional module,

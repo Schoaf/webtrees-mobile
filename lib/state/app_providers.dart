@@ -182,6 +182,7 @@ bool isApiTooOld(Map<String, dynamic> info) => (info['api'] as int? ?? 0) < minA
 /// webtrees module names, as in api4webtrees' Info `availableModules`.
 const privacyPolicyModule = 'privacy-policy';
 const contributionRequestModule = '_webtrees-contribution-request_';
+const familyHealthModule = '_family-health_';
 
 /// The modules the current user can use in the active tree (Info
 /// `trees[].availableModules`, api4webtrees API level 27) - so links and

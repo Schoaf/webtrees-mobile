@@ -6,6 +6,7 @@ import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/repositories/quick_note_store.dart';
 import 'package:webtrees_mobile/screens/home/home_screen.dart';
+import 'package:webtrees_mobile/screens/family_health/family_health_screen.dart';
 import 'package:webtrees_mobile/screens/responses/responses_list_screen.dart';
 import 'package:webtrees_mobile/state/app_providers.dart';
 import 'package:webtrees_mobile/utils/tab_navigation.dart';
@@ -27,6 +28,7 @@ void main() {
     String title = 'Familie Muster',
     int individuals = 42,
     String realName = 'Alice A.',
+    List<String>? availableModules,
   }) => {
     'user': {'realName': realName},
     'trees': [
@@ -36,6 +38,7 @@ void main() {
         'individuals': individuals,
         'userXref': userXref,
         'startXref': startXref,
+        'availableModules': ?availableModules,
       },
     ],
   };
@@ -186,6 +189,45 @@ void main() {
     expect(find.byType(BackButton), findsNothing);
     // ...and the search field gets the keyboard right away.
     expect(container.read(searchFocusRequestProvider), 1);
+  });
+
+  group('family-health card', () {
+    setUp(() {
+      when(() => client.individual('Famtree', any())).thenAnswer((_) async => personResponse('I1'));
+      when(() => client.anniversaries('Famtree', days: 7)).thenAnswer((_) async => {'data': <dynamic>[]});
+      when(() => client.shareRequestUnreadCount('Famtree')).thenAnswer((_) async => 0);
+    });
+
+    testWidgets('shown with the module and a linked individual, opens the screen', (tester) async {
+      when(() => client.familyHistory('Famtree')).thenAnswer((_) async => {'subjects': <dynamic>[], 'illnesses': <dynamic>[]});
+      when(() => client.familyHealthCatalog('Famtree')).thenAnswer((_) async => {'categories': <dynamic>[]});
+      when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(userXref: 'I2', availableModules: ['_family-health_']));
+
+      await pumpScreen(tester);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Familiengesundheit'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FamilyHealthScreen), findsOneWidget);
+    });
+
+    testWidgets('not shown without the module', (tester) async {
+      when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(userXref: 'I2', availableModules: []));
+
+      await pumpScreen(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Familiengesundheit'), findsNothing);
+    });
+
+    testWidgets('not shown for an account without an individual', (tester) async {
+      when(() => client.info('Famtree')).thenAnswer((_) async => infoResponse(availableModules: ['_family-health_']));
+
+      await pumpScreen(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Familiengesundheit'), findsNothing);
+    });
   });
 
   testWidgets('shows the unread-responses card with correct singular/plural text and navigates on tap', (

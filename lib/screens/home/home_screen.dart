@@ -12,6 +12,7 @@ import '../../utils/tab_navigation.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../account/account_screen.dart';
+import '../family_health/family_health_screen.dart';
 import '../responses/responses_list_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -201,6 +202,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             person: data.startPerson!,
                             onTap: () => openPerson(context, data.startPerson!['xref'] as String),
                           ),
+                        ],
+                        // Only when the server says it has family-health - an optional module few servers run.
+                        if (data.linkedXref != null &&
+                            ref.watch(availableModulesProvider).value?.contains(familyHealthModule) == true) ...[
+                          const SizedBox(height: 26),
+                          const _FamilyHealthCard(),
                         ],
                         if (data.unreadResponses > 0) ...[
                           const SizedBox(height: 26),
@@ -531,6 +538,58 @@ class _BirthdayList extends StatelessWidget {
 /// per Andreas's request to make it as prominent as the birthdays card.
 /// There's no native in-app review screen yet, so tapping it opens the
 /// review list on the website instead, same pattern as "Zur Website".
+/// Opens "Familiengesundheit" - same card styling as [_ResponsesCard].
+class _FamilyHealthCard extends StatelessWidget {
+  const _FamilyHealthCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppColors.cardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const FamilyHealthScreen()),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.health_and_safety_outlined, color: AppColors.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.familyHealthTitle,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.familyHealthSubtitle,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ResponsesCard extends ConsumerWidget {
   const _ResponsesCard({required this.count});
 

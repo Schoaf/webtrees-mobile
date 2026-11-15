@@ -341,5 +341,14 @@
   "setFrame": "Add a frame",
   "withoutFrame": "Without a frame",
   "useAsProfilePhotoInstead": "Use as profile picture (instead of the current one)",
-  "removeFrame": "Remove frame"
+  "removeFrame": "Remove frame",
+  "familyHealthTitle": "Family health",
+  "familyHealthSubtitle": "Illnesses in the family, for the doctor",
+  "familyHealthNotLinked": "Your account is not linked to an individual in this family tree, so there are no relatives to show. An administrator can link it.",
+  "familyHealthNoIllnesses": "No illnesses are recorded for the blood relatives.",
+  "allCategories": "All",
+  "degreeOfRelationship": "degree {degree}",
+  "ageAtDiagnosis": "at age {age}",
+  "earlyOnset": "early",
+  "earlyOnsetExplained": "Early: diagnosed before the age of {age}."
 }

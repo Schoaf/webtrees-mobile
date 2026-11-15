@@ -523,5 +523,17 @@
   "setFrame": "Rahmen setzen",
   "withoutFrame": "Ohne Rahmen",
   "useAsProfilePhotoInstead": "Als Profilbild verwenden (statt des bisherigen)",
-  "removeFrame": "Rahmen entfernen"
+  "removeFrame": "Rahmen entfernen",
+  "familyHealthTitle": "Familiengesundheit",
+  "familyHealthSubtitle": "Erkrankungen in der Familie, für den Arzt",
+  "familyHealthNotLinked": "Ihr Konto ist keiner Person in diesem Stammbaum zugeordnet, daher gibt es keine Verwandten anzuzeigen. Ein Administrator kann die Zuordnung vornehmen.",
+  "familyHealthNoIllnesses": "Für die Blutsverwandten sind keine Erkrankungen eingetragen.",
+  "allCategories": "Alle",
+  "degreeOfRelationship": "{degree}. Grad",
+  "@degreeOfRelationship": {"placeholders": {"degree": {"type": "int"}}},
+  "ageAtDiagnosis": "mit {age} Jahren",
+  "@ageAtDiagnosis": {"placeholders": {"age": {"type": "int"}}},
+  "earlyOnset": "früh",
+  "earlyOnsetExplained": "Früh: Diagnose vor dem Alter von {age} Jahren.",
+  "@earlyOnsetExplained": {"placeholders": {"age": {"type": "int"}}}
 }
