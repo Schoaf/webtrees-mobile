@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -48,8 +49,12 @@ def parse(version):
 def api_get(token, path, params):
     url = f'https://api.appstoreconnect.apple.com/v1/{path}?{urllib.parse.urlencode(params)}'
     request = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'})
-    with urllib.request.urlopen(request) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(request) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as error:
+        # Apple names the reason in the body, e.g. a missing agreement or a key without access.
+        sys.exit(f'App Store Connect answered {error.code} for {path}: {error.read().decode(errors="replace")}')
 
 
 def main():
