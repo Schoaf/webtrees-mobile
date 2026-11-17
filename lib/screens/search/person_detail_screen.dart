@@ -93,39 +93,58 @@ String _factCopyText(Map<String, dynamic> fact) {
   return parts.isEmpty ? '—' : parts.join(' · ');
 }
 
-/// Synthesizes read-only "Vorname"/"Nachname" fact-shaped rows from a NAME
-/// fact's raw GEDCOM value, for [_FactsCard]'s expanded ("Mehr anzeigen")
-/// view — not real facts from the server, just split for display the same
-/// way the edit form splits them.
-List<Map<String, dynamic>> _givenSurnameRows(
-  Map<String, dynamic> nameFact,
-  AppLocalizations l10n,
-) {
-  final (given, surname) = splitGedcomName(nameFact['value'] as String? ?? '');
-  return [
-    {'tag': '_GIVN', 'label': l10n.givenName, 'value': given},
-    {'tag': '_SURN', 'label': l10n.surname, 'value': surname},
-  ];
-}
-
-/// Every name besides the one up top, for "Mehr anzeigen": a married name
-/// below a name (`2 _MARNM`, as webtrees writes it) and further NAME facts
-/// (married name, change of name ...), each labelled by its kind.
-List<Map<String, dynamic>> _otherNameRows(List<Map<String, dynamic>> facts) {
+/// Every name for "Mehr anzeigen", in the order webtrees keeps them (the first is the one shown up top and in
+/// charts): each further name as a row labelled by its kind, then the parts of each name - prefix, given names,
+/// call name, nickname, surname prefix, surname, suffix - as stored (`nameParts`, api4webtrees 1.28.0, #27), and a
+/// married name below a name (`2 _MARNM`). Against an older API without `nameParts`: given and surname of the
+/// first name split from its value, as the edit form does.
+List<Map<String, dynamic>> _nameRows(List<Map<String, dynamic>> facts, AppLocalizations l10n) {
   String shown(String gedcomName) => gedcomName.replaceAll('/', ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+  Map<String, dynamic> row(String tag, String label, String? value) => {'tag': tag, 'label': label, 'value': value};
   final names = facts.where((f) => f['tag'] == 'NAME').toList();
   return [
     for (final (i, name) in names.indexed) ...[
       if (i > 0)
-        {
-          'tag': '_OTHER_NAME',
-          'label': name['typeLabel'] as String? ?? name['label'] as String? ?? '',
-          'value': shown(name['value'] as String? ?? ''),
-        },
+        row('_OTHER_NAME', name['typeLabel'] as String? ?? name['label'] as String? ?? '', shown(name['value'] as String? ?? '')),
+      ..._namePartRows(name, isFirst: i == 0, l10n: l10n, row: row),
       for (final detail in (name['details'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>())
-        if (detail['tag'] == '_MARNM')
-          {'tag': '_MARNM', 'label': detail['label'] as String? ?? '', 'value': shown(detail['value'] as String? ?? '')},
+        if (detail['tag'] == '_MARNM') row('_MARNM', detail['label'] as String? ?? '', shown(detail['value'] as String? ?? '')),
     ],
+  ];
+}
+
+List<Map<String, dynamic>> _namePartRows(
+  Map<String, dynamic> name, {
+  required bool isFirst,
+  required AppLocalizations l10n,
+  required Map<String, dynamic> Function(String tag, String label, String? value) row,
+}) {
+  final parts = name['nameParts'] as Map<String, dynamic>?;
+  if (parts == null) {
+    if (!isFirst) return [];
+    final (given, surname) = splitGedcomName(name['value'] as String? ?? '');
+    return [row('_GIVN', l10n.givenName, given), row('_SURN', l10n.surname, surname)];
+  }
+  // A name without GIVN/SURN lines: what its value says, like webtrees.
+  final (splitGiven, splitSurname) = splitGedcomName(name['value'] as String? ?? '');
+  String? part(String key) {
+    final value = (parts[key] as String?)?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  final given = part('given') ?? (splitGiven.isEmpty ? null : splitGiven);
+  final surname = part('surname') ?? (splitSurname.isEmpty ? null : splitSurname);
+  return [
+    for (final (tag, label, value) in [
+      ('_NPFX', l10n.namePrefix, part('prefix')),
+      ('_GIVN', l10n.givenName, given),
+      ('_RUFNAME', l10n.callName, part('callName')),
+      ('_NICK', l10n.nickname, part('nickname')),
+      ('_SPFX', l10n.surnamePrefix, part('surnamePrefix')),
+      ('_SURN', l10n.surname, surname),
+      ('_NSFX', l10n.nameSuffix, part('suffix')),
+    ])
+      if (value != null) row(tag, label, value),
   ];
 }
 
@@ -1259,21 +1278,10 @@ class _FactsCardState extends State<_FactsCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    Map<String, dynamic>? nameFact;
-    for (final f in widget.facts) {
-      if (f['tag'] == 'NAME') {
-        nameFact = f;
-        break;
-      }
-    }
-    // Given/surname aren't worth a row in the collapsed view - the full
-    // name is already up top next to the photo - but under "Mehr anzeigen"
-    // they're useful on their own (e.g. to see exactly what will split into
-    // which field before editing).
-    final nameRows = [
-      if (nameFact != null) ..._givenSurnameRows(nameFact, l10n),
-      ..._otherNameRows(widget.facts),
-    ];
+    // The names and their parts aren't worth a row in the collapsed view -
+    // the first name is already up top next to the photo, as in webtrees -
+    // but under "Mehr anzeigen" every name shows with all of its parts.
+    final nameRows = _nameRows(widget.facts, l10n);
 
     final visible = widget.facts.where((f) => f['tag'] != 'NAME').toList();
     final primary = _sortedByFieldOrder(

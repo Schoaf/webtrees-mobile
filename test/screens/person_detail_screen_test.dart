@@ -541,6 +541,59 @@ void main() {
     expect(find.text('Anna Muster-Beispiel'), findsOneWidget);
   });
 
+  testWidgets('every name with its parts as stored (nameParts, api4webtrees #27)', (tester) async {
+    Map<String, dynamic> parts({String? prefix, String? given, String? callName, String? nickname, String? surname}) => {
+      'prefix': prefix,
+      'given': given,
+      'nickname': nickname,
+      'surnamePrefix': null,
+      'surname': surname,
+      'suffix': null,
+      'callName': callName,
+    };
+    final json = personJson('I1');
+    json['facts'] = <dynamic>[
+      for (final fact in (json['facts'] as List).cast<Map<String, dynamic>>())
+        if (fact['tag'] != 'NAME') fact,
+      {
+        'tag': 'NAME',
+        'label': 'Name',
+        'value': 'Georg /Czedik/',
+        'nameParts': parts(prefix: 'Prof.', given: 'Georg Hermann Franz', callName: 'Georg', surname: 'Czedik'),
+      },
+      {
+        'tag': 'NAME',
+        'label': 'Name',
+        'type': 'married',
+        'typeLabel': 'Ehename',
+        'value': 'Georg /Ebbs/',
+        'nameParts': parts(given: 'Georg', nickname: 'Schorsch', surname: 'Ebbs'),
+      },
+    ];
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => json);
+
+    await pumpScreen(tester);
+    expect(find.text('Georg Hermann Franz'), findsNothing);
+    await tester.tap(find.textContaining('Mehr anzeigen'));
+    await tester.pumpAndSettle();
+
+    // The given names from GIVN, not the value's "Georg".
+    expect(find.text('Georg Hermann Franz'), findsOneWidget);
+    expect(find.text('Namenspräfix'), findsOneWidget);
+    expect(find.text('Prof.'), findsOneWidget);
+    expect(find.text('Rufname'), findsOneWidget);
+    // The second name, labelled by its kind, with its own parts.
+    expect(find.text('Ehename'), findsOneWidget);
+    expect(find.text('Georg Ebbs'), findsOneWidget);
+    expect(find.text('Schorsch'), findsOneWidget);
+    expect(find.text('Ebbs'), findsOneWidget);
+    expect(find.text('Vorname'), findsNWidgets(2));
+    expect(find.text('Nachname'), findsNWidgets(2));
+    // Missing lines get no row.
+    expect(find.text('Nachnamenspräfix'), findsNothing);
+    expect(find.text('Namenssuffix'), findsNothing);
+  });
+
   group('AddFactSheet (Fakt hinzufügen)', () {
     testWidgets('the tag picker, value field, and (once a tag is chosen) date field can all be filled and are sent on save', (
       tester,
