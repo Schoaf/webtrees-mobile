@@ -772,4 +772,118 @@ void main() {
       expect(ok, isFalse);
     });
   });
+
+  group('family-health endpoints (#54)', () {
+    test('familyHistory() asks the module, for another individual only when given', () async {
+      adapter.enqueue(_CannedResponse(200, '{"xref":"I3","illnesses":[]}'));
+      adapter.enqueue(_CannedResponse(200, '{"xref":"I6","illnesses":[]}'));
+
+      final own = await client.familyHistory('Famtree');
+      final child = await client.familyHistory('Famtree', xref: 'I6');
+
+      expect(adapter.requests[0].uri.queryParameters['route'], '/module/_family-health_/FamilyHistory/Famtree');
+      expect(adapter.requests[0].uri.queryParameters.containsKey('xref'), isFalse);
+      expect(adapter.requests[1].uri.queryParameters['xref'], 'I6');
+      expect(own['xref'], 'I3');
+      expect(child['xref'], 'I6');
+    });
+
+    test('familyHealthIllnesses() and familyHealthCatalog() read their routes', () async {
+      adapter.enqueue(_CannedResponse(200, '{"illnesses":[{"xref":"I2","category":"cancer"}]}'));
+      adapter.enqueue(_CannedResponse(200, '{"categories":[{"id":"cancer","name":"Krebs"}]}'));
+
+      final illnesses = await client.familyHealthIllnesses('Famtree');
+      final catalog = await client.familyHealthCatalog('Famtree');
+
+      expect(adapter.requests[0].uri.queryParameters['route'], '/module/_family-health_/Illnesses/Famtree');
+      expect(adapter.requests[1].uri.queryParameters['route'], '/module/_family-health_/Catalog/Famtree');
+      expect((illnesses['illnesses'] as List).single['xref'], 'I2');
+      expect((catalog['categories'] as List).single['name'], 'Krebs');
+    });
+
+    test('postFamilyHealthIllness() posts JSON, leaving out what is not given', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      adapter.enqueue(_CannedResponse(400, '{"ok":false,"error":"Nicht erlaubt"}'));
+
+      final saved = await client.postFamilyHealthIllness('Famtree', 'I2', illness: 'Asthma', date: '1990', category: 'other');
+      final rejected = await client.postFamilyHealthIllness('Famtree', 'I2', illness: 'Asthma');
+
+      expect(adapter.requests[0].method, 'POST');
+      expect(adapter.requests[0].uri.queryParameters['route'], '/module/_family-health_/Illness/Famtree');
+      expect(adapter.requests[0].contentType, startsWith('application/json'));
+      expect(adapter.requests[0].data, {'xref': 'I2', 'illness': 'Asthma', 'date': '1990', 'category': 'other'});
+      expect(adapter.requests[1].data, {'xref': 'I2', 'illness': 'Asthma'});
+      expect(saved['ok'], isTrue);
+      expect(rejected, {'ok': false, 'error': 'Nicht erlaubt'});
+    });
+  });
+
+  group('pedigree() and descendants()', () {
+    test('send the individual and the number of generations', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ancestors":[]}'));
+      adapter.enqueue(_CannedResponse(200, '{"xref":"I1"}'));
+
+      await client.pedigree('Famtree', 'I1', 4);
+      await client.descendants('Famtree', 'I1', 3);
+
+      expect(adapter.requests[0].uri.queryParameters['route'], '/module/_api4webtrees_/Pedigree/Famtree');
+      expect(adapter.requests[0].uri.queryParameters['generations'], '4');
+      expect(adapter.requests[1].uri.queryParameters['route'], '/module/_api4webtrees_/Descendants/Famtree');
+      expect(adapter.requests[1].uri.queryParameters['xref'], 'I1');
+      expect(adapter.requests[1].uri.queryParameters['generations'], '3');
+    });
+  });
+
+  group('canOpenLinksInApp()', () {
+    _CannedResponse page(String body) => _CannedResponse(200, body, headers: {'content-type': ['text/html']});
+
+    test('true when the App page has the set-up for this app', () async {
+      adapter.enqueue(page('<form><input name="all" value="always"></form>'));
+
+      expect(await client.canOpenLinksInApp('Famtree'), isTrue);
+      final request = adapter.requests.single;
+      expect(request.uri.queryParameters['route'], '/module/_api4webtrees_/App/Famtree');
+      expect(request.uri.queryParameters['open-in'], isNotEmpty);
+      expect(request.headers['User-Agent'], startsWith('webtrees-mobile ('));
+    });
+
+    test('false on an older module without it', () async {
+      adapter.enqueue(page('<p>webtrees app</p>'));
+
+      expect(await client.canOpenLinksInApp('Famtree'), isFalse);
+    });
+  });
+
+  group('isWebtrees()', () {
+    _CannedResponse text(int status, String body) => _CannedResponse(status, body, headers: {'content-type': ['text/plain']});
+
+    test('OK from /ping is webtrees', () async {
+      adapter.enqueue(text(200, 'OK'));
+
+      expect(await client.isWebtrees(), isTrue);
+      expect(adapter.requests.single.uri.queryParameters['route'], '/ping');
+    });
+
+    test('a redirect switches to pretty URLs and asks again', () async {
+      adapter.enqueue(_CannedResponse(302, '', headers: {'location': ['https://tree.example.com/ping']}));
+      adapter.enqueue(text(200, 'WARNING'));
+
+      expect(await client.isWebtrees(), isTrue);
+      expect(client.usePrettyUrls, isTrue);
+      expect(adapter.requests, hasLength(2));
+    });
+
+    test('ERROR comes as 503 and is still webtrees, anything else is not', () async {
+      adapter.enqueue(text(503, 'ERROR'));
+      adapter.enqueue(text(200, '<html>some other site</html>'));
+
+      expect(await client.isWebtrees(), isTrue);
+      expect(await client.isWebtrees(), isFalse);
+    });
+  });
+
+  test('UnexpectedResponseException names the HTTP status', () {
+    expect(const UnexpectedResponseException(404).toString(), contains('HTTP 404'));
+    expect(const UnexpectedResponseException(null).toString(), contains('HTTP ?'));
+  });
 }
