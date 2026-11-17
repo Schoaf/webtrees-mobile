@@ -436,6 +436,7 @@ class WebtreesClient {
     String? value,
     String? date,
     String? place,
+    Map<String, String>? nameParts,
   }) async {
     final response = await _dio.postUri(
       _moduleUri('Fact', tree, {'xref': xref}),
@@ -445,6 +446,8 @@ class WebtreesClient {
         'value': ?value,
         'date': ?date,
         'place': ?place,
+        // Only the parts that changed: one not sent stays on the server as it is (api4webtrees 46).
+        if (nameParts != null && nameParts.isNotEmpty) 'nameParts': nameParts,
       },
       options: Options(contentType: Headers.jsonContentType),
     );

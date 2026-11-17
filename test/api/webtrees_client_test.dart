@@ -420,6 +420,16 @@ void main() {
       await client.postFact('Famtree', 'I1', factId: 'F1', tag: 'BIRT');
       expect(adapter.requests.single.data, containsPair('factId', 'F1'));
     });
+
+    test('a name sends only the changed parts, none at all when nothing changed (#28)', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      await client.postFact('Famtree', 'I1', factId: 'n1', tag: 'NAME', value: 'Hans /Beispiel/', nameParts: {'surname': 'Beispiel'});
+      await client.postFact('Famtree', 'I1', factId: 'n1', tag: 'NAME', value: 'Hans /Beispiel/', nameParts: {});
+
+      expect(adapter.requests[0].data, containsPair('nameParts', {'surname': 'Beispiel'}));
+      expect(adapter.requests[1].data.containsKey('nameParts'), isFalse);
+    });
   });
 
   group('register()', () {

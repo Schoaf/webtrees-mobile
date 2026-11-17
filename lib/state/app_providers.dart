@@ -224,6 +224,9 @@ const photoMarkingApiLevel = 40;
 /// Turning a photo on the server (api4webtrees MediaRotate).
 const photoRotateApiLevel = 41;
 
+/// Writing the parts of a name (GIVN, SURN ...) on their own (api4webtrees 1.29.0, issue #28).
+const namePartsApiLevel = 46;
+
 /// Whether the server has at least API [level] - unknown counts as no, as
 /// these are new routes the server would not answer.
 bool isApiAtLeast(WidgetRef ref, int level) => (ref.watch(apiLevelProvider).value ?? 0) >= level;

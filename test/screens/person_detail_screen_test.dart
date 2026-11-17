@@ -514,6 +514,113 @@ void main() {
     },
   );
 
+  group('editing a name with its parts (api4webtrees 46, #28)', () {
+    Map<String, dynamic> withName(Map<String, dynamic>? nameParts) {
+      final json = personJson('I1');
+      json['facts'] = <dynamic>[
+        {
+          'id': 'n1',
+          'tag': 'NAME',
+          'label': 'Name',
+          'value': 'Hans /Muster/',
+          'nameParts': nameParts,
+        },
+        for (final fact in (json['facts'] as List).cast<Map<String, dynamic>>())
+          if (fact['tag'] != 'NAME') fact,
+      ];
+      return json;
+    }
+
+    const parts = {
+      'prefix': null,
+      'given': 'Hans Peter Josef',
+      'nickname': null,
+      'surnamePrefix': null,
+      'surname': 'Muster',
+      'suffix': null,
+      'callName': 'Hans',
+    };
+
+    Future<void> openForm(WidgetTester tester, {required int apiLevel}) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      when(() => client.info('Famtree')).thenAnswer((_) async => {'api': apiLevel, 'trees': <dynamic>[]});
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => withName(parts));
+      when(
+        () => client.postFact(
+          'Famtree',
+          'I1',
+          factId: any(named: 'factId'),
+          tag: any(named: 'tag'),
+          value: any(named: 'value'),
+          date: any(named: 'date'),
+          place: any(named: 'place'),
+          nameParts: any(named: 'nameParts'),
+        ),
+      ).thenAnswer((_) async => {'ok': true});
+      await container.read(apiLevelProvider.future);
+      await pumpScreen(tester);
+      await openEditMode(tester);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows the name as stored and its parts; only a changed part is sent, GIVN stays', (tester) async {
+      await openForm(tester, apiLevel: 46);
+
+      expect(tester.widget<TextField>(find.byKey(const ValueKey('nameAsShown'))).controller!.text, 'Hans /Muster/');
+      expect(tester.widget<TextField>(find.byKey(const ValueKey('namePart_given'))).controller!.text, 'Hans Peter Josef');
+      expect(find.byKey(const ValueKey('namePart_callName')), findsOneWidget); // holds something
+      expect(find.byKey(const ValueKey('namePart_prefix')), findsNothing); // empty: behind "Weitere Namensteile"
+
+      await tester.tap(find.text('Weitere Namensteile'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('namePart_prefix')), findsOneWidget);
+
+      await tester.enterText(find.byKey(const ValueKey('nameAsShown')), 'Hans /Beispiel/');
+      await tester.enterText(find.byKey(const ValueKey('namePart_surname')), 'Beispiel');
+      await tester.tap(find.text('Speichern'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => client.postFact(
+          'Famtree',
+          'I1',
+          factId: 'n1',
+          tag: 'NAME',
+          value: 'Hans /Beispiel/',
+          date: null,
+          place: null,
+          nameParts: {'surname': 'Beispiel'},
+        ),
+      ).called(1);
+    });
+
+    testWidgets('an older server: given name and surname from the name, no parts sent', (tester) async {
+      await openForm(tester, apiLevel: 45);
+
+      expect(find.byKey(const ValueKey('nameAsShown')), findsNothing);
+      expect(find.widgetWithText(TextField, 'Vorname'), findsOneWidget);
+      await tester.enterText(find.widgetWithText(TextField, 'Nachname'), 'Beispiel');
+      await tester.tap(find.text('Speichern'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => client.postFact(
+          'Famtree',
+          'I1',
+          factId: 'n1',
+          tag: 'NAME',
+          value: 'Hans /Beispiel/',
+          date: null,
+          place: null,
+          nameParts: null,
+        ),
+      ).called(1);
+    });
+  });
+
   testWidgets('further names - married name, change of name - show under "Mehr anzeigen"', (tester) async {
     final json = personJson('I1');
     json['facts'] = <dynamic>[

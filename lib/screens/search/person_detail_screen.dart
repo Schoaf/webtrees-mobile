@@ -113,6 +113,20 @@ List<Map<String, dynamic>> _nameRows(List<Map<String, dynamic>> facts, AppLocali
   ];
 }
 
+/// The parts of a name as api4webtrees names them in `nameParts`, in the order of a name.
+const _namePartKeys = ['prefix', 'given', 'callName', 'nickname', 'surnamePrefix', 'surname', 'suffix'];
+
+String namePartLabel(String key, AppLocalizations l10n) => switch (key) {
+  'prefix' => l10n.namePrefix,
+  'given' => l10n.givenName,
+  'callName' => l10n.callName,
+  'nickname' => l10n.nickname,
+  'surnamePrefix' => l10n.surnamePrefix,
+  'surname' => l10n.surname,
+  'suffix' => l10n.nameSuffix,
+  _ => key,
+};
+
 List<Map<String, dynamic>> _namePartRows(
   Map<String, dynamic> name, {
   required bool isFirst,
@@ -1471,8 +1485,10 @@ class _EditableFact {
     this.valueController,
     this.dateController,
     this.placeController,
+    this.namePartControllers,
     String? sex,
   }) : sexValue = sex,
+       _originalNameParts = {for (final e in (namePartControllers ?? {}).entries) e.key: e.value.text},
        _originalGiven = givenController?.text,
        _originalSurname = surnameController?.text,
        _originalValue = valueController?.text,
@@ -1480,7 +1496,7 @@ class _EditableFact {
        _originalPlace = placeController?.text,
        _originalSex = sex;
 
-  factory _EditableFact.fromJson(Map<String, dynamic> json, {String? rawSex}) {
+  factory _EditableFact.fromJson(Map<String, dynamic> json, {String? rawSex, bool canWriteNameParts = false}) {
     final tag = json['tag'] as String;
     final label = json['label'] as String? ?? tag;
     final factId = json['id'] as String?;
@@ -1498,6 +1514,20 @@ class _EditableFact {
 
     switch (tag) {
       case 'NAME':
+        // api4webtrees 46+: the name as shown and each of its parts on their own, as webtrees edits them - so
+        // given names that differ from the shown ones (GIVN "Hans Peter Josef" under "Hans /Muster/") survive.
+        final parts = json['nameParts'];
+        if (canWriteNameParts && parts is Map<String, dynamic>) {
+          return _EditableFact(
+            tag: tag,
+            factId: factId,
+            label: label,
+            valueController: TextEditingController(text: value),
+            namePartControllers: {
+              for (final key in _namePartKeys) key: TextEditingController(text: (parts[key] as String?)?.trim() ?? ''),
+            },
+          );
+        }
         final (given, surname) = splitGedcomName(value);
         return _EditableFact(
           tag: tag,
@@ -1558,7 +1588,15 @@ class _EditableFact {
   final TextEditingController? valueController;
   final TextEditingController? dateController;
   final TextEditingController? placeController;
+
+  /// The parts of a name (`nameParts` keys, see [_namePartKeys]) - null unless the server can write them.
+  final Map<String, TextEditingController>? namePartControllers;
+
+  /// Whether the empty name parts beyond given name and surname are shown too.
+  bool isShowingAllNameParts = false;
   String? sexValue;
+
+  final Map<String, String> _originalNameParts;
 
   final String? _originalGiven;
   final String? _originalSurname;
@@ -1568,6 +1606,7 @@ class _EditableFact {
   final String? _originalSex;
 
   String? get currentValue {
+    if (tag == 'NAME' && namePartControllers != null) return valueController!.text.trim();
     if (tag == 'NAME') {
       return buildGedcomName(givenController!.text, surnameController!.text);
     }
@@ -1585,7 +1624,21 @@ class _EditableFact {
     return (text == null || text.isEmpty) ? null : text;
   }
 
+  /// The name parts changed since loading (empty = remove the line) - the others stay on the server as they are.
+  /// Null for anything but a name with parts.
+  Map<String, String>? get changedNameParts {
+    final controllers = namePartControllers;
+    if (controllers == null) return null;
+    return {
+      for (final e in controllers.entries)
+        if (e.value.text.trim() != _originalNameParts[e.key]) e.key: e.value.text.trim(),
+    };
+  }
+
   bool get isDirty {
+    if (tag == 'NAME' && namePartControllers != null) {
+      return valueController!.text.trim() != (_originalValue ?? '').trim() || changedNameParts!.isNotEmpty;
+    }
     if (tag == 'NAME') {
       return givenController!.text.trim() != (_originalGiven ?? '') ||
           surnameController!.text.trim() != (_originalSurname ?? '');
@@ -1603,6 +1656,9 @@ class _EditableFact {
     valueController?.dispose();
     dateController?.dispose();
     placeController?.dispose();
+    for (final controller in namePartControllers?.values ?? <TextEditingController>[]) {
+      controller.dispose();
+    }
   }
 }
 
@@ -1648,9 +1704,10 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
       (f) => !_nonEditableFactTags.contains(f['tag']),
     ).toList();
     final sorted = _sortedByFieldOrder(editable);
+    final canWriteNameParts = (ref.read(apiLevelProvider).value ?? 0) >= namePartsApiLevel;
     _fields = [
       for (final f in sorted)
-        _EditableFact.fromJson(f, rawSex: widget.rawSex),
+        _EditableFact.fromJson(f, rawSex: widget.rawSex, canWriteNameParts: canWriteNameParts),
     ];
   }
 
@@ -1680,6 +1737,7 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
           value: field.currentValue,
           date: field.currentDate,
           place: field.currentPlace,
+          nameParts: field.changedNameParts,
         );
         if (result['ok'] != true) {
           throw Exception(
@@ -1731,9 +1789,46 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
     style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
   );
 
+  /// A name as webtrees edits it: the name as shown, then its parts - given names and surname always, the
+  /// others when they hold something or on request.
+  Widget _buildNamePartsEditor(_EditableFact field, AppLocalizations l10n) {
+    final controllers = field.namePartControllers!;
+    bool isShown(String key) =>
+        field.isShowingAllNameParts || key == 'given' || key == 'surname' || controllers[key]!.text.isNotEmpty;
+    return Column(
+      key: ValueKey('nameEditor_${field.factId}'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(field.label),
+        const SizedBox(height: 6),
+        TextField(
+          key: const ValueKey('nameAsShown'),
+          controller: field.valueController,
+          decoration: InputDecoration(labelText: l10n.nameAsShown, helperText: l10n.nameAsShownHint),
+        ),
+        for (final key in _namePartKeys)
+          if (isShown(key)) ...[
+            const SizedBox(height: 8),
+            TextField(
+              key: ValueKey('namePart_$key'),
+              controller: controllers[key],
+              decoration: InputDecoration(labelText: namePartLabel(key, l10n)),
+            ),
+          ],
+        if (!field.isShowingAllNameParts && _namePartKeys.any((key) => !isShown(key)))
+          TextButton(
+            onPressed: () => setState(() => field.isShowingAllNameParts = true),
+            child: Text(l10n.moreNameParts),
+          ),
+      ],
+    );
+  }
+
   Widget _buildFieldEditor(_EditableFact field) {
     final l10n = AppLocalizations.of(context)!;
     switch (field.tag) {
+      case 'NAME' when field.namePartControllers != null:
+        return _buildNamePartsEditor(field, l10n);
       case 'NAME':
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
