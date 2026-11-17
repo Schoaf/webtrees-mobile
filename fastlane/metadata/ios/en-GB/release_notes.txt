@@ -1,5 +1,6 @@
-- Colour the family tree by family – with a legend to highlight single families
-- Group similar spellings of a surname (setting in your profile)
-- Full screen for the family tree, automatically in landscape
-- The date field now speaks your language
-- Revised Dutch translation
+- Every name of a person with all its parts under "Show more"
+- Edit each part of a name (given name, surname, call name …) on its own
+- The tree shows the name in use now, the birth name in brackets
+- Family health: family history and recording illnesses when the server has the module
+- Open links to the website right in the app
+- Add photos straight from the gallery

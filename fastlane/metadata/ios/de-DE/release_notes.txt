@@ -1,5 +1,6 @@
-- Stammbaum nach Familien einfärben – mit Legende, um einzelne Familien hervorzuheben
-- Ähnliche Schreibweisen eines Nachnamens zusammenfassen (Einstellung im Profil)
-- Vollbild für den Stammbaum, im Querformat automatisch
-- Das Datumsfeld spricht jetzt deine Sprache
-- Überarbeitete niederländische Übersetzung
+- Alle Namen einer Person mit allen Namensteilen unter „Mehr anzeigen“
+- Namensteile (Vorname, Nachname, Rufname …) einzeln bearbeiten
+- Im Stammbaum der aktuelle Name, der Geburtsname in Klammern
+- Familiengesundheit: Familienanamnese und Erkrankungen eintragen, wenn der Server das Modul hat
+- Links zur Website direkt in der App öffnen
+- Fotos direkt aus der Galerie hinzufügen

@@ -1,5 +1,6 @@
-- Kleur de stamboom per familie – met een legenda om afzonderlijke families te laten opvallen
-- Vergelijkbare spellingen van een achternaam samenvoegen (instelling in je profiel)
-- Volledig scherm voor de stamboom, automatisch in liggende stand
-- Het datumveld spreekt nu jouw taal
-- Herziene Nederlandse vertaling
+- Alle namen van een persoon met alle naamdelen onder "Meer tonen"
+- Naamdelen (voornaam, achternaam, roepnaam …) apart bewerken
+- In de stamboom de huidige naam, de geboortenaam tussen haakjes
+- Familiegezondheid: familieanamnese en ziektes vastleggen als de server de module heeft
+- Links naar de website direct in de app openen
+- Foto's direct uit de galerij toevoegen
