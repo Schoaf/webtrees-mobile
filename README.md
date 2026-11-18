@@ -61,6 +61,14 @@ Flutter, Riverpod, `dio`, `sqflite`. A local dev server is configured in [`lib/s
 | api4webtrees – hiding links to disabled modules | **1.18.2** |
 | Registering inside the app | only the fork [Schoaf/api4webtrees](https://github.com/Schoaf/api4webtrees); elsewhere "Register" opens the site's registration page |
 
+## Buy me a bagel 🥯
+
+Working on this project takes time and money, and the app store fees in particular are a hurdle. If you'd like to support it, buy me a bagel: scan the QR code with your banking app.
+
+<img src="docs/buy-me-a-bagel.png" alt="QR code for a SEPA transfer of 5 euros" width="200">
+
+Andreas Scharf · IBAN DE59 1001 1001 2074 1651 75 · BIC NTSBDEB1XXX
+
 ## License
 
 [GPL-3.0](LICENSE). Bundled Roboto font: [OFL-1.1](assets/fonts/OFL.txt).
