@@ -1,4 +1,9 @@
-name: Store
+name: Store Prod Release
+# The run says which store it goes to: a tag push or "both" releases to both.
+run-name: >-
+  ${{ (inputs.stores == 'apple' && 'Apple Store Prod Release')
+  || (inputs.stores == 'google' && 'Google Play Prod Release')
+  || 'Apple Store + Google Play Prod Release' }} ${{ inputs.tag || github.ref_name }}
 
 # Push a tag like v1.7.0 once its TestFlight and Play internal-testing builds
 # are ready (see docs/RELEASING.md): renders the store screenshots, uploads
