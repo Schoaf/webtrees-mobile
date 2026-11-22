@@ -173,6 +173,57 @@ void main() {
     });
   });
 
+  group('several cookies', () {
+    // Regression coverage for a real bug report: a hoster's own cookie (load
+    // balancer, bot protection) replaced the webtrees session cookie, so the
+    // login went through but the next request was signed out again.
+    _CannedResponse withCookies(List<String> cookies) => _CannedResponse(
+      200,
+      '{"csrf":"tok-1"}',
+      headers: {
+        'content-type': ['application/json'],
+        'set-cookie': cookies,
+      },
+    );
+
+    test('keeps every cookie and sends all of them back', () async {
+      adapter.enqueue(withCookies(['webtrees2=abc123; path=//; HttpOnly', 'SERVERID=web3; path=/']));
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+
+      await client.info('Famtree');
+      await client.individual('Famtree', 'I1');
+
+      expect(adapter.requests[1].headers['Cookie'], 'webtrees2=abc123; SERVERID=web3');
+    });
+
+    test('a later cookie of another name keeps the session', () async {
+      adapter.enqueue(withCookies(['webtrees2=abc123; path=//']));
+      adapter.enqueue(withCookies(['__cf_bm=xyz; path=/']));
+
+      await client.info('Famtree');
+      await client.info('Famtree');
+
+      expect(client.sessionCookie, 'webtrees2=abc123; __cf_bm=xyz');
+    });
+
+    test('a new value replaces the old one, a deleted cookie goes', () async {
+      adapter.enqueue(withCookies(['webtrees2=abc123; path=//', 'SERVERID=web3']));
+      adapter.enqueue(withCookies(['webtrees2=new456; path=//', 'SERVERID=deleted; Max-Age=0']));
+
+      await client.info('Famtree');
+      await client.info('Famtree');
+
+      expect(client.sessionCookie, 'webtrees2=new456');
+    });
+
+    test('restoreSession takes several cookies', () {
+      client.restoreSession(cookie: 'webtrees2=abc123; SERVERID=web3');
+
+      expect(client.sessionCookie, 'webtrees2=abc123; SERVERID=web3');
+      expect(client.imageHeaders, {'Cookie': 'webtrees2=abc123; SERVERID=web3'});
+    });
+  });
+
   group('login()', () {
     test('posts credentials to /login, form-encoded, and returns true on a 302', () async {
       adapter.enqueue(_CannedResponse(200, '{"csrf":"tok-1","baseUrl":"https://real.example.com/"}'));

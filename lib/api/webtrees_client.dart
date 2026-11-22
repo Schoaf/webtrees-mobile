@@ -23,7 +23,9 @@ const familyHealthModuleSlug = '_family-health_';
 /// where `$path` is already `/`). Strict cookie jars refuse to resend a
 /// cookie whose path doesn't prefix-match the request path, so `//` silently
 /// breaks the session. Until that's fixed upstream, every real-world
-/// instance can hit this, so we just track the raw cookie ourselves.
+/// instance can hit this, so we just track the raw cookies ourselves - all
+/// of them by name: a hoster may add its own (load balancer, bot
+/// protection), and keeping only one of them loses the webtrees session.
 class WebtreesClient {
   WebtreesClient({required String baseUrl})
     : _baseUrl = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/',
@@ -51,8 +53,9 @@ class WebtreesClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          if (_cookie != null) {
-            options.headers['Cookie'] = _cookie;
+          final cookie = sessionCookie;
+          if (cookie != null) {
+            options.headers['Cookie'] = cookie;
           }
           // api4webtrees answers labels and values (fact names, "Female",
           // dates ...) in this language - the app's, not the server's.
@@ -119,32 +122,60 @@ class WebtreesClient {
   /// interceptor logic without touching the network. Not used by app code.
   Dio get debugDio => _dio;
 
-  String? _cookie;
+  /// Cookie name -> value, in the order the server set them.
+  final Map<String, String> _cookies = {};
   String? _csrfToken;
   String? _serverBaseUrl;
 
-  bool get hasSession => _cookie != null;
+  bool get hasSession => _cookies.isNotEmpty;
 
   void _captureCookie(Response response) {
-    final setCookie = response.headers['set-cookie'];
-    if (setCookie == null || setCookie.isEmpty) return;
-    // Keep only the "name=value" pair, drop path/domain/flags — we send it
-    // back verbatim on every request regardless of path, sidestepping the
-    // path=// bug entirely.
-    _cookie = setCookie.last.split(';').first;
+    for (final header in response.headers['set-cookie'] ?? const <String>[]) {
+      // Keep only the "name=value" pair, drop path/domain/flags — we send
+      // them back verbatim on every request regardless of path, sidestepping
+      // the path=// bug entirely.
+      final parts = header.split(';');
+      final pair = parts.first.trim();
+      final separator = pair.indexOf('=');
+      if (separator <= 0) continue;
+      final name = pair.substring(0, separator);
+      final value = pair.substring(separator + 1);
+      final isDeleted = value.isEmpty || value == 'deleted' || parts.skip(1).any(_isExpiredAttribute);
+      if (isDeleted) {
+        _cookies.remove(name);
+      } else {
+        _cookies[name] = value;
+      }
+    }
   }
 
-  /// Restore a previously-saved session cookie (e.g. from secure storage) so
-  /// the user doesn't have to log in again on every app launch.
+  static bool _isExpiredAttribute(String attribute) {
+    final trimmed = attribute.trim().toLowerCase();
+    if (!trimmed.startsWith('max-age=')) return false;
+    final maxAge = int.tryParse(trimmed.substring('max-age='.length));
+    return maxAge != null && maxAge <= 0;
+  }
+
+  /// Restore previously-saved session cookies (e.g. from secure storage) so
+  /// the user doesn't have to log in again on every app launch. [cookie] is
+  /// a `Cookie` header value: one or more `name=value` pairs joined by `; `.
   void restoreSession({required String cookie, String? csrfToken}) {
-    _cookie = cookie;
+    _cookies.clear();
+    for (final pair in cookie.split(';')) {
+      final trimmed = pair.trim();
+      final separator = trimmed.indexOf('=');
+      if (separator <= 0) continue;
+      _cookies[trimmed.substring(0, separator)] = trimmed.substring(separator + 1);
+    }
     _csrfToken = csrfToken;
   }
 
-  String? get sessionCookie => _cookie;
+  /// All cookies as one `Cookie` header value, null without any.
+  String? get sessionCookie =>
+      _cookies.isEmpty ? null : _cookies.entries.map((cookie) => '${cookie.key}=${cookie.value}').join('; ');
 
   void clearSession() {
-    _cookie = null;
+    _cookies.clear();
     _csrfToken = null;
   }
 
@@ -152,7 +183,7 @@ class WebtreesClient {
   /// carry the same session — Flutter's image loader doesn't go through
   /// this client's Dio instance (and its cookie interceptor) on its own.
   Map<String, String> get imageHeaders => {
-    'Cookie': ?_cookie,
+    'Cookie': ?sessionCookie,
   };
 
   /// webtrees names every custom module's route `_<folder-name>_`
