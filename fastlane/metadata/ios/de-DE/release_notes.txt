@@ -1,6 +1,3 @@
-- Alle Namen einer Person mit allen Namensteilen unter „Mehr anzeigen“
-- Namensteile (Vorname, Nachname, Rufname …) einzeln bearbeiten
-- Im Stammbaum der aktuelle Name, der Geburtsname in Klammern
-- Familiengesundheit: Familienanamnese und Erkrankungen eintragen, wenn der Server das Modul hat
-- Links zur Website direkt in der App öffnen
-- Fotos direkt aus der Galerie hinzufügen
+- Familiengesundheit: die Familienanamnese nach Kategorien, früh aufgetretene Erkrankungen markiert, im Stammbaum zeigen
+- Diagnose-Protokoll zum Einschalten: zeichnet Fehler und Verbindungen auf und lässt sich bei Problemen an den Entwickler schicken – ohne Inhalte, Passwörter oder Cookies
+- Anmeldung klappt jetzt auch bei Servern, die eigene Cookies setzen

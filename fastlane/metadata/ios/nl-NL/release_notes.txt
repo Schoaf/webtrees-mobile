@@ -1,6 +1,3 @@
-- Alle namen van een persoon met alle naamdelen onder "Meer tonen"
-- Naamdelen (voornaam, achternaam, roepnaam …) apart bewerken
-- In de stamboom de huidige naam, de geboortenaam tussen haakjes
-- Familiegezondheid: familieanamnese en ziektes vastleggen als de server de module heeft
-- Links naar de website direct in de app openen
-- Foto's direct uit de galerij toevoegen
+- Gezondheid in de familie: de familieanamnese per categorie, vroeg optreden gemarkeerd, in de stamboom tonen
+- Diagnoselogboek om aan te zetten: legt fouten en verbindingen vast en kan bij problemen naar de ontwikkelaar worden gestuurd – zonder inhoud, wachtwoorden of cookies
+- Aanmelden werkt nu ook bij servers die eigen cookies zetten

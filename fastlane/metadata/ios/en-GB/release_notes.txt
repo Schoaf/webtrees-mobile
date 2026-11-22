@@ -1,6 +1,3 @@
-- Every name of a person with all its parts under "Show more"
-- Edit each part of a name (given name, surname, call name …) on its own
-- The tree shows the name in use now, the birth name in brackets
-- Family health: family history and recording illnesses when the server has the module
-- Open links to the website right in the app
-- Add photos straight from the gallery
+- Family health: the family's health history by category, early onset marked, shown in the family tree
+- Diagnostic log you can turn on: records errors and connections and can be sent to the developer when something goes wrong – without contents, passwords or cookies
+- Signing in now also works with servers that set their own cookies

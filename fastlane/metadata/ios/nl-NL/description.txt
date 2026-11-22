@@ -7,6 +7,7 @@ Functies:
 • Interactieve stamboomweergave met voorouders, broers en zussen en kinderen
 • Foto’s voor personen maken of kiezen
 • Biometrische ontgrendeling (Face ID / vingerafdruk)
+• Gezondheid in de familie: de familieanamnese voor de arts (met de module webtrees-family-health)
 • Beschikbaar in het Nederlands, Duits en Engels
 
 De app maakt verbinding met een bestaande webtrees-installatie (webtrees.net) – uw familiegegevens blijven op uw eigen server, niet bij ons.

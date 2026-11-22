@@ -7,7 +7,8 @@ Funktionen:
 • Interaktive Stammbaum-Ansicht mit Vorfahren, Geschwistern und Kindern
 • Fotos für Personen aufnehmen oder auswählen
 • Biometrische Entsperrung (Face ID / Fingerabdruck)
-• Verfügbar auf Deutsch und Englisch
+• Familiengesundheit: Familienanamnese für den Arztbesuch (mit dem Modul webtrees-family-health)
+• Verfügbar auf Deutsch, Englisch und Niederländisch
 
 Die App verbindet sich mit einer bestehenden webtrees-Installation (webtrees.net) – deine Familiendaten bleiben auf deinem eigenen Server, nicht bei uns.
 

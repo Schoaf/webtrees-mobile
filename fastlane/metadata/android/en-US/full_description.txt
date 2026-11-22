@@ -7,7 +7,8 @@ Features:
 • Interactive family tree view with ancestors, siblings and children
 • Take or choose photos for people
 • Biometric unlock (Face ID / fingerprint)
-• Available in English and German
+• Family health: the family's health history for the doctor (with the webtrees-family-health module)
+• Available in English, German and Dutch
 
 The app connects to an existing webtrees installation (webtrees.net) – your family data stays on your own server, not with us.
 
