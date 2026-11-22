@@ -23,6 +23,10 @@ The design is made for the phone: few, reduced elements, with symbols and colour
 
 The [webtrees-contribution-request](https://github.com/Schoaf/webtrees-contribution-request) module goes the same way and makes working together even easier: from a person's page you send a relative a link ("Ask for help"). They open it on their phone, correct or complete what is known and add a photo – no registration, no explanations needed. You see their answer in the app and take over what fits.
 
+With the [webtrees-family-health](https://github.com/Schoaf/webtrees-family-health) module the app also shows the family's health history – the question every doctor asks: *"Any cases of this in your family?"* You record an illness at a person; the app then lists the illnesses of your blood relatives (and those of your children under 18) by category, with relationship, degree, ICD-10 code and age at diagnosis, and marks an early onset. Only blood relatives see an illness – the module decides who sees what, the app shows what it gets.
+
+<img src="docs/screenshots/family_health.png" width="150" alt="Family health">
+
 ## Features
 
 - **Connect to any webtrees site** – by entering its address or via the connect link from the site's "App" page (no password needed), also in a subfolder or with pretty URLs; switch between trees
@@ -34,7 +38,9 @@ The [webtrees-contribution-request](https://github.com/Schoaf/webtrees-contribut
 - **Family tree view** – pannable view of parents, siblings, partners and children; tap to move through the tree, undo/redo, back to the start person in one tap
 - **Edit** – edit facts and photos, add individuals and facts with place autocompletion; changes go through webtrees moderation
 - **Offline notes** – facts recorded without a connection are kept and synchronised later
+- **Family health** – the family's health history by category, filterable, and the tree with everyone without an illness faded; record an illness at a person (needs [webtrees-family-health](https://github.com/Schoaf/webtrees-family-health))
 - **My account** – name, linked individual, start person
+- **Diagnostic log** – off until you turn it on (in My account or on the sign-in screen); records errors and connections – never contents, passwords or cookies – and sends them via the share sheet
 - **English, German and Dutch** – follows the device language or can be picked in My account
 
 <p>
@@ -59,6 +65,7 @@ Flutter, Riverpod, `dio`, `sqflite`. A local dev server is configured in [`lib/s
 | api4webtrees – welcome text, registration settings, changing your name | **1.14.0** |
 | api4webtrees – "waiting for approval" marker | **1.15.0** |
 | api4webtrees – hiding links to disabled modules | **1.18.2** |
+| Family health | the [webtrees-family-health](https://github.com/Schoaf/webtrees-family-health) module |
 | Registering inside the app | only the fork [Schoaf/api4webtrees](https://github.com/Schoaf/api4webtrees); elsewhere "Register" opens the site's registration page |
 
 ## Buy me a bagel 🥯
