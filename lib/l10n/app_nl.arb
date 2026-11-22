@@ -375,5 +375,14 @@
   "editIllnessTitle": "Ziekte wijzigen",
   "deleteIllnessButton": "Ziekte verwijderen",
   "deleteIllnessConfirm": "„{illness}” verwijderen?",
-  "illnessDeleted": "Ziekte verwijderd."
+  "illnessDeleted": "Ziekte verwijderd.",
+  "familyHealthParticipationTitle": "Deelname",
+  "familyHealthTakingPart": "Doet mee",
+  "familyHealthNotTakingPart": "Doet niet mee – voor iedereen verborgen",
+  "familyHealthOptOutTitle": "{name} niet laten meedoen?",
+  "familyHealthOptOutExplained": "Wie niet meedoet, is voor iedereen verborgen: niemand – geen familielid, ook geen beheerder – ziet de ziekten van deze persoon in de familiegezondheid, en er kunnen er geen voor hem of haar worden ingevoerd. Wat is ingevoerd blijft bewaard en verschijnt weer zodra de persoon weer meedoet.",
+  "familyHealthOptOutButton": "Niet meedoen",
+  "familyHealthOptedOutTitle": "Doen niet mee",
+  "familyHealthOptedOutExplained": "Deze familieleden doen niet mee aan de familiegezondheid – hun ziekten zijn hier niet bekend.",
+  "familyHealthPersonOptedOut": "Doet niet mee aan de familiegezondheid – ziekten verborgen."
 }

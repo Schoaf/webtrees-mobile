@@ -23,6 +23,9 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
   List<Map<String, dynamic>> _illnesses = [];
   bool _canEdit = false;
 
+  /// A relative who does not take part: shown as such, so no illness does not read as healthy.
+  bool _isOptedOut = false;
+
   /// Asked once the server says it has the module - another person gets a new card (see its key on the page).
   bool _hasRequested = false;
 
@@ -35,6 +38,7 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
       setState(() {
         _illnesses = (response['illnesses'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
         _canEdit = response['canEdit'] as bool? ?? false;
+        _isOptedOut = response['isOptedOut'] as bool? ?? false;
       });
     } on Exception catch (error, stackTrace) {
       // An older module without PersonIllnesses, or no connection: the card stays away.
@@ -63,7 +67,7 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
       _hasRequested = true;
       _load();
     }
-    if (!hasFamilyHealth || _illnesses.isEmpty) return const SizedBox.shrink();
+    if (!hasFamilyHealth || (_illnesses.isEmpty && !_isOptedOut)) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,6 +99,20 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
           ),
           child: Column(
             children: [
+              if (_isOptedOut)
+                Padding(
+                  key: const Key('personIllnessesOptedOut'),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_outline, size: 18, color: AppColors.textTertiary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(l10n.familyHealthPersonOptedOut, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                      ),
+                    ],
+                  ),
+                ),
               for (var i = 0; i < _illnesses.length; i++)
                 InkWell(
                   onTap: _canEdit ? () => _edit(_illnesses[i]) : null,

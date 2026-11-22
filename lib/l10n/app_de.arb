@@ -565,5 +565,19 @@
       "illness": {"type": "String"}
     }
   },
-  "illnessDeleted": "Erkrankung gelöscht."
+  "illnessDeleted": "Erkrankung gelöscht.",
+  "familyHealthParticipationTitle": "Teilnahme",
+  "familyHealthTakingPart": "Nimmt teil",
+  "familyHealthNotTakingPart": "Nimmt nicht teil – für alle gesperrt",
+  "familyHealthOptOutTitle": "{name} nicht teilnehmen lassen?",
+  "@familyHealthOptOutTitle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "familyHealthOptOutExplained": "Wer nicht teilnimmt, ist für alle gesperrt: Niemand – kein Verwandter, auch kein Administrator – sieht die Erkrankungen dieser Person in der Familiengesundheit, und es lassen sich keine für sie eintragen. Eingetragenes bleibt erhalten und erscheint wieder, sobald sie wieder teilnimmt.",
+  "familyHealthOptOutButton": "Nicht teilnehmen",
+  "familyHealthOptedOutTitle": "Nehmen nicht teil",
+  "familyHealthOptedOutExplained": "Diese Verwandten nehmen an der Familiengesundheit nicht teil – ihre Erkrankungen sind hier nicht bekannt.",
+  "familyHealthPersonOptedOut": "Nimmt an der Familiengesundheit nicht teil – Erkrankungen gesperrt."
 }

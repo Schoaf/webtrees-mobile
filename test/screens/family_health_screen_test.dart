@@ -230,4 +230,92 @@ void main() {
     await pumpScreen(tester);
     expect(find.textContaining('Konnte nicht laden:'), findsOneWidget);
   });
+  testWidgets('relatives who do not take part are listed as such', (tester) async {
+    when(() => client.familyHistory('Famtree')).thenAnswer(
+      (_) async => {
+        'subjects': [
+          {'xref': 'I3', 'name': 'Paul Gesund'},
+        ],
+        'xref': 'I3',
+        'earlyAge': 50,
+        'illnesses': <dynamic>[],
+        'optedOut': [
+          {'xref': 'I2', 'name': 'Maria Gesund', 'relationship': 'Mutter', 'degree': 1},
+        ],
+      },
+    );
+
+    await pumpScreen(tester);
+
+    await tester.ensureVisible(find.byKey(const Key('optedOut-I2')));
+    expect(find.text('Nehmen nicht teil'), findsOneWidget);
+    expect(find.text('Maria Gesund'), findsOneWidget);
+    expect(find.text('Mutter · 1. Grad'), findsOneWidget);
+  });
+
+  group('taking part', () {
+    var isOptedOut = false;
+
+    setUp(() {
+      isOptedOut = false;
+      when(() => client.familyHistory('Famtree')).thenAnswer(
+        (_) async => {
+          'subjects': [
+            {'xref': 'I3', 'name': 'Paul Gesund'},
+          ],
+          'xref': 'I3',
+          'earlyAge': 50,
+          'illnesses': [illness('Herzinfarkt', 'cardiovascular')],
+        },
+      );
+      when(() => client.familyHealthParticipation('Famtree')).thenAnswer(
+        (_) async => {
+          'subjects': [
+            {'xref': 'I3', 'name': 'Paul Gesund', 'isOptedOut': isOptedOut},
+          ],
+          'canManage': false,
+          'optedOut': <dynamic>[],
+        },
+      );
+      when(() => client.postFamilyHealthParticipation('Famtree', 'I3', isOptedOut: any(named: 'isOptedOut'))).thenAnswer((call) async {
+        isOptedOut = call.namedArguments[#isOptedOut] as bool;
+        return {'ok': true};
+      });
+    });
+
+    Future<void> tapSwitch(WidgetTester tester) async {
+      await tester.ensureVisible(find.byKey(const Key('participation-I3')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('participation-I3')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('taking oneself out asks first, then hides and loads again', (tester) async {
+      await pumpScreen(tester);
+      await tester.ensureVisible(find.byKey(const Key('participation-I3')));
+      await tester.pumpAndSettle();
+      expect(find.text('Nimmt teil'), findsOneWidget);
+
+      await tapSwitch(tester);
+      expect(find.text('Paul Gesund nicht teilnehmen lassen?'), findsOneWidget);
+      await tester.tap(find.text('Abbrechen'));
+      await tester.pumpAndSettle();
+      verifyNever(() => client.postFamilyHealthParticipation(any(), any(), isOptedOut: any(named: 'isOptedOut')));
+
+      await tapSwitch(tester);
+      await tester.tap(find.byKey(const Key('optOutConfirm')));
+      await tester.pumpAndSettle();
+      verify(() => client.postFamilyHealthParticipation('Famtree', 'I3', isOptedOut: true)).called(1);
+      verify(() => client.familyHistory('Famtree')).called(2);
+      expect(find.text('Nimmt nicht teil – für alle gesperrt'), findsOneWidget);
+    });
+
+    testWidgets('taking part again needs no question', (tester) async {
+      isOptedOut = true;
+      await pumpScreen(tester);
+
+      await tapSwitch(tester);
+      verify(() => client.postFamilyHealthParticipation('Famtree', 'I3', isOptedOut: false)).called(1);
+    });
+  });
 }

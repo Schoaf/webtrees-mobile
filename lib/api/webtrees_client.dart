@@ -728,6 +728,24 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// Who the account decides for in family-health (`Participation`): `{subjects: [{xref, name, isOptedOut}],
+  /// canManage, optedOut: [{xref, name}]}` - the own individual and children under 18; optedOut for managers only.
+  Future<Map<String, dynamic>> familyHealthParticipation(String tree) async {
+    final response = await _dio.getUri(_moduleUri('Participation', tree, null, familyHealthModuleSlug));
+    return _json(response);
+  }
+
+  /// Takes [xref] out of family health or back in: nobody sees their illnesses while [isOptedOut]. Answers like
+  /// [postFamilyHealthIllness].
+  Future<Map<String, dynamic>> postFamilyHealthParticipation(String tree, String xref, {required bool isOptedOut}) async {
+    final response = await _dio.postUri(
+      _moduleUri('Participation', tree, null, familyHealthModuleSlug),
+      data: {'xref': xref, 'isOptedOut': isOptedOut},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
   /// The module's categories (`[{id, name}]`, names in the user's language) and its catalog of illnesses.
   Future<Map<String, dynamic>> familyHealthCatalog(String tree) async {
     final response = await _dio.getUri(_moduleUri('Catalog', tree, null, familyHealthModuleSlug));

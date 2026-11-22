@@ -70,6 +70,10 @@ class _FamilyHealthScreenState extends ConsumerState<FamilyHealthScreen> {
     }
   }
 
+  void _reload() => setState(() {
+    _future = _load();
+  });
+
   void _showSubject(String xref) => setState(() {
     _xref = xref;
     _future = _load();
@@ -204,6 +208,42 @@ class _FamilyHealthScreenState extends ConsumerState<FamilyHealthScreen> {
               ),
             ),
           ),
+        if (history.optedOut.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_outline, size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.familyHealthOptedOutTitle,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          _Card(
+            children: [
+              for (final relative in history.optedOut)
+                ListTile(
+                  key: Key('optedOut-${relative.xref}'),
+                  dense: true,
+                  leading: const Icon(Icons.lock_outline, size: 18, color: AppColors.textTertiary),
+                  title: Text(relative.name),
+                  subtitle: Text(
+                    [if (relative.relationship.isNotEmpty) relative.relationship, l10n.degreeOfRelationship(relative.degree)].join(' · '),
+                  ),
+                  onTap: () => openPerson(context, relative.xref),
+                ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+            child: Text(l10n.familyHealthOptedOutExplained, style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+          ),
+        ],
+        const SizedBox(height: 24),
+        _ParticipationSection(onChanged: _reload),
       ],
     );
   }
@@ -216,6 +256,7 @@ class _History {
     required this.earlyAge,
     required this.illnesses,
     required this.categories,
+    required this.optedOut,
   });
 
   factory _History.fromJson(
@@ -243,6 +284,15 @@ class _History {
               .cast<Map<String, dynamic>>())
         c['id'] as String: c['name'] as String? ?? '',
     },
+    optedOut: [
+      for (final o in (history['optedOut'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>())
+        (
+          xref: o['xref'] as String? ?? '',
+          name: o['name'] as String? ?? '',
+          relationship: o['relationship'] as String? ?? '',
+          degree: o['degree'] as int? ?? 0,
+        ),
+    ],
   );
 
   final List<({String xref, String name})> subjects;
@@ -250,6 +300,9 @@ class _History {
   final int earlyAge;
   final List<_Illness> illnesses;
   final Map<String, String> categories;
+
+  /// Relatives who do not take part (family-health `Participation`) - their illnesses are unknown, not absent.
+  final List<({String xref, String name, String relationship, int degree})> optedOut;
 }
 
 class _Illness {
@@ -468,6 +521,117 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 48),
         ],
       ),
+    );
+  }
+}
+
+/// Taking part (family-health `Participation`): one switch per individual the account decides for - its own and its
+/// children under 18. Whoever does not take part is hidden from everybody. Not shown by a module without it.
+class _ParticipationSection extends ConsumerStatefulWidget {
+  const _ParticipationSection({required this.onChanged});
+
+  /// The history to load again - an own illness, or a child's, may have been hidden or shown.
+  final VoidCallback onChanged;
+
+  @override
+  ConsumerState<_ParticipationSection> createState() => _ParticipationSectionState();
+}
+
+class _ParticipationSectionState extends ConsumerState<_ParticipationSection> {
+  List<Map<String, dynamic>> _subjects = [];
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+    try {
+      final response = await client.familyHealthParticipation(tree);
+      if (mounted) setState(() => _subjects = (response['subjects'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>());
+    } catch (error, stackTrace) {
+      // An older module without Participation: no switches.
+      DiagnosticLog.instance.error('family_health_screen', error, stackTrace);
+    }
+  }
+
+  Future<void> _set(Map<String, dynamic> subject, bool isTakingPart) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    if (!isTakingPart) {
+      final isConfirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.familyHealthOptOutTitle(subject['name'] as String? ?? '')),
+          content: Text(l10n.familyHealthOptOutExplained),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.cancel)),
+            TextButton(
+              key: const Key('optOutConfirm'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.familyHealthOptOutButton),
+            ),
+          ],
+        ),
+      );
+      if (isConfirmed != true || !mounted) return;
+    }
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+    setState(() => _isSaving = true);
+    try {
+      final result = await client.postFamilyHealthParticipation(tree, subject['xref'] as String, isOptedOut: !isTakingPart);
+      if (result['ok'] != true) {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.rejectedError((result['error'] as String?) ?? l10n.unknownError))));
+      }
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('family_health_screen', error, stackTrace);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.connectionFailedError('$error'))));
+    }
+    await _load();
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_subjects.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+          child: Text(
+            l10n.familyHealthParticipationTitle,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+          ),
+        ),
+        _Card(
+          children: [
+            for (final subject in _subjects)
+              SwitchListTile(
+                key: Key('participation-${subject['xref']}'),
+                title: Text(subject['name'] as String? ?? ''),
+                subtitle: Text(
+                  subject['isOptedOut'] == true ? l10n.familyHealthNotTakingPart : l10n.familyHealthTakingPart,
+                  style: const TextStyle(fontSize: 12),
+                ),
+                value: subject['isOptedOut'] != true,
+                onChanged: _isSaving ? null : (isTakingPart) => _set(subject, isTakingPart),
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+          child: Text(l10n.familyHealthOptOutExplained, style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+        ),
+      ],
     );
   }
 }

@@ -375,5 +375,14 @@
   "editIllnessTitle": "Edit illness",
   "deleteIllnessButton": "Delete illness",
   "deleteIllnessConfirm": "Delete “{illness}”?",
-  "illnessDeleted": "Illness deleted."
+  "illnessDeleted": "Illness deleted.",
+  "familyHealthParticipationTitle": "Taking part",
+  "familyHealthTakingPart": "Takes part",
+  "familyHealthNotTakingPart": "Does not take part – hidden from everybody",
+  "familyHealthOptOutTitle": "Take {name} out?",
+  "familyHealthOptOutExplained": "Whoever does not take part is hidden from everybody: nobody – no relative, not even an administrator – sees their illnesses in family health, and none can be recorded for them. What is recorded stays and shows again once they take part again.",
+  "familyHealthOptOutButton": "Do not take part",
+  "familyHealthOptedOutTitle": "Not taking part",
+  "familyHealthOptedOutExplained": "These relatives do not take part in family health – their illnesses are not known here.",
+  "familyHealthPersonOptedOut": "Does not take part in family health – illnesses hidden."
 }

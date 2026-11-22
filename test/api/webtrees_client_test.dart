@@ -880,6 +880,19 @@ void main() {
       expect(adapter.requests[2].data, {'xref': 'I2', 'id': 'f1'});
     });
 
+    test('participation: read and set', () async {
+      adapter.enqueue(_CannedResponse(200, '{"subjects":[{"xref":"I3","isOptedOut":false}],"canManage":false}'));
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+
+      final read = await client.familyHealthParticipation('Famtree');
+      await client.postFamilyHealthParticipation('Famtree', 'I3', isOptedOut: true);
+
+      expect(adapter.requests[0].uri.queryParameters['route'], '/module/_family-health_/Participation/Famtree');
+      expect((read['subjects'] as List).single['xref'], 'I3');
+      expect(adapter.requests[1].method, 'POST');
+      expect(adapter.requests[1].data, {'xref': 'I3', 'isOptedOut': true});
+    });
+
     test('postFamilyHealthIllness() posts JSON, leaving out what is not given', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
       adapter.enqueue(_CannedResponse(400, '{"ok":false,"error":"Nicht erlaubt"}'));

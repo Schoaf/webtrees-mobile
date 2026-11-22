@@ -1020,6 +1020,25 @@ void main() {
       expect(find.text('Wartet auf Freigabe'), findsOneWidget);
     });
 
+    testWidgets('a relative who does not take part shows as locked', (tester) async {
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
+      when(() => client.info('Famtree')).thenAnswer(
+        (_) async => {
+          'trees': [
+            {'name': 'Famtree', 'availableModules': ['_family-health_']},
+          ],
+        },
+      );
+      when(
+        () => client.familyHealthPersonIllnesses('Famtree', 'I1'),
+      ).thenAnswer((_) async => {'illnesses': <dynamic>[], 'canEdit': false, 'isOptedOut': true});
+      await pumpScreen(tester);
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const Key('personIllnessesOptedOut')));
+      expect(find.text('Nimmt an der Familiengesundheit nicht teil – Erkrankungen gesperrt.'), findsOneWidget);
+    });
+
     testWidgets('nothing without the module - and the module is not asked', (tester) async {
       await pumpWithIllnesses(tester, modules: []);
 
