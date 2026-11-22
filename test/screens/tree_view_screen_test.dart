@@ -681,6 +681,65 @@ void main() {
       expect(card('Maria').healthLabel, isNull);
     });
 
+    testWidgets('family health is switched in the tree menu, like the surname colours (#54)', (tester) async {
+      container = ProviderContainer(
+        overrides: [
+          webtreesClientProvider.overrideWithValue(client),
+          availableModulesProvider.overrideWith((ref) async => {'_family-health_'}),
+        ],
+      );
+      addTearDown(container.dispose);
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());
+      when(() => client.familyHealthIllnesses(any())).thenAnswer(
+        (_) async => {
+          'illnesses': [
+            {'xref': 'I3', 'category': 'cancer'},
+          ],
+        },
+      );
+      when(() => client.familyHealthCatalog(any())).thenAnswer(
+        (_) async => {
+          'categories': [
+            {'id': 'cancer', 'name': 'Krebs'},
+          ],
+        },
+      );
+      await pumpScreen(tester);
+      TreeNodeCard card(String firstName) => tester.widget<TreeNodeCard>(find.widgetWithText(TreeNodeCard, firstName));
+
+      await tester.tap(find.byKey(const Key('treeViewButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('treeFamilyHealthItem')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('familyHealthBar')), findsOneWidget);
+      expect(card('Maria').healthLabel, 'Krebs');
+      expect(card('Thomas').isFaded, isTrue);
+
+      await tester.tap(find.byKey(const Key('treeViewButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('treeFamilyHealthItem')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('familyHealthBar')), findsNothing);
+      expect(card('Thomas').isFaded, isFalse);
+    });
+
+    testWidgets('no family health in the tree menu without the module', (tester) async {
+      container = ProviderContainer(
+        overrides: [
+          webtreesClientProvider.overrideWithValue(client),
+          availableModulesProvider.overrideWith((ref) async => <String>{}),
+        ],
+      );
+      addTearDown(container.dispose);
+      when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => individualJson());
+      await pumpScreen(tester);
+
+      await tester.tap(find.byKey(const Key('treeViewButton')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('treeSurnameColorsItem')), findsOneWidget);
+      expect(find.byKey(const Key('treeFamilyHealthItem')), findsNothing);
+    });
+
     testWidgets('∞ loads further generations while they come into view, until there are no more', (tester) async {
       await pumpScreen(tester);
       await pick(tester, '∞');

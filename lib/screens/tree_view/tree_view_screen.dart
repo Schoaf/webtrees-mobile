@@ -11,6 +11,7 @@ import '../../models/family_lines.dart';
 import '../../models/surname_grouping.dart';
 import '../../models/tree_lineage.dart';
 import '../../models/tree_neighborhood.dart';
+import '../../services/diagnostic_log.dart';
 import '../../state/app_providers.dart';
 import '../../state/family_health_overlay.dart';
 import '../../state/tree_generations.dart';
@@ -168,6 +169,23 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     _overlayTimer = Timer(_kOverlayIdle, () {
       if (mounted) setState(() => _isOverlayShown = false);
     });
+  }
+
+  /// Family health in the tree (#54), switched in the menu like the surname colours.
+  Future<void> _toggleFamilyHealth({required bool isShowing}) async {
+    final notifier = ref.read(familyHealthOverlayProvider.notifier);
+    if (isShowing) {
+      notifier.hide();
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await notifier.load();
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_view_screen', error, stackTrace);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.couldNotLoad('$error'))));
+    }
   }
 
   void _setFullScreen(bool isFullScreen) {
@@ -609,6 +627,11 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           onSelectGenerations: ref.read(treeGenerationsProvider.notifier).set,
                           onToggleSurnames: () => ref.read(treeSurnamesProvider.notifier).set(!isShowingSurnames),
                           onToggleColours: () => ref.read(treeSurnameColorsProvider.notifier).set(!isColouringSurnames),
+                          isShowingHealth: health != null,
+                          // Only with the family-health module on the server.
+                          onToggleHealth: ref.watch(availableModulesProvider).value?.contains(familyHealthModule) == true
+                              ? () => _toggleFamilyHealth(isShowing: health != null)
+                              : null,
                         )),
                       ),
                     ],
@@ -1833,6 +1856,8 @@ class _ViewButton extends StatelessWidget {
     required this.onSelectGenerations,
     required this.onToggleSurnames,
     required this.onToggleColours,
+    required this.isShowingHealth,
+    required this.onToggleHealth,
   });
 
   final int? generations;
@@ -1841,10 +1866,15 @@ class _ViewButton extends StatelessWidget {
   final void Function(int? generations) onSelectGenerations;
   final VoidCallback onToggleSurnames;
   final VoidCallback onToggleColours;
+  final bool isShowingHealth;
+
+  /// Null without the family-health module: then the menu has no such entry.
+  final VoidCallback? onToggleHealth;
 
   static const _kInfinity = 0;
   static const _kSurnames = -1;
   static const _kColours = -2;
+  static const _kHealth = -3;
   static const _kActiveItemColor = Color(0xFFF0F1F3);
 
   @override
@@ -1886,6 +1916,7 @@ class _ViewButton extends StatelessWidget {
         onSelected: (value) => switch (value) {
           _kSurnames => onToggleSurnames(),
           _kColours => onToggleColours(),
+          _kHealth => onToggleHealth?.call(),
           _ => onSelectGenerations(value == _kInfinity ? null : value),
         },
         itemBuilder: (_) => [
@@ -1924,6 +1955,14 @@ class _ViewButton extends StatelessWidget {
             text: l10n.treeSurnameColors,
             isActive: isColouringSurnames,
           ),
+          if (onToggleHealth != null)
+            toggleItem(
+              key: const Key('treeFamilyHealthItem'),
+              value: _kHealth,
+              icon: const Icon(Icons.health_and_safety_outlined, size: 20, color: AppColors.textSecondary),
+              text: l10n.familyHealthTitle,
+              isActive: isShowingHealth,
+            ),
         ],
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

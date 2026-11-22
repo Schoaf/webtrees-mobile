@@ -72,6 +72,14 @@ class FamilyHealthOverlayNotifier extends Notifier<FamilyHealthOverlay?> {
 
   void show(FamilyHealthOverlay overlay) => state = overlay;
 
+  /// Every illness the account may see, shown in the tree - the switch in the tree's menu.
+  Future<void> load() async {
+    final client = ref.read(webtreesClientProvider);
+    final tree = ref.read(treeNameProvider);
+    final (illnesses, catalog) = await (client.familyHealthIllnesses(tree), client.familyHealthCatalog(tree)).wait;
+    state = FamilyHealthOverlay.fromJson(illnesses, catalog);
+  }
+
   void pickCategory(String? category) => state = state?.withCategory(category);
 
   void hide() => state = null;
