@@ -783,6 +783,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         final photoUrl = person['thumb'] as String?;
         final fab = _editing ? null : _buildTreeButton();
         final isDead = person['isDead'] as bool? ?? false;
+        final relationship = data['relationship'] as String? ?? '';
         final useTwoColumn = _useTwoColumnLayout(context);
         // Fixed-ish corner size for the screen-wide banderole, capped so it
         // doesn't dominate a small phone screen.
@@ -880,6 +881,20 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       _lifespanText(l10n, person),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                // How this person is related to the account's own individual, as webtrees names it ("Großvater").
+                if (relationship.isNotEmpty)
+                  Padding(
+                    key: const Key('personRelationship'),
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      relationship,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,

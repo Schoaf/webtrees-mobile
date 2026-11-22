@@ -956,4 +956,22 @@ void main() {
       });
     });
   });
+  testWidgets('shows how the person is related to the account under the age', (tester) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => {...personJson('I1'), 'relationship': 'Großmutter'});
+
+    await pumpScreen(tester);
+
+    expect(find.text('Großmutter'), findsOneWidget);
+    final age = tester.getTopLeft(find.text('* 1980'));
+    final relationship = tester.getTopLeft(find.byKey(const Key('personRelationship')));
+    expect(relationship.dy, greaterThan(age.dy));
+  });
+
+  testWidgets('no relationship line for the account itself or someone unrelated', (tester) async {
+    when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => {...personJson('I1'), 'relationship': ''});
+
+    await pumpScreen(tester);
+
+    expect(find.byKey(const Key('personRelationship')), findsNothing);
+  });
 }
