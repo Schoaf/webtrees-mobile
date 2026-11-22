@@ -16,11 +16,15 @@ class FamilyHealthOverlay {
   /// The category the filter bar picked - null for all.
   final String? category;
 
-  /// The categories in use, in the module's order - the filter bar's chips.
-  List<String> get usedCategories => [
-    for (final id in categoryNames.keys)
-      if (categoriesByXref.values.any((categories) => categories.contains(id))) id,
-  ];
+  /// The categories of the people [inView], in the module's order - the filter bar's chips. The picked one stays,
+  /// so it can be taken back after fewer generations are shown.
+  List<String> usedCategories(Iterable<String> inView) {
+    final used = {for (final xref in inView) ...?categoriesByXref[xref]};
+    return [
+      for (final id in categoryNames.keys)
+        if (used.contains(id) || id == category) id,
+    ];
+  }
 
   /// Whether [xref] is drawn pale: no illness, or none in the picked category.
   bool isFaded(String xref) {

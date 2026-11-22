@@ -411,6 +411,22 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
     final pickedSurnames = {..._pickedSurnames.where((s) => surnameColors?.containsKey(s) ?? false)};
     // Familiengesundheit (#54): pale without an illness, the category large on the others.
     final health = ref.watch(familyHealthOverlayProvider);
+    // Its filter offers only what the generations shown have - not what is further up or down the line.
+    final healthInView = health == null || neighborhood == null
+        ? const <String>{}
+        : (familyLines ??
+                  _familyLinesInView(
+                    neighborhood,
+                    treeState.selectedPartnerXref,
+                    lineage,
+                    generationsUp,
+                    generationsDown,
+                    treeState.cache,
+                    (surname) => surnameGroupKey(surname, surnameGrouping),
+                  ))
+              .lineOf
+              .keys
+              .toSet();
 
     if (neighborhood != null) {
       // The partners' own names (a married name) come with their own answer.
@@ -554,6 +570,7 @@ class _TreeViewScreenState extends ConsumerState<TreeViewScreen> {
                           bottom: 8,
                           child: overlay(_FamilyHealthBar(
                             overlay: health,
+                            inView: healthInView,
                             onPick: ref.read(familyHealthOverlayProvider.notifier).pickCategory,
                             onClose: ref.read(familyHealthOverlayProvider.notifier).hide,
                           )),
@@ -2014,9 +2031,12 @@ class _FamilyHealthScope extends InheritedWidget {
 
 /// The filter bar of Familiengesundheit in the tree (#54): one category or all, and leaving it.
 class _FamilyHealthBar extends StatelessWidget {
-  const _FamilyHealthBar({required this.overlay, required this.onPick, required this.onClose});
+  const _FamilyHealthBar({required this.overlay, required this.inView, required this.onPick, required this.onClose});
 
   final FamilyHealthOverlay overlay;
+
+  /// The people in the tree as shown - the chips are their categories.
+  final Set<String> inView;
   final void Function(String? category) onPick;
   final VoidCallback onClose;
 
@@ -2050,7 +2070,7 @@ class _FamilyHealthBar extends StatelessWidget {
                 child: Row(
                   children: [
                     chip(l10n.allCategories, null),
-                    for (final id in overlay.usedCategories) chip(overlay.categoryNames[id] ?? id, id),
+                    for (final id in overlay.usedCategories(inView)) chip(overlay.categoryNames[id] ?? id, id),
                   ],
                 ),
               ),

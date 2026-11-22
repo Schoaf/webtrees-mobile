@@ -651,8 +651,10 @@ void main() {
               categoriesByXref: {
                 'I1': {'cancer'},
                 'I3': {'cardiovascular', 'cancer'},
+                // further up the line, not in view
+                'I99': {'lung'},
               },
-              categoryNames: {'cardiovascular': 'Herz und Kreislauf', 'cancer': 'Krebs', 'other': 'Sonstiges'},
+              categoryNames: {'cardiovascular': 'Herz und Kreislauf', 'cancer': 'Krebs', 'lung': 'Lunge', 'other': 'Sonstiges'},
             ),
           );
       await pumpScreen(tester);
@@ -662,8 +664,10 @@ void main() {
       expect(card('Thomas').healthLabel, isNull);
       expect(card('Elisabeth').isFaded, isFalse);
       expect(card('Maria').healthLabel, 'Herz und Kreislauf · Krebs');
-      // The filter bar has the categories in use only.
+      // The filter bar has the categories of the people in view only.
       expect(find.byKey(const Key('familyHealthChip_other')), findsNothing);
+      expect(find.byKey(const Key('familyHealthChip_lung')), findsNothing);
+      expect(find.byKey(const Key('familyHealthChip_cancer')), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('familyHealthChip_cardiovascular')));
       await tester.pumpAndSettle();

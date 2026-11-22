@@ -25,7 +25,13 @@ void main() {
     expect(overlay.labelOf('I2'), 'Herz und Kreislauf · Krebs');
     // Without a category: "other", like the module.
     expect(overlay.labelOf('I5'), 'Sonstiges');
-    expect(overlay.usedCategories, ['cardiovascular', 'cancer', 'other']);
+    expect(overlay.usedCategories(['I1', 'I2', 'I5', 'I9']), ['cardiovascular', 'cancer', 'other']);
+  });
+
+  test('the filter offers only the categories of the people in view - and keeps a picked one', () {
+    expect(overlay.usedCategories(['I1', 'I5']), ['other']);
+    expect(overlay.usedCategories(const []), isEmpty);
+    expect(overlay.withCategory('cancer').usedCategories(['I5']), ['cancer', 'other']);
   });
 
   test('without an illness: faded, no label', () {
