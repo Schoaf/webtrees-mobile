@@ -1014,7 +1014,7 @@ void main() {
 
       await tester.ensureVisible(find.byKey(const Key('personIllnesses')));
       expect(find.text('Erkrankungen'), findsOneWidget);
-      expect(find.text('Asthma (J45)'), findsOneWidget);
+      expect(find.text('Asthma'), findsOneWidget);
       expect(find.text('etwa 1990'), findsOneWidget);
       expect(find.text('Migräne'), findsOneWidget);
       expect(find.text('Wartet auf Freigabe'), findsOneWidget);
@@ -1049,8 +1049,8 @@ void main() {
     testWidgets('without edit rights a tap opens nothing', (tester) async {
       await pumpWithIllnesses(tester, canEdit: false);
 
-      await tester.ensureVisible(find.text('Asthma (J45)'));
-      await tester.tap(find.text('Asthma (J45)'));
+      await tester.ensureVisible(find.text('Asthma'));
+      await tester.tap(find.text('Asthma'));
       await tester.pumpAndSettle();
       expect(find.text('Erkrankung ändern'), findsNothing);
     });
@@ -1061,8 +1061,8 @@ void main() {
         () => client.postFamilyHealthIllnessUpdate('Famtree', 'I1', id: 'f1', illness: 'Asthma bronchiale', date: 'ABT 1990'),
       ).thenAnswer((_) async => {'ok': true});
 
-      await tester.ensureVisible(find.text('Asthma (J45)'));
-      await tester.tap(find.text('Asthma (J45)'));
+      await tester.ensureVisible(find.text('Asthma'));
+      await tester.tap(find.text('Asthma'));
       await tester.pumpAndSettle();
       expect(find.text('Erkrankung ändern'), findsOneWidget);
       expect(tester.widget<TextField>(find.byKey(const Key('illnessEditYear'))).controller!.text, '1990');
@@ -1085,8 +1085,8 @@ void main() {
         () => client.postFamilyHealthIllnessUpdate('Famtree', 'I1', id: 'f1', illness: 'Asthma', date: '1992'),
       ).thenAnswer((_) async => {'ok': true});
 
-      await tester.ensureVisible(find.text('Asthma (J45)'));
-      await tester.tap(find.text('Asthma (J45)'));
+      await tester.ensureVisible(find.text('Asthma'));
+      await tester.tap(find.text('Asthma'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('illnessEditYear')), '1992');
       await tester.tap(find.byKey(const Key('illnessEditSave')));
@@ -1099,8 +1099,8 @@ void main() {
       await pumpWithIllnesses(tester);
       when(() => client.postFamilyHealthIllnessDelete('Famtree', 'I1', id: 'f1')).thenAnswer((_) async => {'ok': true});
 
-      await tester.ensureVisible(find.text('Asthma (J45)'));
-      await tester.tap(find.text('Asthma (J45)'));
+      await tester.ensureVisible(find.text('Asthma'));
+      await tester.tap(find.text('Asthma'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('illnessEditDelete')));
       await tester.pumpAndSettle();
@@ -1119,8 +1119,8 @@ void main() {
         () => client.postFamilyHealthIllnessUpdate('Famtree', 'I1', id: 'f1', illness: 'Asthma', date: 'ABT 1990'),
       ).thenAnswer((_) async => {'ok': false, 'error': 'Diese Erkrankung gibt es nicht mehr.'});
 
-      await tester.ensureVisible(find.text('Asthma (J45)'));
-      await tester.tap(find.text('Asthma (J45)'));
+      await tester.ensureVisible(find.text('Asthma'));
+      await tester.tap(find.text('Asthma'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('illnessEditSave')));
       await tester.pumpAndSettle();

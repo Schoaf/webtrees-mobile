@@ -91,7 +91,7 @@ void main() {
         find.text('Krebs'),
         findsNWidgets(2),
       ); // filter chip and group heading
-      expect(find.text('Brustkrebs (C50)'), findsOneWidget);
+      expect(find.text('Brustkrebs'), findsOneWidget);
       expect(find.text('Maria Gesund · Mutter · 1. Grad'), findsNWidgets(2));
       expect(find.text('um 1960 · mit 42 Jahren'), findsOneWidget);
       expect(find.text('früh'), findsOneWidget);
@@ -102,7 +102,7 @@ void main() {
       // Herz und Kreislauf comes before Krebs - the module's order of categories.
       expect(
         tester.getTopLeft(find.text('Herzinfarkt')).dy <
-            tester.getTopLeft(find.text('Brustkrebs (C50)')).dy,
+            tester.getTopLeft(find.text('Brustkrebs')).dy,
         isTrue,
       );
       // Only one individual: no choice to make.
@@ -134,7 +134,7 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Krebs'));
     await tester.pumpAndSettle();
     expect(find.text('Herzinfarkt'), findsNothing);
-    expect(find.text('Brustkrebs (C50)'), findsOneWidget);
+    expect(find.text('Brustkrebs'), findsOneWidget);
 
     await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Alle'));
     await tester.tap(find.widgetWithText(ChoiceChip, 'Alle'));

@@ -313,7 +313,6 @@ class _Illness {
     required this.degree,
     required this.illness,
     required this.category,
-    required this.icd,
     required this.dateText,
     required this.age,
     required this.isEarly,
@@ -326,7 +325,6 @@ class _Illness {
     degree: json['degree'] as int? ?? 0,
     illness: json['illness'] as String? ?? '',
     category: json['category'] as String? ?? 'other',
-    icd: json['icd'] as String? ?? '',
     dateText: json['dateText'] as String? ?? '',
     age: json['age'] as int?,
     isEarly: json['isEarly'] == true,
@@ -338,7 +336,6 @@ class _Illness {
   final int degree;
   final String illness;
   final String category;
-  final String icd;
   final String dateText;
   final int? age;
   final bool isEarly;
@@ -372,9 +369,7 @@ class _IllnessRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    illness.icd.isEmpty
-                        ? illness.illness
-                        : '${illness.illness} (${illness.icd})',
+                    illness.illness,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,

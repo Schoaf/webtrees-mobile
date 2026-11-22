@@ -142,7 +142,6 @@ class _IllnessRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final name = illness['illness'] as String? ?? '';
-    final icd = illness['icd'] as String? ?? '';
     final dateText = illness['dateText'] as String? ?? '';
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +150,7 @@ class _IllnessRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(icd.isEmpty ? name : '$name ($icd)', style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
+              Text(name, style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
               if (illness['isPending'] == true)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
