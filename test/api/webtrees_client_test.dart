@@ -862,6 +862,24 @@ void main() {
       expect((catalog['categories'] as List).single['name'], 'Krebs');
     });
 
+    test('the illnesses of one person: read, change, delete', () async {
+      adapter.enqueue(_CannedResponse(200, '{"illnesses":[{"id":"f1","illness":"Asthma"}],"canEdit":true}'));
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+
+      final read = await client.familyHealthPersonIllnesses('Famtree', 'I2');
+      await client.postFamilyHealthIllnessUpdate('Famtree', 'I2', id: 'f1', illness: 'Asthma', date: '1990');
+      await client.postFamilyHealthIllnessDelete('Famtree', 'I2', id: 'f1');
+
+      expect(adapter.requests[0].uri.queryParameters['route'], '/module/_family-health_/PersonIllnesses/Famtree');
+      expect(adapter.requests[0].uri.queryParameters['xref'], 'I2');
+      expect(read['canEdit'], isTrue);
+      expect(adapter.requests[1].uri.queryParameters['route'], '/module/_family-health_/IllnessUpdate/Famtree');
+      expect(adapter.requests[1].data, {'xref': 'I2', 'id': 'f1', 'illness': 'Asthma', 'date': '1990'});
+      expect(adapter.requests[2].uri.queryParameters['route'], '/module/_family-health_/IllnessDelete/Famtree');
+      expect(adapter.requests[2].data, {'xref': 'I2', 'id': 'f1'});
+    });
+
     test('postFamilyHealthIllness() posts JSON, leaving out what is not given', () async {
       adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
       adapter.enqueue(_CannedResponse(400, '{"ok":false,"error":"Nicht erlaubt"}'));

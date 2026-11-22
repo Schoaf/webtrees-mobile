@@ -693,6 +693,41 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// The illnesses of [xref] for their page (family-health `PersonIllnesses`): `{illnesses: [{id, illness, category,
+  /// icd, date, dateText, isPending}], canEdit}` - empty when the account may not see them.
+  Future<Map<String, dynamic>> familyHealthPersonIllnesses(String tree, String xref) async {
+    final response = await _dio.getUri(_moduleUri('PersonIllnesses', tree, {'xref': xref}, familyHealthModuleSlug));
+    return _json(response);
+  }
+
+  /// Changes the illness [id] of [xref] (family-health `IllnessUpdate`, editors only). Answers like
+  /// [postFamilyHealthIllness].
+  Future<Map<String, dynamic>> postFamilyHealthIllnessUpdate(
+    String tree,
+    String xref, {
+    required String id,
+    required String illness,
+    required String date,
+  }) async {
+    final response = await _dio.postUri(
+      _moduleUri('IllnessUpdate', tree, null, familyHealthModuleSlug),
+      data: {'xref': xref, 'id': id, 'illness': illness, 'date': date},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
+  /// Deletes the illness [id] of [xref] (family-health `IllnessDelete`, editors only). Answers like
+  /// [postFamilyHealthIllness].
+  Future<Map<String, dynamic>> postFamilyHealthIllnessDelete(String tree, String xref, {required String id}) async {
+    final response = await _dio.postUri(
+      _moduleUri('IllnessDelete', tree, null, familyHealthModuleSlug),
+      data: {'xref': xref, 'id': id},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
   /// The module's categories (`[{id, name}]`, names in the user's language) and its catalog of illnesses.
   Future<Map<String, dynamic>> familyHealthCatalog(String tree) async {
     final response = await _dio.getUri(_moduleUri('Catalog', tree, null, familyHealthModuleSlug));

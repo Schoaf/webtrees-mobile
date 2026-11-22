@@ -555,5 +555,15 @@
   "diagnosticLogTitle": "Diagnose-Protokoll",
   "diagnosticLogSubtitle": "Zeichnet Fehler und Verbindungen auf, damit sich ein Problem finden lässt – ohne Inhalte, Passwörter oder Cookies. Beim Ausschalten wird es gelöscht.",
   "diagnosticLogSendButton": "Diagnose senden",
-  "diagnosticLogEmpty": "Noch nichts aufgezeichnet."
+  "diagnosticLogEmpty": "Noch nichts aufgezeichnet.",
+  "illnessesTitle": "Erkrankungen",
+  "editIllnessTitle": "Erkrankung ändern",
+  "deleteIllnessButton": "Erkrankung löschen",
+  "deleteIllnessConfirm": "„{illness}“ löschen?",
+  "@deleteIllnessConfirm": {
+    "placeholders": {
+      "illness": {"type": "String"}
+    }
+  },
+  "illnessDeleted": "Erkrankung gelöscht."
 }

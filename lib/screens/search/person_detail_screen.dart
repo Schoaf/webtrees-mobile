@@ -24,6 +24,7 @@ import '../../widgets/gedcom_date_field.dart';
 import '../../widgets/load_error_view.dart';
 import '../../widgets/person_avatar.dart';
 import '../../widgets/person_card.dart';
+import '../../widgets/person_illnesses_card.dart';
 import '../../widgets/photo_description_sheet.dart';
 import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
@@ -217,6 +218,9 @@ class PersonDetailScreen extends ConsumerStatefulWidget {
 
 class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
   late Future<Map<String, dynamic>> _future;
+
+  /// Bumped after an illness is added, so the illnesses card loads again.
+  int _illnessReloads = 0;
   /// The person currently shown (the active one of the person history).
   late String _xref;
   bool _editing = false;
@@ -356,6 +360,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
         // it throws in tests and shows a debug-mode error overlay).
         setState(() {
           _future = _load();
+          _illnessReloads++;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.factSaved)),
@@ -912,6 +917,9 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
               // the user can still collapse it back down if they want to.
               initiallyExpanded: useTwoColumn,
             ),
+          // Confidential, so not among the facts - the family-health module hands them out (#54).
+          if (!_editing)
+            PersonIllnessesCard(key: ValueKey('illnesses-$_xref-$_illnessReloads'), xref: _xref),
           if (_editing)
             _EditFactsSection(
               key: _editKey,

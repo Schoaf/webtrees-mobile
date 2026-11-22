@@ -370,5 +370,10 @@
   "diagnosticLogTitle": "Diagnoselogboek",
   "diagnosticLogSubtitle": "Legt fouten en verbindingen vast zodat een probleem gevonden kan worden – zonder inhoud, wachtwoorden of cookies. Uitzetten wist het.",
   "diagnosticLogSendButton": "Diagnose versturen",
-  "diagnosticLogEmpty": "Nog niets vastgelegd."
+  "diagnosticLogEmpty": "Nog niets vastgelegd.",
+  "illnessesTitle": "Ziekten",
+  "editIllnessTitle": "Ziekte wijzigen",
+  "deleteIllnessButton": "Ziekte verwijderen",
+  "deleteIllnessConfirm": "„{illness}” verwijderen?",
+  "illnessDeleted": "Ziekte verwijderd."
 }

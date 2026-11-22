@@ -370,5 +370,10 @@
   "diagnosticLogTitle": "Diagnostic log",
   "diagnosticLogSubtitle": "Records errors and connections so a problem can be found – without contents, passwords or cookies. Turning it off deletes it.",
   "diagnosticLogSendButton": "Send diagnostics",
-  "diagnosticLogEmpty": "Nothing recorded yet."
+  "diagnosticLogEmpty": "Nothing recorded yet.",
+  "illnessesTitle": "Illnesses",
+  "editIllnessTitle": "Edit illness",
+  "deleteIllnessButton": "Delete illness",
+  "deleteIllnessConfirm": "Delete “{illness}”?",
+  "illnessDeleted": "Illness deleted."
 }
