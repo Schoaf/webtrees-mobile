@@ -366,5 +366,9 @@
   "illnessCategoryLabel": "Categorie",
   "illnessCategoryHint": "Nieuw in de lijst – kies een categorie zodat ze goed wordt ingedeeld.",
   "illnessConfidentialHint": "Wordt vertrouwelijk opgeslagen: alleen bloedverwanten van de persoon zien het bij gezondheid in de familie.",
-  "illnessYearInvalid": "Voer een jaar in zoals 1980."
+  "illnessYearInvalid": "Voer een jaar in zoals 1980.",
+  "diagnosticLogTitle": "Diagnoselogboek",
+  "diagnosticLogSubtitle": "Legt fouten en verbindingen vast zodat een probleem gevonden kan worden – zonder inhoud, wachtwoorden of cookies. Uitzetten wist het.",
+  "diagnosticLogSendButton": "Diagnose versturen",
+  "diagnosticLogEmpty": "Nog niets vastgelegd."
 }

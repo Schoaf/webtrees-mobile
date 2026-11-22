@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
+import '../services/diagnostic_log.dart';
 
 /// A place-name text field with suggestions from webtrees' own autocomplete
 /// endpoint (the tree's existing places, falling back to a gazetteer module
@@ -50,7 +51,8 @@ class _PlaceAutocompleteFieldState
         final results = await client.placeAutocomplete(tree, query);
         if (!mounted) return;
         setState(() => _suggestions = results);
-      } on Exception {
+      } on Exception catch (error, stackTrace) {
+        DiagnosticLog.instance.error('place_autocomplete_field', error, stackTrace);
         // suggestions are best-effort — free text still works without them
       }
     });

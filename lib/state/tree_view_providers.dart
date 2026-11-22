@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/tree_neighborhood.dart';
 import 'app_providers.dart';
+import '../services/diagnostic_log.dart';
 
 /// The app's one tree history (#31): every tree view - the Stammbaum tab and
 /// any opened from a person's page - shows and moves the same history, so
@@ -100,7 +101,8 @@ class TreeViewController extends Notifier<TreeViewState> {
         error: null,
         selectedPartnerXref: state.selectedPartnerXref,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      DiagnosticLog.instance.error('tree_view_providers', e, stackTrace);
       // Not `on Exception`: a malformed/unexpected field in TreeNeighborhood
       // .fromJson's parsing throws a TypeError (a dart Error, not an
       // Exception) - `on Exception` alone silently swallows that, leaving
@@ -138,7 +140,8 @@ class TreeViewController extends Notifier<TreeViewState> {
         error: state.error,
         selectedPartnerXref: state.selectedPartnerXref,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_view_providers', error, stackTrace);
       // Only extra names are missing then - the card shows the summary's.
     } finally {
       _prefetching.remove(xref);

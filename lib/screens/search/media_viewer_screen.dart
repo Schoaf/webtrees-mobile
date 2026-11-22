@@ -13,6 +13,7 @@ import '../../widgets/cropped_photo.dart';
 import '../../widgets/person_tag_icon.dart';
 import 'crop_editor_screen.dart';
 import 'search_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 /// All photos of a person (#35): swipe through them, a strip of thumbnails at
 /// the bottom, and - with edit rights - make the one in view the main photo
@@ -130,7 +131,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       } else {
         _showMessage(l10n.rejectedError('${result['error']}'));
       }
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('media_viewer_screen', e, stackTrace);
       if (mounted) _showMessage(l10n.connectionFailedError('$e'));
     } finally {
       if (mounted) setState(() => _isBusy = false);
@@ -161,7 +163,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       setState(() => _turnedCount[photo['xref'] as String] = (_turnedCount[photo['xref']] ?? 0) + 1);
       _loadMarks(photo['xref'] as String);
       _showMessage(l10n.photoTurned);
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('media_viewer_screen', e, stackTrace);
       if (mounted) _showMessage(l10n.connectionFailedError('$e'));
     } finally {
       if (mounted) setState(() => _isBusy = false);
@@ -182,7 +185,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           if (own.isNotEmpty) photo['crop'] = own.first['crop'];
         }
       });
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('media_viewer_screen', e, stackTrace);
       if (mounted) _showMessage(AppLocalizations.of(context)!.connectionFailedError('$e'));
     }
   }
@@ -225,7 +229,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       if (personXref == widget.personXref) setState(() => _photo['crop'] = crop.toJson());
       _loadMarks(media);
       return true;
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('media_viewer_screen', e, stackTrace);
       if (mounted) _showMessage(l10n.connectionFailedError('$e'));
       return false;
     }
@@ -272,7 +277,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
         await ref.read(webtreesClientProvider).postPrimaryMedia(ref.read(treeNameProvider), xref, media: media);
       }
       if (mounted) _showMessage(l10n.personMarked(name));
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('media_viewer_screen', e, stackTrace);
       if (mounted) _showMessage(l10n.connectionFailedError('$e'));
     } finally {
       if (mounted) setState(() => _isBusy = false);
@@ -599,7 +605,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
         _index = _index.clamp(0, _photos.length - 1);
       });
       _pageController.jumpToPage(_index);
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('media_viewer_screen', e, stackTrace);
       if (mounted) _showMessage(l10n.connectionFailedError('$e'));
     } finally {
       if (mounted) setState(() => _isBusy = false);

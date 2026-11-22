@@ -14,6 +14,7 @@ import '../../widgets/tablet_bounded_body.dart';
 import '../account/account_screen.dart';
 import '../family_health/family_health_screen.dart';
 import '../responses/responses_list_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -73,7 +74,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     int unreadResponses;
     try {
       unreadResponses = await client.shareRequestUnreadCount(tree);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('home_screen', error, stackTrace);
       // webtrees-contribution-request may not be installed/enabled - don't let that break
       // the rest of the home screen.
       unreadResponses = 0;
@@ -139,6 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
+              DiagnosticLog.instance.error('home_screen', snapshot.error!, snapshot.stackTrace);
               return Center(
                 child: Text(l10n.couldNotLoad('${snapshot.error}')),
               );

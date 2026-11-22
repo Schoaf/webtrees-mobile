@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../state/app_providers.dart';
+import '../services/diagnostic_log.dart';
 
 const _kOfferedPrefKey = 'open_links_offered';
 
@@ -21,7 +22,8 @@ Future<void> setUpOpenLinks(WidgetRef ref) async {
 Future<bool> canOpenLinksInApp(WidgetRef ref) async {
   try {
     return await ref.read(webtreesClientProvider).canOpenLinksInApp(ref.read(treeNameProvider));
-  } catch (_) {
+  } catch (error, stackTrace) {
+    DiagnosticLog.instance.error('open_links_offer', error, stackTrace);
     return false;
   }
 }

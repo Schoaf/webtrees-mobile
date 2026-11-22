@@ -13,6 +13,7 @@ import 'screens/search/my_person_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/tree_picker/tree_picker_screen.dart';
 import 'screens/tree_view/my_tree_view_screen.dart';
+import 'services/diagnostic_log.dart';
 import 'state/app_providers.dart';
 import 'state/language.dart';
 import 'theme/app_theme.dart';
@@ -28,6 +29,9 @@ import 'widgets/tree_icons.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DiagnosticLog.instance.load();
+  _logUnhandledErrors();
+  DiagnosticLog.instance.info('App started');
   await clearSecureStorageAfterReinstall();
   // A "Verbinden" link from any previous launch may have repointed this
   // device at a different server/tree than the built-in default - resolved
@@ -45,6 +49,25 @@ Future<void> main() async {
       child: const StammbaumApp(),
     ),
   );
+}
+
+/// Sends crashes, uncaught errors and the app's own output (debugPrint) to
+/// the diagnostic log too - which drops them unless the user turned it on.
+void _logUnhandledErrors() {
+  final presentError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    DiagnosticLog.instance.error('Flutter', details.exception, details.stack);
+    presentError?.call(details);
+  };
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stackTrace) {
+    DiagnosticLog.instance.error('Uncaught', error, stackTrace);
+    return false;
+  };
+  final print = debugPrint;
+  debugPrint = (message, {wrapWidth}) {
+    if (message != null) DiagnosticLog.instance.info(message);
+    print(message, wrapWidth: wrapWidth);
+  };
 }
 
 /// Lets a review link or the tree picker (handled by [_AppRootState], which
@@ -252,7 +275,8 @@ class _AppRootState extends ConsumerState<_AppRoot> {
           MaterialPageRoute(builder: (_) => TreePickerScreen(trees: trees)),
         );
       }
-    } on DioException {
+    } on DioException catch (error, stackTrace) {
+      DiagnosticLog.instance.error('main', error, stackTrace);
       if (mounted) setState(() => _connectError = l10n.authErrorServerUnreachable);
     } finally {
       if (mounted) setState(() => _connecting = false);

@@ -366,5 +366,9 @@
   "illnessCategoryLabel": "Category",
   "illnessCategoryHint": "New to the list – choose a category so it is sorted in right.",
   "illnessConfidentialHint": "Saved as confidential: only blood relatives of the individual see it in family health.",
-  "illnessYearInvalid": "Please enter a year like 1980."
+  "illnessYearInvalid": "Please enter a year like 1980.",
+  "diagnosticLogTitle": "Diagnostic log",
+  "diagnosticLogSubtitle": "Records errors and connections so a problem can be found – without contents, passwords or cookies. Turning it off deletes it.",
+  "diagnosticLogSendButton": "Send diagnostics",
+  "diagnosticLogEmpty": "Nothing recorded yet."
 }

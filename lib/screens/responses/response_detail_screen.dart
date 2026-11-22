@@ -9,6 +9,7 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/cropped_photo.dart';
 import '../search/crop_editor_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 /// webtrees field codes as sent by the server (stable, not display text);
 /// see [_fieldLabel] for the localized text shown for each.
@@ -84,7 +85,8 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.allResponsesReviewed)));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      DiagnosticLog.instance.error('response_detail_screen', e, stackTrace);
       if (!mounted) return;
       setState(() => _applying = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.couldNotApplyError('$e'))));
@@ -118,7 +120,8 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.couldNotDiscardMessage)));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      DiagnosticLog.instance.error('response_detail_screen', e, stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.couldNotDiscardError('$e'))));
     }
@@ -140,6 +143,7 @@ class _ResponseDetailScreenState extends ConsumerState<ResponseDetailScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
+                    DiagnosticLog.instance.error('response_detail_screen', snapshot.error!, snapshot.stackTrace);
                     return Center(child: Text(l10n.couldNotLoad('${snapshot.error}')));
                   }
 

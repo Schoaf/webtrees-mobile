@@ -13,11 +13,13 @@ import '../../utils/copy_to_clipboard.dart';
 import '../../utils/device_size.dart';
 import '../../utils/open_links_offer.dart';
 import '../../utils/tab_navigation.dart';
+import '../../widgets/diagnostic_log_settings.dart';
 import '../../widgets/copyable_error_text.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../search/search_screen.dart';
 import '../tree_picker/tree_picker_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 /// The server's raw role string (stable, not display text); see
 /// [_roleLabel] for the localized text shown for each. Kept off the
@@ -185,7 +187,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.changesSaved)));
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('account_screen', e, stackTrace);
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -215,6 +218,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           );
         }
         if (snapshot.hasError) {
+          DiagnosticLog.instance.error('account_screen', snapshot.error!, snapshot.stackTrace);
           return Scaffold(
             body: SafeArea(
               child: Center(
@@ -517,6 +521,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                               },
                             ),
                           ],
+                          const SizedBox(height: 12),
+                          DiagnosticLogSettings(serverUrl: ref.read(serverUrlProvider)),
                           const SizedBox(height: 12),
                           TextButton.icon(
                             onPressed: () => launchUrl(

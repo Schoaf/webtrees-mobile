@@ -7,6 +7,7 @@ import '../../state/family_health_overlay.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/tab_navigation.dart';
 import '../../widgets/tablet_bounded_body.dart';
+import '../../services/diagnostic_log.dart';
 
 /// "Familiengesundheit" (#54): the family history from the server's family-health module - for the account's own
 /// individual or one of its children under 18, the relatives' illnesses grouped by category, with relationship,
@@ -61,7 +62,8 @@ class _FamilyHealthScreenState extends ConsumerState<FamilyHealthScreen> {
       if (!mounted) return;
       ref.read(familyHealthOverlayProvider.notifier).show(FamilyHealthOverlay.fromJson(illnesses, catalog).withCategory(category));
       openTreeView(context, xref);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('family_health_screen', error, stackTrace);
       messenger.showSnackBar(SnackBar(content: Text(l10n.couldNotLoad('$error'))));
     } finally {
       if (mounted) setState(() => _isOpeningTree = false);
@@ -90,6 +92,7 @@ class _FamilyHealthScreenState extends ConsumerState<FamilyHealthScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
+                      DiagnosticLog.instance.error('family_health_screen', snapshot.error!, snapshot.stackTrace);
                       return Center(
                         child: Text(l10n.couldNotLoad('${snapshot.error}')),
                       );

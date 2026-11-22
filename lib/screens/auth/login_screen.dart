@@ -11,6 +11,8 @@ import '../../widgets/linked_text.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import 'register_screen.dart';
 import 'server_screen.dart';
+import '../../services/diagnostic_log.dart';
+import '../../widgets/diagnostic_log_settings.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -83,7 +85,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted && title != null && title.isNotEmpty) {
         setState(() => _treeTitle = title);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('login_screen', error, stackTrace);
       // Ignored - see comment above.
     }
   }
@@ -307,6 +310,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      DiagnosticLogSettings(serverUrl: ref.read(serverUrlProvider)),
                       if (_appVersion != null) ...[
                         const SizedBox(height: 4),
                         Text(

@@ -551,5 +551,9 @@
   "illnessCategoryLabel": "Kategorie",
   "illnessCategoryHint": "Neu in der Liste – wählen Sie eine Kategorie, damit sie richtig eingeordnet wird.",
   "illnessConfidentialHint": "Wird vertraulich gespeichert: Nur Blutsverwandte der Person sehen es in der Familiengesundheit.",
-  "illnessYearInvalid": "Bitte ein Jahr wie 1980 eingeben."
+  "illnessYearInvalid": "Bitte ein Jahr wie 1980 eingeben.",
+  "diagnosticLogTitle": "Diagnose-Protokoll",
+  "diagnosticLogSubtitle": "Zeichnet Fehler und Verbindungen auf, damit sich ein Problem finden lässt – ohne Inhalte, Passwörter oder Cookies. Beim Ausschalten wird es gelöscht.",
+  "diagnosticLogSendButton": "Diagnose senden",
+  "diagnosticLogEmpty": "Noch nichts aufgezeichnet."
 }

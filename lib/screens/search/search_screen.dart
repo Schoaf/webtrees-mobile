@@ -11,6 +11,7 @@ import '../../utils/tab_navigation.dart';
 import '../../widgets/person_card.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../add_person/add_person_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 /// Priority-2 screen: find a person and review everything stored about
 /// them. Charts are deliberately out of scope for v1 (hard to use on a
@@ -85,7 +86,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         _loading = false;
         _searched = true;
       });
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('search_screen', e, stackTrace);
       if (!mounted) return;
       setState(() {
         _error = AppLocalizations.of(context)!.searchFailedError('$e');

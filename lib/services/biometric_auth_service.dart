@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'diagnostic_log.dart';
 
 const _secureStorage = FlutterSecureStorage();
 const _prefKey = 'biometric_lock_enabled';
@@ -17,7 +18,8 @@ class BiometricAuthService {
       final canCheck = await _auth.canCheckBiometrics;
       final supported = await _auth.isDeviceSupported();
       return canCheck && supported;
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('biometric_auth_service', error, stackTrace);
       return false;
     }
   }
@@ -46,7 +48,8 @@ class BiometricAuthService {
         localizedReason: localizedReason,
         persistAcrossBackgrounding: true,
       );
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('biometric_auth_service', error, stackTrace);
       return false;
     }
   }

@@ -11,6 +11,7 @@ import '../../utils/gedcom_date.dart';
 import '../../widgets/copyable_error_text.dart';
 import '../../widgets/place_autocomplete_field.dart';
 import '../../widgets/tablet_bounded_body.dart';
+import '../../services/diagnostic_log.dart';
 
 /// Stable keys (not display text, so they survive localization) for how a
 /// suggested relative relates to the new person; see [_relationLabel] for
@@ -164,7 +165,8 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
           () => _suggestions = (response['data'] as List<dynamic>? ?? [])
               .cast<Map<String, dynamic>>(),
         );
-      } on Exception {
+      } on Exception catch (error, stackTrace) {
+        DiagnosticLog.instance.error('add_person_screen', error, stackTrace);
         // best-effort — leave suggestions as-is
       }
     });
@@ -249,7 +251,8 @@ class _AddPersonScreenState extends ConsumerState<AddPersonScreen> {
       } else {
         _returnToStart(success: true);
       }
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('add_person_screen', e, stackTrace);
       if (!mounted) return;
       setState(() {
         _saving = false;

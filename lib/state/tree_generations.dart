@@ -5,6 +5,7 @@ import '../models/surname_grouping.dart';
 import '../models/tree_lineage.dart';
 import '../models/tree_neighborhood.dart';
 import 'app_providers.dart';
+import '../services/diagnostic_log.dart';
 
 const _kTreeGenerationsPrefKey = 'tree_generations';
 
@@ -29,7 +30,8 @@ class TreeGenerationsNotifier extends Notifier<int?> {
       if (!prefs.containsKey(_kTreeGenerationsPrefKey)) return;
       final stored = prefs.getInt(_kTreeGenerationsPrefKey) ?? 1;
       state = stored == 0 ? null : stored;
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - stay at the default.
     }
   }
@@ -39,7 +41,8 @@ class TreeGenerationsNotifier extends Notifier<int?> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_kTreeGenerationsPrefKey, generations ?? 0);
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - the choice still applies until the app restarts.
     }
   }
@@ -62,7 +65,8 @@ class TreeSurnamesNotifier extends Notifier<bool> {
     try {
       final prefs = await SharedPreferences.getInstance();
       state = prefs.getBool(_kTreeSurnamesPrefKey) ?? false;
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - stay at the default.
     }
   }
@@ -71,7 +75,8 @@ class TreeSurnamesNotifier extends Notifier<bool> {
     state = isShowing;
     try {
       await (await SharedPreferences.getInstance()).setBool(_kTreeSurnamesPrefKey, isShowing);
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - the choice still applies until the app restarts.
     }
   }
@@ -94,7 +99,8 @@ class TreeSurnameColorsNotifier extends Notifier<bool> {
     try {
       final prefs = await SharedPreferences.getInstance();
       state = prefs.getBool(_kTreeSurnameColorsPrefKey) ?? false;
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - stay at the default.
     }
   }
@@ -103,7 +109,8 @@ class TreeSurnameColorsNotifier extends Notifier<bool> {
     state = isShowing;
     try {
       await (await SharedPreferences.getInstance()).setBool(_kTreeSurnameColorsPrefKey, isShowing);
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - the choice still applies until the app restarts.
     }
   }
@@ -127,7 +134,8 @@ class TreeSurnameGroupingNotifier extends Notifier<SurnameGrouping> {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getString(_kTreeSurnameGroupingPrefKey);
       state = SurnameGrouping.values.where((g) => g.name == stored).firstOrNull ?? SurnameGrouping.exact;
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - stay at the default.
     }
   }
@@ -136,7 +144,8 @@ class TreeSurnameGroupingNotifier extends Notifier<SurnameGrouping> {
     state = grouping;
     try {
       await (await SharedPreferences.getInstance()).setString(_kTreeSurnameGroupingPrefKey, grouping.name);
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Storage unavailable - the choice still applies until the app restarts.
     }
   }
@@ -240,7 +249,8 @@ class TreeLineageController extends Notifier<TreeLineage> {
         ancestorGenerations: wanted,
         isLoadingAncestors: false,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       // Not `on Exception`: a malformed answer throws a TypeError. The tree
       // keeps what it has; no retry loop while scrolling.
       state = state.copyWith(isLoadingAncestors: false, hasAncestorsError: true);
@@ -261,7 +271,8 @@ class TreeLineageController extends Notifier<TreeLineage> {
         descendantGenerations: wanted,
         isLoadingDescendants: false,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('tree_generations', error, stackTrace);
       state = state.copyWith(isLoadingDescendants: false, hasDescendantsError: true);
     }
   }

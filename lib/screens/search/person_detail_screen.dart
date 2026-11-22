@@ -30,6 +30,7 @@ import '../../widgets/tablet_bounded_body.dart';
 import '../../widgets/tree_icons.dart';
 import '../add_person/add_person_screen.dart';
 import 'media_viewer_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 /// Facts always shown; everything else is collapsed under "Mehr anzeigen"
 /// so the record-metadata clutter (reference numbers, last-changed, ...)
@@ -488,7 +489,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           ),
         );
       }
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('person_detail_screen', e, stackTrace);
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.uploadFailedError('$e'))),
@@ -568,7 +570,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     final Map<String, dynamic> request;
     try {
       request = await client.createShareRequest(tree, _xref);
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('person_detail_screen', e, stackTrace);
       if (!mounted) return;
       _showServerErrorDialog(describeServerError(e));
       return;
@@ -650,7 +653,8 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     final Map<String, dynamic> template;
     try {
       template = await client.shareRequestEmailTemplate(tree, token);
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('person_detail_screen', e, stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.couldNotLoadEmailTemplateError('$e'))),
@@ -729,6 +733,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           );
         }
         if (snapshot.hasError) {
+          DiagnosticLog.instance.error('person_detail_screen', snapshot.error!, snapshot.stackTrace);
           return Scaffold(
             appBar: AppBar(),
             body: SafeArea(
@@ -1751,7 +1756,8 @@ class _EditFactsSectionState extends ConsumerState<_EditFactsSection> {
       widget.savingNotifier.value = false;
       if (!mounted) return;
       widget.onSaved();
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('person_detail_screen', e, stackTrace);
       widget.savingNotifier.value = false;
       if (!mounted) return;
       setState(() => _error = l10n.saveFailedError('$e'));

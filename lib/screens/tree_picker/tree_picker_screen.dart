@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../state/app_providers.dart';
 import '../../widgets/load_error_view.dart';
+import '../../services/diagnostic_log.dart';
 
 /// Lets the user pick which of the account's trees is active on this
 /// device - wtAnd's own model (see the project notes this ports): no
@@ -65,6 +66,7 @@ class _TreePickerScreenState extends ConsumerState<TreePickerScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
+              DiagnosticLog.instance.error('tree_picker_screen', snapshot.error!, snapshot.stackTrace);
               return LoadErrorView(message: l10n.couldNotLoad('${snapshot.error}'));
             }
 

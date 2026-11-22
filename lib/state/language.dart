@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/diagnostic_log.dart';
 
 const _kLanguagePrefKey = 'app_language';
 
@@ -24,7 +25,8 @@ class LanguageNotifier extends Notifier<String?> {
       } else {
         await prefs.setString(_kLanguagePrefKey, languageCode);
       }
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('language', error, stackTrace);
       // Storage unavailable - the choice still applies until the app restarts.
     }
   }
@@ -35,7 +37,8 @@ final languageProvider = NotifierProvider<LanguageNotifier, String?>(LanguageNot
 Future<String?> loadLanguagePreference() async {
   try {
     return (await SharedPreferences.getInstance()).getString(_kLanguagePrefKey);
-  } on Exception {
+  } on Exception catch (error, stackTrace) {
+    DiagnosticLog.instance.error('language', error, stackTrace);
     return null;
   }
 }

@@ -12,6 +12,7 @@ import '../repositories/quick_note_store.dart';
 import '../services/biometric_auth_service.dart';
 import 'language.dart';
 import '../utils/webtrees_url.dart';
+import '../services/diagnostic_log.dart';
 
 const _secureStorage = FlutterSecureStorage();
 
@@ -55,7 +56,8 @@ Future<void> clearSecureStorageAfterReinstall() async {
     if (prefs.getBool(_kInstalledMarkerKey) == true) return;
     await _secureStorage.deleteAll().timeout(const Duration(seconds: 3));
     await prefs.setBool(_kInstalledMarkerKey, true);
-  } on Exception {
+  } on Exception catch (error, stackTrace) {
+    DiagnosticLog.instance.error('app_providers', error, stackTrace);
     // Storage unavailable - nothing to clear, try again next launch.
   }
 }
@@ -69,7 +71,8 @@ Future<({String serverUrl, String treeName})> loadActiveConnection() async {
     final serverUrl = await _secureStorage.read(key: _kServerUrlStorageKey).timeout(const Duration(seconds: 3));
     final treeName = await _secureStorage.read(key: _kTreeNameStorageKey).timeout(const Duration(seconds: 3));
     return (serverUrl: serverUrl ?? '', treeName: treeName ?? '');
-  } on Exception {
+  } on Exception catch (error, stackTrace) {
+    DiagnosticLog.instance.error('app_providers', error, stackTrace);
     return (serverUrl: '', treeName: ''); // secure storage unavailable
   }
 }
@@ -199,7 +202,8 @@ final availableModulesProvider = FutureProvider<Set<String>?>((ref) async {
     final trees = (info['trees'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
     final modules = trees.where((t) => t['name'] == tree).firstOrNull?['availableModules'];
     return modules is List ? modules.whereType<String>().toSet() : null;
-  } catch (_) {
+  } catch (error, stackTrace) {
+    DiagnosticLog.instance.error('app_providers', error, stackTrace);
     return null; // offline etc. - unknown, not "missing" (and no retry loop)
   }
 });
@@ -212,7 +216,8 @@ final apiLevelProvider = FutureProvider<int?>((ref) async {
   if (tree.isEmpty) return null;
   try {
     return (await client.info(tree))['api'] as int?;
-  } catch (_) {
+  } catch (error, stackTrace) {
+    DiagnosticLog.instance.error('app_providers', error, stackTrace);
     return null;
   }
 });
@@ -402,12 +407,14 @@ class AuthController extends Notifier<AuthState> {
       // Establishes session cookie + CSRF token.
       await client.info(tree.isEmpty ? null : tree);
       final ok = await client.login(username: username, password: password);
+      DiagnosticLog.instance.info('Login: accepted=$ok, pretty URLs=${client.usePrettyUrls}');
       if (!ok) {
         return AuthError.invalidCredentials;
       }
 
       final info = await client.info(tree.isEmpty ? null : tree);
       final user = info['user'] as Map<String, dynamic>;
+      DiagnosticLog.instance.info('Login: signed in afterwards=${user['loggedIn']}');
       if (user['loggedIn'] != true) {
         // With pretty URLs webtrees answers a wrong password with a redirect
         // too, so only Info can tell - and then a wrong password is by far
@@ -434,9 +441,11 @@ class AuthController extends Notifier<AuthState> {
         isAdmin: user['isAdmin'] as bool? ?? false,
       );
       return null;
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', e, stackTrace);
       return _authErrorFromDioException(e);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
       // Also TypeErrors - e.g. an HTML error page where JSON was expected.
       return AuthError.loginFailedGeneric;
     }
@@ -468,9 +477,11 @@ class AuthController extends Notifier<AuthState> {
         isAdmin: user['isAdmin'] as bool? ?? false,
       );
       return null;
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', e, stackTrace);
       return _authErrorFromDioException(e);
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
       return AuthError.loginFailedGeneric;
     }
   }
@@ -509,7 +520,8 @@ class AuthController extends Notifier<AuthState> {
         'rate-limited' => RegisterError.rateLimited,
         _ => RegisterError.registerFailedGeneric,
       };
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', e, stackTrace);
       return switch (e.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.sendTimeout ||
@@ -519,7 +531,8 @@ class AuthController extends Notifier<AuthState> {
         DioExceptionType.badCertificate => RegisterError.insecureConnection,
         _ => RegisterError.registerFailedGeneric,
       };
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
       return RegisterError.registerFailedGeneric;
     }
   }
@@ -535,7 +548,8 @@ class AuthController extends Notifier<AuthState> {
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool(_kAccountLanguageAdoptedKey) ?? false) return;
       await prefs.setBool(_kAccountLanguageAdoptedKey, true);
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
       return; // Storage unavailable - better no language than one each sign-in.
     }
     // The device's own language stays "like the device", not a fixed pick.
@@ -564,9 +578,11 @@ class AuthController extends Notifier<AuthState> {
       cookie = await _secureStorage
           .read(key: 'wt_session_cookie')
           .timeout(const Duration(seconds: 3));
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
       return; // secure storage unavailable — fall back to the login screen
     }
+    DiagnosticLog.instance.info('Session restore: saved session=${cookie != null}');
     if (cookie == null) return;
 
     final client = ref.read(webtreesClientProvider);
@@ -576,6 +592,7 @@ class AuthController extends Notifier<AuthState> {
     try {
       final info = await client.info(tree);
       final user = info['user'] as Map<String, dynamic>;
+      DiagnosticLog.instance.info('Session restore: still signed in=${user['loggedIn']}');
       if (user['loggedIn'] == true) {
         state = AuthState(
           loggedIn: true,
@@ -587,7 +604,8 @@ class AuthController extends Notifier<AuthState> {
         client.clearSession();
         await _secureStorage.delete(key: 'wt_session_cookie');
       }
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
       // Server unreachable — leave state logged-out; user can retry.
     }
   }

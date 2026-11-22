@@ -9,6 +9,7 @@ import '../../utils/server_url.dart';
 import '../../widgets/linked_text.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import '../tree_picker/tree_picker_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 /// Points the app at a different webtrees server, from the login screen -
 /// the way in for someone who has no "Verbinden" link from that server's
@@ -70,10 +71,12 @@ class _ServerScreenState extends ConsumerState<ServerScreen> {
         }
         trees = (info['trees'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       }
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      DiagnosticLog.instance.error('server_screen', e, stackTrace);
       // A response (404 ...) means the site is there, just no Info route.
       reachable = e.response != null;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('server_screen', error, stackTrace);
       // Not JSON / not the shape Info returns.
     }
 

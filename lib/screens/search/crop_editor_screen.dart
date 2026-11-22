@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/photo_crop.dart';
 import '../../widgets/cropped_photo.dart';
+import '../../services/diagnostic_log.dart';
 
 /// Frame a person on a photo (#37): a square frame to move by dragging and
 /// resize by its corner handle. Pops with the [PhotoCrop] in pixels of the
@@ -81,6 +82,7 @@ class _CropEditorScreenState extends ConsumerState<CropEditorScreen> {
           future: _image,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
+              DiagnosticLog.instance.error('crop_editor_screen', snapshot.error!, snapshot.stackTrace);
               return const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48));
             }
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.white));

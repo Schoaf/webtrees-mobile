@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
 import 'tablet_bounded_body.dart';
+import '../services/diagnostic_log.dart';
 
 // A 13" iPad in portrait is 1024 logical px wide - a bit less than that,
 // so the content never reads as edge-to-edge even on the largest tablet.
@@ -94,7 +95,8 @@ class _AskForHelpEmailScreenState extends ConsumerState<AskForHelpEmailScreen> {
       }
       if (!mounted) return;
       Navigator.of(context).pop(true);
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('ask_for_help_email_screen', e, stackTrace);
       if (!mounted) return;
       setState(() {
         _sending = false;

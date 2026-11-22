@@ -6,6 +6,7 @@ import '../../state/app_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/tablet_bounded_body.dart';
 import 'response_detail_screen.dart';
+import '../../services/diagnostic_log.dart';
 
 /// Native equivalent of webtrees-contribution-request's request-review-list.phtml — every
 /// answered/applied "ask a relative" request for this account, tap a row to
@@ -72,7 +73,8 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
 
     try {
       return await client.shareRequestDelete(tree, id);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('responses_list_screen', error, stackTrace);
       return false;
     }
   }
@@ -94,6 +96,7 @@ class _ResponsesListScreenState extends ConsumerState<ResponsesListScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
+                      DiagnosticLog.instance.error('responses_list_screen', snapshot.error!, snapshot.stackTrace);
                       return Center(
                         child: Text(l10n.couldNotLoad('${snapshot.error}')),
                       );

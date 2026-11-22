@@ -8,6 +8,7 @@ import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
 import 'gedcom_date_field.dart';
 import 'place_autocomplete_field.dart';
+import '../services/diagnostic_log.dart';
 
 /// Result of the sheet: whether a fact was actually posted to webtrees, or
 /// only saved locally because the server couldn't be reached.
@@ -89,7 +90,8 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
             .toList();
         _loadingTags = false;
       });
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('add_fact_sheet', e, stackTrace);
       if (!mounted) return;
       setState(() {
         _error = AppLocalizations.of(context)!.couldNotLoadFactTypesError('$e');
@@ -115,7 +117,8 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
             (name: i['name'] as String? ?? '', category: i['category'] as String? ?? ''),
         ];
       });
-    } on Exception {
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('add_fact_sheet', error, stackTrace);
       // Suggestions are best-effort - a name can still be typed.
     }
   }
@@ -162,7 +165,8 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
           _error = l10n.rejectedError((result['error'] as String?) ?? l10n.unknownError);
         });
       }
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('add_fact_sheet', e, stackTrace);
       // No local note to fall back on: health data stays off the phone.
       if (!mounted) return;
       setState(() {
@@ -216,7 +220,8 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
           );
         });
       }
-    } on DioException catch (_) {
+    } on DioException catch (error, stackTrace) {
+      DiagnosticLog.instance.error('add_fact_sheet', error, stackTrace);
       // Connectivity problem — fall back to a local note so nothing said
       // out loud gets lost while waiting for a signal.
       final store = ref.read(quickNoteStoreProvider);
@@ -231,7 +236,8 @@ class _AddFactSheetState extends ConsumerState<AddFactSheet> {
       );
       if (!mounted) return;
       Navigator.of(context).pop(AddFactResult.savedLocally);
-    } on Exception catch (e) {
+    } on Exception catch (e, stackTrace) {
+      DiagnosticLog.instance.error('add_fact_sheet', e, stackTrace);
       if (!mounted) return;
       setState(() {
         _saving = false;

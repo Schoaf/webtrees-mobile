@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 
+import '../services/diagnostic_log.dart';
 import '../utils/open_deep_link.dart';
 import '../utils/webtrees_url.dart';
 
@@ -9,6 +10,15 @@ import '../utils/webtrees_url.dart';
 /// through one stale-connection retry - see the `onError` interceptor
 /// below.
 const _kRetriedKey = 'webtreesClient.retriedStaleConnection';
+
+/// [RequestOptions.extra] key holding when a request started, for the
+/// diagnostic log.
+const _kStartedKey = 'webtreesClient.started';
+
+Duration? _durationOf(RequestOptions options) => switch (options.extra[_kStartedKey]) {
+  final DateTime started => DateTime.now().difference(started),
+  _ => null,
+};
 
 /// Route name of the family-health module (folder `family-health`).
 const familyHealthModuleSlug = '_family-health_';
@@ -53,6 +63,7 @@ class WebtreesClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          options.extra[_kStartedKey] = DateTime.now();
           final cookie = sessionCookie;
           if (cookie != null) {
             options.headers['Cookie'] = cookie;
@@ -68,10 +79,21 @@ class WebtreesClient {
           handler.next(options);
         },
         onResponse: (response, handler) {
+          DiagnosticLog.instance.request(
+            response.requestOptions,
+            response: response,
+            duration: _durationOf(response.requestOptions),
+          );
           _captureCookie(response);
           handler.next(response);
         },
         onError: (error, handler) async {
+          DiagnosticLog.instance.request(
+            error.requestOptions,
+            response: error.response,
+            error: error,
+            duration: _durationOf(error.requestOptions),
+          );
           if (error.response != null) {
             _captureCookie(error.response!);
           }
@@ -300,7 +322,8 @@ class WebtreesClient {
         response = await ping();
       }
       return const {'OK', 'WARNING', 'ERROR'}.contains(response.data?.trim());
-    } on DioException catch (e) {
+    } on DioException catch (e, stackTrace) {
+      DiagnosticLog.instance.error('webtrees_client', e, stackTrace);
       // ERROR comes as 503, which this client's validateStatus treats as an error.
       return e.response?.data.toString().trim() == 'ERROR';
     }
