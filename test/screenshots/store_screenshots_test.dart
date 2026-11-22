@@ -45,6 +45,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:webtrees_mobile/api/webtrees_client.dart';
 import 'package:webtrees_mobile/l10n/app_localizations.dart';
 import 'package:webtrees_mobile/repositories/quick_note_store.dart';
+import 'package:webtrees_mobile/screens/family_health/family_health_screen.dart';
 import 'package:webtrees_mobile/screens/home/home_screen.dart';
 import 'package:webtrees_mobile/screens/search/person_detail_screen.dart';
 import 'package:webtrees_mobile/screens/search/search_screen.dart';
@@ -770,6 +771,82 @@ void main() {
           container: container,
           screen: const TreeViewScreen(xref: 'I1'),
           name: 'tree_view',
+          target: target,
+        );
+      }
+    }, skip: !_render);
+
+    testWidgets('FamilyHealthScreen, filled out', (tester) async {
+      when(() => client.familyHealthCatalog('Famtree')).thenAnswer(
+        (_) async => {
+          'categories': [
+            {'id': 'cardiovascular', 'name': _t('Herz und Kreislauf', 'Heart and circulation', 'Hart en bloedvaten')},
+            {'id': 'cancer', 'name': _t('Krebs', 'Cancer', 'Kanker')},
+            {'id': 'metabolic', 'name': _t('Diabetes und Stoffwechsel', 'Diabetes and metabolism', 'Diabetes en stofwisseling')},
+            {'id': 'neurological', 'name': _t('Nervensystem und Demenz', 'Nervous system and dementia', 'Zenuwstelsel en dementie')},
+          ],
+        },
+      );
+      Map<String, dynamic> illness(
+        String xref,
+        String name,
+        String relationship,
+        int degree,
+        String illness,
+        String category,
+        String icd,
+        String dateText,
+        int age, {
+        bool isEarly = false,
+      }) => {
+        'xref': xref,
+        'name': name,
+        'relationship': relationship,
+        'degree': degree,
+        'illness': illness,
+        'category': category,
+        'icd': icd,
+        'date': '',
+        'dateText': dateText,
+        'age': age,
+        'isEarly': isEarly,
+      };
+      when(() => client.familyHistory('Famtree')).thenAnswer(
+        (_) async => {
+          'subjects': [
+            {'xref': 'I1', 'name': 'Elisabeth Bergmann'},
+            {'xref': 'I4', 'name': 'Mia Bergmann'},
+          ],
+          'xref': 'I1',
+          'earlyAge': 50,
+          'illnesses': [
+            illness('I2', 'Thomas Bergmann', _t('Vater', 'Father', 'Vader'), 1,
+                _t('Bluthochdruck', 'High blood pressure', 'Hoge bloeddruk'), 'cardiovascular', 'I10', '2004', 52),
+            illness('I3', 'Heinrich Bergmann', _t('Großvater', 'Grandfather', 'Grootvader'), 2,
+                _t('Herzinfarkt', 'Heart attack', 'Hartinfarct'), 'cardiovascular', 'I21', _t('um 1975', 'about 1975', 'omstreeks 1975'), 47,
+                isEarly: true),
+            illness('I5', 'Karolina Bergmann-Weiss', _t('Tante', 'Aunt', 'Tante'), 2,
+                _t('Brustkrebs', 'Breast cancer', 'Borstkanker'), 'cancer', 'C50', '1998', 44, isEarly: true),
+            illness('I6', 'Friedrich Bergmann', _t('Urgroßvater', 'Great-grandfather', 'Overgrootvader'), 3,
+                _t('Darmkrebs', 'Colon cancer', 'Darmkanker'), 'cancer', 'C18', _t('um 1950', 'about 1950', 'omstreeks 1950'), 71),
+            illness('I2', 'Thomas Bergmann', _t('Vater', 'Father', 'Vader'), 1,
+                _t('Diabetes Typ 2', 'Type 2 diabetes', 'Diabetes type 2'), 'metabolic', 'E11', '2011', 59),
+            illness('I7', 'Anna Bergmann', _t('Großmutter', 'Grandmother', 'Grootmoeder'), 2,
+                _t('Alzheimer', 'Alzheimer\'s disease', 'Alzheimer'), 'neurological', 'G30', '1989', 78),
+          ],
+        },
+      );
+
+      final container = ProviderContainer(overrides: [webtreesClientProvider.overrideWithValue(client)]);
+      addTearDown(container.dispose);
+
+      for (final (lang, target) in _allTargets) {
+        _lang = lang;
+        await _renderAndSave(
+          tester,
+          container: container,
+          screen: const FamilyHealthScreen(),
+          name: 'family_health',
           target: target,
         );
       }

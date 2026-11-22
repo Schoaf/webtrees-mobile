@@ -21,7 +21,7 @@ FASTLANE = ROOT / "fastlane"
 LOCALES = {"de": ("de-DE", "de-DE"), "en": ("en-GB", "en-US"), "nl": ("nl-NL", "nl-NL")}
 
 # Store order of the screens.
-SCREENS = ["home", "search", "person_detail", "tree_view"]
+SCREENS = ["home", "search", "person_detail", "tree_view", "family_health"]
 
 IOS_DIRS = ["ios-6.9", "ios-ipad13"]
 ANDROID_DIRS = {"android": "phoneScreenshots", "android-tablet7": "sevenInchScreenshots", "android-tablet10": "tenInchScreenshots"}

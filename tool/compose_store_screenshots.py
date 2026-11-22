@@ -81,18 +81,21 @@ CAPTIONS = {
         "search": "Schnell Nachschlagen?\nKein Problem!",
         "person_detail": "Detaillierte Einzelansichten",
         "tree_view": "Interaktiver Stammbaum\n> mobile friendly <",
+        "family_health": "Familiengesundheit\nauf einen Blick",
     },
     "en": {
         "home": "Clear and tidy",
         "search": "Need to look something up?\nNo problem!",
         "person_detail": "Detailed individual views",
         "tree_view": "Interactive family tree\n> mobile friendly <",
+        "family_health": "Family health\nat a glance",
     },
     "nl": {
         "home": "Overzichtelijk en opgeruimd",
         "search": "Snel iets opzoeken?\nGeen probleem!",
         "person_detail": "Gedetailleerde persoonsweergave",
         "tree_view": "Interactieve stamboom\n> mobile friendly <",
+        "family_health": "Familiegezondheid\nin één oogopslag",
     },
 }
 
