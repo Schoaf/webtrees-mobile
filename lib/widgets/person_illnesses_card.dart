@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/webtrees_client.dart';
 import '../l10n/app_localizations.dart';
 import '../services/diagnostic_log.dart';
 import '../state/app_providers.dart';
@@ -26,6 +27,9 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
   /// A relative who does not take part: shown as such, so no illness does not read as healthy.
   bool _isOptedOut = false;
 
+  /// Illness name (lower case) → its category's name, from the module's catalog - the category belongs to the name.
+  Map<String, String> _categoryByName = {};
+
   /// Asked once the server says it has the module - another person gets a new card (see its key on the page).
   bool _hasRequested = false;
 
@@ -44,6 +48,27 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
       // An older module without PersonIllnesses, or no connection: the card stays away.
       DiagnosticLog.instance.error('person_illnesses_card', error, stackTrace);
       if (mounted) setState(() => _illnesses = []);
+      return;
+    }
+    if (_illnesses.isNotEmpty && _categoryByName.isEmpty) await _loadCategories(client, tree);
+  }
+
+  /// The categories are only shown, so without the catalog the names stand alone.
+  Future<void> _loadCategories(WebtreesClient client, String tree) async {
+    try {
+      final catalog = await client.familyHealthCatalog(tree);
+      final names = {
+        for (final category in (catalog['categories'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>())
+          category['id'] as String? ?? '': category['name'] as String? ?? '',
+      };
+      final byName = <String, String>{
+        for (final illness in (catalog['illnesses'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>())
+          if (names[illness['category']]?.isNotEmpty == true)
+            (illness['name'] as String? ?? '').toLowerCase(): names[illness['category']]!,
+      };
+      if (mounted) setState(() => _categoryByName = byName);
+    } catch (error, stackTrace) {
+      DiagnosticLog.instance.error('person_illnesses_card', error, stackTrace);
     }
   }
 
@@ -121,7 +146,11 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
                     decoration: i == _illnesses.length - 1
                         ? null
                         : const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.divider))),
-                    child: _IllnessRow(illness: _illnesses[i], canEdit: _canEdit),
+                    child: _IllnessRow(
+                      illness: _illnesses[i],
+                      category: _categoryByName[(_illnesses[i]['illness'] as String? ?? '').toLowerCase()],
+                      canEdit: _canEdit,
+                    ),
                   ),
                 ),
             ],
@@ -133,9 +162,12 @@ class _PersonIllnessesCardState extends ConsumerState<PersonIllnessesCard> {
 }
 
 class _IllnessRow extends StatelessWidget {
-  const _IllnessRow({required this.illness, required this.canEdit});
+  const _IllnessRow({required this.illness, required this.category, required this.canEdit});
 
   final Map<String, dynamic> illness;
+
+  /// Shown, not changeable here: it belongs to the illness name in the catalog, for everyone with it.
+  final String? category;
   final bool canEdit;
 
   @override
@@ -150,7 +182,7 @@ class _IllnessRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
+              Text(category == null ? name : '$name ($category)', style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
               if (illness['isPending'] == true)
                 Padding(
                   padding: const EdgeInsets.only(top: 2),

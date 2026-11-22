@@ -1020,6 +1020,25 @@ void main() {
       expect(find.text('Wartet auf Freigabe'), findsOneWidget);
     });
 
+    testWidgets('shows the category of a catalog name in brackets, without letting it change', (tester) async {
+      when(() => client.familyHealthCatalog('Famtree')).thenAnswer(
+        (_) async => {
+          'categories': [
+            {'id': 'lung', 'name': 'Lunge'},
+          ],
+          'illnesses': [
+            {'name': 'asthma', 'category': 'lung', 'icd': 'J45'},
+          ],
+        },
+      );
+      await pumpWithIllnesses(tester);
+
+      await tester.ensureVisible(find.byKey(const Key('personIllnesses')));
+      expect(find.text('Asthma (Lunge)'), findsOneWidget);
+      // not in the catalog: the name alone
+      expect(find.text('Migräne'), findsOneWidget);
+    });
+
     testWidgets('a relative who does not take part shows as locked', (tester) async {
       when(() => client.individual('Famtree', 'I1')).thenAnswer((_) async => personJson('I1'));
       when(() => client.info('Famtree')).thenAnswer(
