@@ -1,3 +1,4 @@
-- Gezondheid in de familie: de familieanamnese per categorie, vroeg optreden gemarkeerd, in de stamboom tonen
-- Diagnoselogboek om aan te zetten: legt fouten en verbindingen vast en kan bij problemen naar de ontwikkelaar worden gestuurd – zonder inhoud, wachtwoorden of cookies
-- Aanmelden werkt nu ook bij servers die eigen cookies zetten
+- Onder de leeftijd staat hoe de persoon aan je verwant is
+- Gezondheid in de familie: ziektes op de persoonspagina bekijken, wijzigen en verwijderen – met categorie
+- Gezondheid in de familie: wie niet wil meedoen, wordt afgeschermd – dan ziet niemand zijn ziektes
+- Gezondheid in de familie in de stamboom direct in het weergavemenu aanzetten; het filter toont alleen de categorieën van de zichtbare personen

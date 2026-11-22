@@ -1,7 +1,7 @@
 De stamboom-app is de mobiele metgezel van uw eigen webtrees-genealogiewebsite. Doorzoek uw stamboom, bekijk personen met alle feiten, foto’s en familierelaties, en vul onderweg nieuwe informatie aan.
 
 Functies:
-• Personen zoeken en details bekijken (geboorte, overlijden, beroep, foto’s en meer)
+• Personen zoeken en details bekijken (geboorte, overlijden, beroep, foto’s en meer) – ook hoe ze aan je verwant zijn
 • Feiten direct in de app bewerken
 • Nieuwe personen aan de stamboom toevoegen
 • Interactieve stamboomweergave met voorouders, broers en zussen en kinderen

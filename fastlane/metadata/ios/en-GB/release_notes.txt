@@ -1,3 +1,4 @@
-- Family health: the family's health history by category, early onset marked, shown in the family tree
-- Diagnostic log you can turn on: records errors and connections and can be sent to the developer when something goes wrong – without contents, passwords or cookies
-- Signing in now also works with servers that set their own cookies
+- Below the age you see how the person is related to you
+- Family health: see, change and delete illnesses on the person's page – with their category
+- Family health: anyone who doesn't want to take part can be locked – then nobody sees their illnesses
+- Turn family health on in the tree's view menu; the filter offers only the categories of the people in view

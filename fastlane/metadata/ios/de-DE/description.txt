@@ -1,7 +1,7 @@
 Die Stammbaum App ist der mobile Begleiter zu deiner eigenen webtrees-Genealogie-Website. Durchsuche deinen Familienstammbaum, sieh dir Personen mit allen Fakten, Fotos und Verwandtschaftsbeziehungen an und ergänze unterwegs neue Informationen.
 
 Funktionen:
-• Personen suchen und Details ansehen (Geburt, Tod, Beruf, Fotos u.v.m.)
+• Personen suchen und Details ansehen (Geburt, Tod, Beruf, Fotos u.v.m.) – auch, wie sie mit dir verwandt sind
 • Fakten direkt in der App bearbeiten
 • Neue Personen zum Stammbaum hinzufügen
 • Interaktive Stammbaum-Ansicht mit Vorfahren, Geschwistern und Kindern

@@ -1,3 +1,4 @@
-- Familiengesundheit: die Familienanamnese nach Kategorien, früh aufgetretene Erkrankungen markiert, im Stammbaum zeigen
-- Diagnose-Protokoll zum Einschalten: zeichnet Fehler und Verbindungen auf und lässt sich bei Problemen an den Entwickler schicken – ohne Inhalte, Passwörter oder Cookies
-- Anmeldung klappt jetzt auch bei Servern, die eigene Cookies setzen
+- Unter dem Alter steht, wie die Person mit dir verwandt ist
+- Familiengesundheit: Erkrankungen auf der Personenseite sehen, ändern und löschen – mit Kategorie
+- Familiengesundheit: Wer nicht teilnehmen möchte, wird gesperrt – dann sieht niemand seine Erkrankungen
+- Familiengesundheit im Stammbaum direkt im Ansichtsmenü einschalten; der Filter zeigt nur die Kategorien der sichtbaren Personen
