@@ -333,6 +333,20 @@ void main() {
       expect(adapter.requests.last.uri.path, endsWith('/module/_api4webtrees_/Info'));
       expect(adapter.requests.last.uri.queryParameters.containsKey('route'), isFalse);
     });
+
+    test('a 404 in the pretty form goes back to index.php', () async {
+      final html = {'content-type': ['text/html; charset=iso-8859-1']};
+      adapter.enqueue(_CannedResponse(302, '', headers: {'location': ['https://elsewhere/'], ...html}));
+      adapter.enqueue(_CannedResponse(404, 'Not Found', headers: html));
+      await expectLater(client.info('Famtree'), throwsA(isA<UnexpectedResponseException>()));
+      expect(client.usePrettyUrls, isTrue);
+
+      adapter.enqueue(_CannedResponse(404, 'Not Found', headers: html));
+      adapter.enqueue(_CannedResponse(200, '{"csrf":"t","rewriteUrls":false}'));
+      await client.info('Famtree');
+      expect(client.usePrettyUrls, isFalse);
+      expect(adapter.requests.last.uri.queryParameters['route'], '/module/_api4webtrees_/Info/Famtree');
+    });
   });
 
   group('language', () {
@@ -963,6 +977,16 @@ void main() {
       expect(await client.isWebtrees(), isTrue);
       expect(client.usePrettyUrls, isTrue);
       expect(adapter.requests, hasLength(2));
+    });
+
+    test('a wrong pretty guess goes back to index.php', () async {
+      client.usePrettyUrls = true;
+      adapter.enqueue(text(404, 'Not Found'));
+      adapter.enqueue(text(200, 'OK'));
+
+      expect(await client.isWebtrees(), isTrue);
+      expect(client.usePrettyUrls, isFalse);
+      expect(adapter.requests.last.uri.queryParameters['route'], '/ping');
     });
 
     test('ERROR comes as 503 and is still webtrees, anything else is not', () async {

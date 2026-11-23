@@ -286,7 +286,15 @@ class WebtreesClient {
   ///
   /// [lang] (e.g. "de") picks the language of the texts in `login`.
   Future<Map<String, dynamic>> info(String? tree, {String? lang}) async {
-    var response = await _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
+    Future<Response<dynamic>> get() => _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
+    var response = await get();
+    if (usePrettyUrls && response.data is! Map<String, dynamic>) {
+      // The pretty form may stem from one stray redirect (https, www, a
+      // proxy) on a server without pretty URLs - and would stay wrong for
+      // good, as only Info's rewriteUrls corrects it. Try index.php again.
+      usePrettyUrls = false;
+      response = await get();
+    }
     if (_isRedirect(response) && !usePrettyUrls) {
       // A server with "pretty URLs" redirects the index.php form - ask again
       // in its own form instead of following (its redirect may be wrong).
@@ -306,6 +314,8 @@ class WebtreesClient {
     return data;
   }
 
+  static bool _isPingAnswer(String? body) => const {'OK', 'WARNING', 'ERROR'}.contains(body?.trim());
+
   /// Whether this address is a webtrees site at all, via webtrees' own
   /// `/ping` route (there since 2.0, answers OK/WARNING/ERROR as plain
   /// text). Lets a failed `Info` tell "api4webtrees missing" apart from
@@ -317,11 +327,16 @@ class WebtreesClient {
         options: Options(responseType: ResponseType.plain),
       );
       var response = await ping();
+      if (usePrettyUrls && !_isPingAnswer(response.data)) {
+        // As in info(): don't stay stuck on a wrong guess.
+        usePrettyUrls = false;
+        response = await ping();
+      }
       if (_isRedirect(response) && !usePrettyUrls) {
         usePrettyUrls = true;
         response = await ping();
       }
-      return const {'OK', 'WARNING', 'ERROR'}.contains(response.data?.trim());
+      return _isPingAnswer(response.data);
     } on DioException catch (e, stackTrace) {
       DiagnosticLog.instance.error('webtrees_client', e, stackTrace);
       // ERROR comes as 503, which this client's validateStatus treats as an error.
