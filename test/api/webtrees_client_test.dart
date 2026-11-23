@@ -326,7 +326,9 @@ void main() {
 
   group('pretty URLs', () {
     test('a redirected Info switches to the pretty form and asks again', () async {
-      adapter.enqueue(_CannedResponse(308, '', headers: {'location': ['https://elsewhere/'], 'content-type': ['text/html']}));
+      adapter.enqueue(
+        _CannedResponse(308, '', headers: {'location': ['https://elsewhere/module/_api4webtrees_/Info'], 'content-type': ['text/html']}),
+      );
       adapter.enqueue(_CannedResponse(200, '{"csrf":"t","rewriteUrls":true}'));
       await client.info(null);
       expect(client.usePrettyUrls, isTrue);
@@ -336,16 +338,31 @@ void main() {
 
     test('a 404 in the pretty form goes back to index.php', () async {
       final html = {'content-type': ['text/html; charset=iso-8859-1']};
-      adapter.enqueue(_CannedResponse(302, '', headers: {'location': ['https://elsewhere/'], ...html}));
-      adapter.enqueue(_CannedResponse(404, 'Not Found', headers: html));
-      await expectLater(client.info('Famtree'), throwsA(isA<UnexpectedResponseException>()));
-      expect(client.usePrettyUrls, isTrue);
-
+      client.usePrettyUrls = true;
       adapter.enqueue(_CannedResponse(404, 'Not Found', headers: html));
       adapter.enqueue(_CannedResponse(200, '{"csrf":"t","rewriteUrls":false}'));
       await client.info('Famtree');
       expect(client.usePrettyUrls, isFalse);
       expect(adapter.requests.last.uri.queryParameters['route'], '/module/_api4webtrees_/Info/Famtree');
+    });
+
+    test('a tree the visitor cannot see (302 to the home page) asks Info without the tree', () async {
+      adapter.enqueue(
+        _CannedResponse(302, '', headers: {'location': ['https://tree.example.com/index.php?route=/'], 'content-type': ['text/html']}),
+      );
+      adapter.enqueue(_CannedResponse(200, '{"csrf":"t","rewriteUrls":false,"user":{"loggedIn":false}}'));
+      final info = await client.info('Famtree');
+      expect(client.usePrettyUrls, isFalse);
+      expect(info['user'], {'loggedIn': false});
+      expect(adapter.requests.last.uri.queryParameters['route'], '/module/_api4webtrees_/Info');
+    });
+
+    test('other redirects do not switch to pretty URLs', () async {
+      adapter.enqueue(
+        _CannedResponse(301, '', headers: {'location': ['https://www.tree.example.com/index.php?route=/module/_api4webtrees_/Info']}),
+      );
+      await expectLater(client.info(null), throwsA(isA<UnexpectedResponseException>()));
+      expect(client.usePrettyUrls, isFalse);
     });
   });
 

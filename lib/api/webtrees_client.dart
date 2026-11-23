@@ -235,19 +235,32 @@ class WebtreesClient {
     throw UnexpectedResponseException(response.statusCode);
   }
 
+  /// Whether [response] redirects to the pretty form of [route] - webtrees'
+  /// answer to the index.php form when "pretty URLs" are on (possibly with a
+  /// wrong subfolder). Other redirects - to https, to www, or webtrees' 302
+  /// to its home page for a tree the visitor can't see - mustn't switch.
+  static bool _isRedirectToPrettyForm(Response<dynamic> response, String route) {
+    final location = response.headers.value('location');
+    if (!_isRedirect(response) || location == null) return false;
+    final target = response.requestOptions.uri.resolve(location);
+    return !target.queryParameters.containsKey('route') && target.path.endsWith(Uri(path: route).path);
+  }
+
+  // Some actions (Pair, reached before any tree is even known) have no
+  // tree segment at all in their route - not an empty one. Mirrors the
+  // PHP side's own actionUrl($action, tree: null).
+  static String _moduleRoute(String action, String? tree, String moduleSlug) =>
+      tree == null || tree.isEmpty ? '/module/$moduleSlug/$action' : '/module/$moduleSlug/$action/$tree';
+
   Uri _moduleUri(
     String action,
     String? tree, [
     Map<String, dynamic>? query,
     String moduleSlug = '_api4webtrees_',
   ]) {
-    // Some actions (Pair, reached before any tree is even known) have no
-    // tree segment at all in their route - not an empty one. Mirrors the
-    // PHP side's own actionUrl($action, tree: null).
-    final route = tree == null || tree.isEmpty ? '/module/$moduleSlug/$action' : '/module/$moduleSlug/$action/$tree';
     return webtreesUrl(
       _baseUrl,
-      route,
+      _moduleRoute(action, tree, moduleSlug),
       usePrettyUrls: usePrettyUrls,
       query: {for (final e in (query ?? const {}).entries) e.key: '${e.value}'},
     );
@@ -288,18 +301,24 @@ class WebtreesClient {
   Future<Map<String, dynamic>> info(String? tree, {String? lang}) async {
     Future<Response<dynamic>> get() => _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
     var response = await get();
-    if (usePrettyUrls && response.data is! Map<String, dynamic>) {
+    if (usePrettyUrls && !_isRedirect(response) && response.data is! Map<String, dynamic>) {
       // The pretty form may stem from one stray redirect (https, www, a
       // proxy) on a server without pretty URLs - and would stay wrong for
       // good, as only Info's rewriteUrls corrects it. Try index.php again.
       usePrettyUrls = false;
       response = await get();
     }
-    if (_isRedirect(response) && !usePrettyUrls) {
+    if (!usePrettyUrls && _isRedirectToPrettyForm(response, _moduleRoute('Info', tree, '_api4webtrees_'))) {
       // A server with "pretty URLs" redirects the index.php form - ask again
       // in its own form instead of following (its redirect may be wrong).
       usePrettyUrls = true;
-      response = await _dio.getUri(_moduleUri('Info', tree, {'lang': ?lang}));
+      response = await get();
+    }
+    if (_isRedirect(response) && tree != null && tree.isNotEmpty) {
+      // webtrees sends a tree the visitor can't see (members only, the
+      // session expired) to its home page. Info covers every tree anyway.
+      tree = null;
+      response = await get();
     }
     final data = _json(response);
     if (data['rewriteUrls'] is bool) usePrettyUrls = data['rewriteUrls'] as bool;
@@ -332,7 +351,7 @@ class WebtreesClient {
         usePrettyUrls = false;
         response = await ping();
       }
-      if (_isRedirect(response) && !usePrettyUrls) {
+      if (!usePrettyUrls && _isRedirectToPrettyForm(response, '/ping')) {
         usePrettyUrls = true;
         response = await ping();
       }
