@@ -1,4 +1,1 @@
-- Below the age you see how the person is related to you
-- Family health: see, change and delete illnesses on the person's page – with their category
-- Family health: anyone who doesn't want to take part can be locked – then nobody sees their illnesses
-- Turn family health on in the tree's view menu; the filter offers only the categories of the people in view
+- Signing in works again when the session has expired and the tree is visible to members only

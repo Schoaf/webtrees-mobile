@@ -1,4 +1,1 @@
-- Unter dem Alter steht, wie die Person mit dir verwandt ist
-- Familiengesundheit: Erkrankungen auf der Personenseite sehen, ändern und löschen – mit Kategorie
-- Familiengesundheit: Wer nicht teilnehmen möchte, wird gesperrt – dann sieht niemand seine Erkrankungen
-- Familiengesundheit im Stammbaum direkt im Ansichtsmenü einschalten; der Filter zeigt nur die Kategorien der sichtbaren Personen
+- Anmelden klappt wieder, wenn die Sitzung abgelaufen ist und der Stammbaum nur für Mitglieder sichtbar ist

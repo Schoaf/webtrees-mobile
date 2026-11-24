@@ -1,4 +1,1 @@
-- Onder de leeftijd staat hoe de persoon aan je verwant is
-- Gezondheid in de familie: ziektes op de persoonspagina bekijken, wijzigen en verwijderen – met categorie
-- Gezondheid in de familie: wie niet wil meedoen, wordt afgeschermd – dan ziet niemand zijn ziektes
-- Gezondheid in de familie in de stamboom direct in het weergavemenu aanzetten; het filter toont alleen de categorieën van de zichtbare personen
+- Inloggen werkt weer als de sessie is verlopen en de stamboom alleen zichtbaar is voor leden
