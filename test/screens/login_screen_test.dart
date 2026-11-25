@@ -87,6 +87,20 @@ void main() {
     expect(find.text('Anmelden'), findsWidgets);
   });
 
+  testWidgets('lets the system password manager fill in username and password', (tester) async {
+    when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {});
+
+    await pumpScreen(tester);
+    await tester.pumpAndSettle();
+
+    final hints = tester.widgetList<TextField>(find.byType(TextField)).map((field) => field.autofillHints).toList();
+    expect(hints, [
+      [AutofillHints.username],
+      [AutofillHints.password],
+    ]);
+    expect(find.byType(AutofillGroup), findsOneWidget);
+  });
+
   testWidgets('shows the active server, and "Ändern" opens the server screen', (tester) async {
     when(() => client.info('Famtree', lang: any(named: 'lang'))).thenAnswer((_) async => {'api': 99, 'trees': <dynamic>[]});
 

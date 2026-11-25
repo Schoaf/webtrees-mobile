@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -119,6 +120,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final error = await ref
         .read(authControllerProvider.notifier)
         .login(_usernameController.text.trim(), _passwordController.text);
+    // Lets the system's password manager (Google, Samsung Pass, iCloud
+    // Keychain) offer to save what worked - or forget a wrong attempt.
+    TextInput.finishAutofillContext(shouldSave: error == null);
 
     if (!mounted) return;
     setState(() {
@@ -141,188 +145,192 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight - 80,
                   ),
-                  child: Column(
-                    children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        width: 220,
-                        fit: BoxFit.contain,
-                      ),
-                      if (_treeTitle != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _treeTitle!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textTertiary,
+                  child: AutofillGroup(
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 220,
+                          fit: BoxFit.contain,
+                        ),
+                        if (_treeTitle != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _treeTitle!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
+                        if (_isApiTooOld) ...[
+                          const SizedBox(height: 16),
+                          SelectionArea(
+                            child: LinkedText(
+                              l10n.serverErrorModuleTooOld(minApiVersionName),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_welcomeMessage != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            _welcomeMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                l10n.serverLabel(
+                                  Uri.parse(ref.watch(serverUrlProvider)).host,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textTertiary,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _changeServer,
+                              child: Text(l10n.changeServerButton),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        TextField(
+                          controller: _usernameController,
+                          decoration: InputDecoration(labelText: l10n.username),
+                          autofillHints: const [AutofillHints.username],
+                          textInputAction: TextInputAction.next,
+                        ),
+                        const SizedBox(height: 18),
+                        TextField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: l10n.passwordLabel,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _passwordVisible
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
+                              onPressed: () => setState(
+                                () => _passwordVisible = !_passwordVisible,
+                              ),
+                            ),
+                          ),
+                          obscureText: !_passwordVisible,
+                          autofillHints: const [AutofillHints.password],
+                          onSubmitted: (_) => _submit(),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                            onPressed: () => launchUrl(
+                              siteUrl(passwordRequestUrl(ref), mobile: true),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            child: Text(l10n.forgotPasswordLink),
                           ),
                         ),
-                      ],
-                      if (_isApiTooOld) ...[
-                        const SizedBox(height: 16),
-                        SelectionArea(
-                          child: LinkedText(
-                            l10n.serverErrorModuleTooOld(minApiVersionName),
+                        const SizedBox(height: 8),
+                        if (_error != null) ...[
+                          Text(
+                            _error!.message(l10n),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.error,
                             ),
                           ),
-                        ),
-                      ],
-                      if (_welcomeMessage != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          _welcomeMessage!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              l10n.serverLabel(
-                                Uri.parse(ref.watch(serverUrlProvider)).host,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: _changeServer,
-                            child: Text(l10n.changeServerButton),
-                          ),
+                          const SizedBox(height: 12),
                         ],
-                      ),
-                      const SizedBox(height: 28),
-                      TextField(
-                        controller: _usernameController,
-                        decoration: InputDecoration(labelText: l10n.username),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 18),
-                      TextField(
-                        controller: _passwordController,
-                        decoration: InputDecoration(
-                          labelText: l10n.passwordLabel,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _passwordVisible
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                            ),
-                            onPressed: () => setState(
-                              () => _passwordVisible = !_passwordVisible,
-                            ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: _loading ? null : _submit,
+                            child: _loading
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(l10n.loginButton),
                           ),
                         ),
-                        obscureText: !_passwordVisible,
-                        onSubmitted: (_) => _submit(),
-                      ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () => launchUrl(
-                            siteUrl(passwordRequestUrl(ref), mobile: true),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                          child: Text(l10n.forgotPasswordLink),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_error != null) ...[
-                        Text(
-                          _error!.message(l10n),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _loading ? null : _submit,
-                          child: _loading
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                        const SizedBox(height: 8),
+                        if (_isSelfRegistrationAllowed)
+                          TextButton(
+                            onPressed: _isInAppRegistrationSupported
+                                ? () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          RegisterScreen(registrationTerms: _registrationTerms),
+                                    ),
+                                  )
+                                : () => launchUrl(
+                                    siteUrl(registerPageUrl(ref), mobile: true),
+                                    mode: LaunchMode.externalApplication,
                                   ),
-                                )
-                              : Text(l10n.loginButton),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_isSelfRegistrationAllowed)
-                        TextButton(
-                          onPressed: _isInAppRegistrationSupported
-                              ? () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        RegisterScreen(registrationTerms: _registrationTerms),
-                                  ),
-                                )
-                              : () => launchUrl(
-                                  siteUrl(registerPageUrl(ref), mobile: true),
-                                  mode: LaunchMode.externalApplication,
-                                ),
-                          child: Text(
-                            l10n.registerLink,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      const SizedBox(height: 48),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 12,
-                        children: [
-                          TextButton.icon(
-                            onPressed: () => launchUrl(
-                              siteUrl(ref.read(serverUrlProvider), mobile: false),
-                              mode: LaunchMode.externalApplication,
+                            child: Text(
+                              l10n.registerLink,
+                              style: const TextStyle(fontSize: 16),
                             ),
-                            icon: const Icon(Icons.open_in_new, size: 16),
-                            label: Text(l10n.openFullWebsite),
                           ),
-                          if (isModuleAvailable(ref, privacyPolicyModule))
+                        const SizedBox(height: 48),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          children: [
                             TextButton.icon(
                               onPressed: () => launchUrl(
-                                siteUrl(privacyPolicyUrl(ref), mobile: true),
+                                siteUrl(ref.read(serverUrlProvider), mobile: false),
                                 mode: LaunchMode.externalApplication,
                               ),
-                              icon: const Icon(
-                                Icons.privacy_tip_outlined,
-                                size: 16,
-                              ),
-                              label: Text(l10n.privacyPolicy),
+                              icon: const Icon(Icons.open_in_new, size: 16),
+                              label: Text(l10n.openFullWebsite),
                             ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      DiagnosticLogSettings(serverUrl: ref.read(serverUrlProvider)),
-                      if (_appVersion != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.appVersion(_appVersion!),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textTertiary,
-                          ),
+                            if (isModuleAvailable(ref, privacyPolicyModule))
+                              TextButton.icon(
+                                onPressed: () => launchUrl(
+                                  siteUrl(privacyPolicyUrl(ref), mobile: true),
+                                  mode: LaunchMode.externalApplication,
+                                ),
+                                icon: const Icon(
+                                  Icons.privacy_tip_outlined,
+                                  size: 16,
+                                ),
+                                label: Text(l10n.privacyPolicy),
+                              ),
+                          ],
                         ),
+                        const SizedBox(height: 12),
+                        DiagnosticLogSettings(serverUrl: ref.read(serverUrlProvider)),
+                        if (_appVersion != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.appVersion(_appVersion!),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
