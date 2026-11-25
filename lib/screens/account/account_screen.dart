@@ -515,6 +515,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                                 await ref
                                     .read(biometricAuthProvider)
                                     .setEnabled(value);
+                                // The lock guards the device token that
+                                // keeps this device signed in.
+                                final auth = ref.read(authControllerProvider.notifier);
+                                await (value ? auth.rememberDevice() : auth.forgetDevice());
                                 if (mounted) {
                                   setState(() => _biometricEnabled = value);
                                 }

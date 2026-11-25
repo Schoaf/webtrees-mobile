@@ -450,6 +450,45 @@ class WebtreesClient {
     return _json(response);
   }
 
+  /// `POST Device {deviceName}` (api4webtrees level 47, signed in): a
+  /// device token, so this device can sign in again without the password
+  /// once the server has dropped the session - see [signInWithDeviceToken].
+  /// Answer `{ok, deviceToken}` or `{ok: false, error}`.
+  Future<Map<String, dynamic>> issueDeviceToken(String deviceName) async {
+    final response = await _dio.postUri(
+      _moduleUri('Device', null),
+      data: {'deviceName': deviceName},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    return _json(response);
+  }
+
+  /// `POST Device {deviceToken}`: signs this session in as the token's
+  /// user. The answer's `deviceToken` replaces the one sent - store it at
+  /// once. Errors: `device-invalid`, `device-expired`, `device-revoked`
+  /// (the token is gone) and `device-busy` (try again).
+  Future<Map<String, dynamic>> signInWithDeviceToken(String token) async {
+    final response = await _dio.postUri(
+      _moduleUri('Device', null),
+      data: {'deviceToken': token},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+    final data = _json(response);
+    final csrf = data['csrf'];
+    if (csrf is String) _csrfToken = csrf;
+    return data;
+  }
+
+  /// `POST DeviceDelete {deviceToken}`: disconnects this device on the
+  /// server. Always answers `{ok: true}`.
+  Future<void> deleteDeviceToken(String token) async {
+    await _dio.postUri(
+      _moduleUri('DeviceDelete', null),
+      data: {'deviceToken': token},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+  }
+
   Future<Map<String, dynamic>> individuals(
     String tree, {
     String? query,

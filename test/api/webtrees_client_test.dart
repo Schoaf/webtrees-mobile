@@ -366,6 +366,33 @@ void main() {
     });
   });
 
+  group('device token', () {
+    test('issues a token for this device', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true,"deviceToken":"t1"}'));
+      final result = await client.issueDeviceToken('webtrees-mobile (Android)');
+      expect(result['deviceToken'], 't1');
+      expect(adapter.requests.single.uri.queryParameters['route'], '/module/_api4webtrees_/Device');
+      expect(adapter.requests.single.data, {'deviceName': 'webtrees-mobile (Android)'});
+    });
+
+    test('signing in with a token takes the CSRF token of the new session', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true,"deviceToken":"t2","csrf":"new"}'));
+      adapter.enqueue(_CannedResponse(200, '{}'));
+      final result = await client.signInWithDeviceToken('t1');
+      expect(result['deviceToken'], 't2');
+      expect(adapter.requests.first.data, {'deviceToken': 't1'});
+      await client.individual('Famtree', 'I1');
+      expect(adapter.requests.last.headers['X-CSRF-TOKEN'], 'new');
+    });
+
+    test('disconnects the device', () async {
+      adapter.enqueue(_CannedResponse(200, '{"ok":true}'));
+      await client.deleteDeviceToken('t1');
+      expect(adapter.requests.single.uri.queryParameters['route'], '/module/_api4webtrees_/DeviceDelete');
+      expect(adapter.requests.single.data, {'deviceToken': 't1'});
+    });
+  });
+
   group('language', () {
     test('sends the app language as lang with every request', () async {
       client.language = 'en';

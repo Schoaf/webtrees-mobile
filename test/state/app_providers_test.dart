@@ -441,6 +441,81 @@ void main() {
     });
   });
 
+  group('device token (api4webtrees level 47)', () {
+    const loggedIn = {'loggedIn': true, 'userName': 'bob'};
+
+    test('signing in with the biometric lock on gets a token', () async {
+      secureStore['biometric_lock_enabled'] = '1';
+      var calls = 0;
+      when(() => client.info('Famtree')).thenAnswer((_) async {
+        calls++;
+        return calls == 1 ? {'csrf': 'tok'} : {'api': 47, 'user': loggedIn};
+      });
+      when(() => client.login(username: 'bob', password: 'pw')).thenAnswer((_) async => true);
+      when(() => client.sessionCookie).thenReturn('c');
+      when(() => client.issueDeviceToken(any())).thenAnswer((_) async => {'ok': true, 'deviceToken': 't1'});
+
+      expect(await container.read(authControllerProvider.notifier).login('bob', 'pw'), isNull);
+      expect(secureStore['wt_device_token'], 't1');
+    });
+
+    test('without the biometric lock, or on an older server, there is no token', () async {
+      when(() => client.info('Famtree')).thenAnswer((_) async => {'api': 47, 'user': loggedIn});
+      when(() => client.login(username: 'bob', password: 'pw')).thenAnswer((_) async => true);
+      when(() => client.sessionCookie).thenReturn('c');
+
+      await container.read(authControllerProvider.notifier).login('bob', 'pw');
+      secureStore['biometric_lock_enabled'] = '1';
+      when(() => client.info('Famtree')).thenAnswer((_) async => {'api': 46, 'user': loggedIn});
+      await container.read(authControllerProvider.notifier).login('bob', 'pw');
+
+      verifyNever(() => client.issueDeviceToken(any()));
+      expect(secureStore.containsKey('wt_device_token'), isFalse);
+    });
+
+    test('a dropped session signs in again with the token and keeps the next one', () async {
+      secureStore['wt_session_cookie'] = 'wtcookie=stale';
+      secureStore['wt_device_token'] = 't1';
+      when(() => client.restoreSession(cookie: 'wtcookie=stale')).thenReturn(null);
+      var calls = 0;
+      when(() => client.info('Famtree')).thenAnswer((_) async {
+        calls++;
+        return {'user': calls == 1 ? {'loggedIn': false} : loggedIn};
+      });
+      when(() => client.signInWithDeviceToken('t1')).thenAnswer((_) async => {'ok': true, 'deviceToken': 't2'});
+      when(() => client.sessionCookie).thenReturn('wtcookie=new');
+
+      await container.read(authControllerProvider.notifier).tryRestoreSession();
+
+      expect(container.read(authControllerProvider).loggedIn, isTrue);
+      expect(secureStore['wt_device_token'], 't2');
+      expect(secureStore['wt_session_cookie'], 'wtcookie=new');
+      verifyNever(() => client.clearSession());
+    });
+
+    test('a token the server no longer accepts is dropped and the login screen stays', () async {
+      secureStore['wt_device_token'] = 't1';
+      when(() => client.info('Famtree')).thenAnswer((_) async => {'user': {'loggedIn': false}});
+      when(() => client.signInWithDeviceToken('t1')).thenAnswer((_) async => {'ok': false, 'error': 'device-expired'});
+
+      await container.read(authControllerProvider.notifier).tryRestoreSession();
+
+      expect(container.read(authControllerProvider).loggedIn, isFalse);
+      expect(secureStore.containsKey('wt_device_token'), isFalse);
+    });
+
+    test('signing out disconnects the device on the server', () async {
+      secureStore['wt_device_token'] = 't1';
+      when(() => client.deleteDeviceToken('t1')).thenAnswer((_) async {});
+      when(() => client.clearSession()).thenReturn(null);
+
+      await container.read(authControllerProvider.notifier).logout();
+
+      verify(() => client.deleteDeviceToken('t1')).called(1);
+      expect(secureStore.containsKey('wt_device_token'), isFalse);
+    });
+  });
+
   group('clearSecureStorageAfterReinstall', () {
     test('a fresh install (no marker) wipes what iOS kept in the Keychain', () async {
       SharedPreferences.setMockInitialValues({});

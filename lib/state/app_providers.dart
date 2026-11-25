@@ -232,6 +232,10 @@ const photoRotateApiLevel = 41;
 /// Writing the parts of a name (GIVN, SURN ...) on their own (api4webtrees 1.29.0, issue #28).
 const namePartsApiLevel = 46;
 
+/// Device tokens: stay signed in after the server dropped the session
+/// (api4webtrees 1.30.0).
+const deviceTokenApiLevel = 47;
+
 /// Whether the server has at least API [level] - unknown counts as no, as
 /// these are new routes the server would not answer.
 bool isApiAtLeast(WidgetRef ref, int level) => (ref.watch(apiLevelProvider).value ?? 0) >= level;
@@ -394,6 +398,11 @@ AuthError _authErrorFromDioException(DioException e) => switch (e.type) {
 };
 
 const _kAccountLanguageAdoptedKey = 'account_language_adopted';
+const _kDeviceTokenKey = 'wt_device_token';
+
+/// How this device shows on the server's list of connected devices
+/// (api4webtrees page "App", up to 32 characters).
+String get _deviceName => 'webtrees-mobile (${Platform.isIOS ? 'iOS' : 'Android'})';
 
 class AuthController extends Notifier<AuthState> {
   @override
@@ -434,6 +443,7 @@ class AuthController extends Notifier<AuthState> {
 
       await _saveSession(client);
       await _adoptAccountLanguage(user);
+      await _rememberDevice(client, info);
       state = AuthState(
         loggedIn: true,
         userName: user['userName'] as String?,
@@ -470,6 +480,7 @@ class AuthController extends Notifier<AuthState> {
 
       await _saveSession(client);
       await _adoptAccountLanguage(user);
+      await _rememberDevice(client, info);
       state = AuthState(
         loggedIn: true,
         userName: user['userName'] as String?,
@@ -566,9 +577,91 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await forgetDevice();
     ref.read(webtreesClientProvider).clearSession();
     await _secureStorage.delete(key: 'wt_session_cookie');
     state = const AuthState();
+  }
+
+  /// With the biometric lock on, the device gets a token from the server
+  /// (api4webtrees [deviceTokenApiLevel]) to sign in again once the
+  /// server has dropped the session - the lock screen still guards it.
+  /// Never fails a sign-in: without a token the login screen comes back.
+  Future<void> _rememberDevice(WebtreesClient client, Map<String, dynamic> info) async {
+    try {
+      if ((info['api'] as int? ?? 0) < deviceTokenApiLevel) return;
+      if (!await ref.read(biometricAuthProvider).isEnabled()) return;
+      if (await _secureStorage.read(key: _kDeviceTokenKey) != null) return;
+      final result = await client.issueDeviceToken(_deviceName);
+      final token = result['deviceToken'];
+      DiagnosticLog.instance.info('Device token: issued=${token is String}');
+      if (token is String) await _secureStorage.write(key: _kDeviceTokenKey, value: token);
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
+    }
+  }
+
+  /// For switching the biometric lock on while signed in.
+  Future<void> rememberDevice() async {
+    final client = ref.read(webtreesClientProvider);
+    try {
+      await _rememberDevice(client, await client.info(ref.read(treeNameProvider)));
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
+    }
+  }
+
+  /// Disconnects this device on the server and drops its token - on
+  /// signing out and on switching the biometric lock off.
+  Future<void> forgetDevice() async {
+    final token = await _readDeviceToken();
+    if (token == null) return;
+    await _secureStorage.delete(key: _kDeviceTokenKey);
+    try {
+      await ref.read(webtreesClientProvider).deleteDeviceToken(token);
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
+    }
+  }
+
+  Future<String?> _readDeviceToken() async {
+    try {
+      return await _secureStorage.read(key: _kDeviceTokenKey);
+    } on Exception catch (error, stackTrace) {
+      DiagnosticLog.instance.error('app_providers', error, stackTrace);
+      return null;
+    }
+  }
+
+  /// Signs in with the device token after the server dropped the session.
+  /// Every answer but `device-busy` (tried once more) that isn't a sign-in
+  /// means the token is gone: drop it, the login screen asks for the
+  /// password.
+  Future<bool> _signInWithDeviceToken(WebtreesClient client, String token, String tree) async {
+    var result = await client.signInWithDeviceToken(token);
+    if (result['error'] == 'device-busy') {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      result = await client.signInWithDeviceToken(token);
+    }
+    final next = result['deviceToken'];
+    DiagnosticLog.instance.info('Session restore: device token ok=${result['ok']} error=${result['error']}');
+    if (result['ok'] != true || next is! String) {
+      if (result['error'] != 'device-busy') await _secureStorage.delete(key: _kDeviceTokenKey);
+      return false;
+    }
+    await _secureStorage.write(key: _kDeviceTokenKey, value: next);
+
+    final info = await client.info(tree);
+    final user = info['user'] as Map<String, dynamic>;
+    if (user['loggedIn'] != true) return false;
+    await _saveSession(client);
+    state = AuthState(
+      loggedIn: true,
+      userName: user['userName'] as String?,
+      realName: user['realName'] as String?,
+      isAdmin: user['isAdmin'] as bool? ?? false,
+    );
+    return true;
   }
 
   /// Try to resume a session saved from a previous launch.
@@ -582,11 +675,12 @@ class AuthController extends Notifier<AuthState> {
       DiagnosticLog.instance.error('app_providers', error, stackTrace);
       return; // secure storage unavailable — fall back to the login screen
     }
-    DiagnosticLog.instance.info('Session restore: saved session=${cookie != null}');
-    if (cookie == null) return;
+    final deviceToken = await _readDeviceToken();
+    DiagnosticLog.instance.info('Session restore: saved session=${cookie != null}, device token=${deviceToken != null}');
+    if (cookie == null && deviceToken == null) return;
 
     final client = ref.read(webtreesClientProvider);
-    client.restoreSession(cookie: cookie);
+    if (cookie != null) client.restoreSession(cookie: cookie);
 
     final tree = ref.read(treeNameProvider);
     try {
@@ -600,7 +694,11 @@ class AuthController extends Notifier<AuthState> {
           realName: user['realName'] as String?,
           isAdmin: user['isAdmin'] as bool? ?? false,
         );
-      } else {
+        return;
+      }
+      // Info just set up a guest session with a CSRF token for this POST.
+      if (deviceToken != null && await _signInWithDeviceToken(client, deviceToken, tree)) return;
+      if (cookie != null) {
         client.clearSession();
         await _secureStorage.delete(key: 'wt_session_cookie');
       }
