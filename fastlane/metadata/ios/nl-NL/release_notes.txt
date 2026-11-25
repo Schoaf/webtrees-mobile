@@ -1,1 +1,2 @@
-- Inloggen werkt weer als de sessie is verlopen en de stamboom alleen zichtbaar is voor leden
+- Eenvoudig inloggen met vingerafdruk of Face ID
+- Ondersteunt de wachtwoordbeheerder van je systeem

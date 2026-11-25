@@ -1,1 +1,2 @@
-- Signing in works again when the session has expired and the tree is visible to members only
+- Easy sign-in with fingerprint or Face ID
+- Supports your system's password manager

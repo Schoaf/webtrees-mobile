@@ -1,1 +1,2 @@
-- Anmelden klappt wieder, wenn die Sitzung abgelaufen ist und der Stammbaum nur für Mitglieder sichtbar ist
+- Einfache Anmeldung per Fingerabdruck oder Face ID
+- Unterstützt den Passwort-Manager des Systems
